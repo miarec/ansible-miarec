@@ -1,3 +1,4 @@
 secrets.yml
 ansible.log
 *.retry
+/hosts
