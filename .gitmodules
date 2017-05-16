@@ -1,0 +1,27 @@
+[submodule "roles/miarecweb"]
+	path = roles/miarecweb
+	url = https://github.com/miarec/ansible-role-miarecweb
+[submodule "roles/miarec"]
+	path = roles/miarec
+	url = https://github.com/miarec/ansible-role-miarec
+[submodule "roles/iptables"]
+	path = roles/iptables
+	url = https://github.com/miarec/ansible-role-iptables
+[submodule "roles/apache-wsgi"]
+	path = roles/apache-wsgi
+	url = https://github.com/miarec/ansible-apache-wsgi
+[submodule "roles/python"]
+	path = roles/python
+	url = https://github.com/miarec/ansible-python
+[submodule "roles/apache"]
+	path = roles/apache
+	url = https://github.com/miarec/ansible-role-apache
+[submodule "roles/postgresql"]
+	path = roles/postgresql
+	url = https://github.com/miarec/ansible-postgresql
+[submodule "roles/redis"]
+	path = roles/redis
+	url = https://github.com/miarec/ansible-redis
+[submodule "roles/disable-selinux"]
+	path = roles/disable-selinux
+	url = https://github.com/miarec/ansible-role-disable-selinux
