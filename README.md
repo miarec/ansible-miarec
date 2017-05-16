@@ -63,7 +63,7 @@ Ansible can be installed via “pip”, the Python package manager. If ‘pip’ isn’t a
 sudo easy_install pip
 ```
 
-Then install Ansible with [1]:
+Then install Ansible with:
 
 ``` bash
 sudo pip install ansible
