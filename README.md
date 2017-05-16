@@ -32,14 +32,14 @@ Or you can run it from remote host.
 
 Running of Ansible remotely is required when you deploy MiaRec on multiple-servers using decoupled architecture. In this case, you can update multiple servers in one click (see the Figure 3).
 
-**Figure 2. Run Ansible remotely**
+**Figure 3. Run Ansible remotely to deploy multiple target servers simultaneously**
 
 <pre>
                                         +-------------------+                   
                               +-------> | MiaRec (recorder) |                   
                               |         +-------------------+                   
                               |                                               
-    +----------------+        |          +-------------------+                   
+    +----------------+        |         +-------------------+                   
     |    Ansible     |--------+-------> |  MiaRecWeb host   |                   
     +----------------+        |         +-------------------+                   
                               |                                               
