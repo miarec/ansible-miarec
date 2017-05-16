@@ -1,0 +1,56 @@
+# --------------------------------------
+# Basic settings
+# --------------------------------------
+postgresql_version: 9.5
+postgresql_add_to_path: true
+postgresql_ext_install_dev_headers: true
+
+  
+miarec_db_name: "miarecdb"
+miarec_db_user: "miarec"
+miarec_db_password: "{{ secret_db_password | default('password') }}"
+
+# Define similar variables for MiaRecWeb role
+miarecweb_db_name: "{{ miarec_db_name }}"
+miarecweb_db_user: "{{ miarec_db_user }}"
+miarecweb_db_password: "{{ miarec_db_password }}"
+
+# --------------------------------------
+# pg_hba.conf
+# --------------------------------------
+postgresql_default_auth_method: "ident"
+
+# Override the defautl 'posgresql_pg_hba_default' option. Otherwise, the 'postgresql_pg_hba_custom' will not work (because they are placed below in file)
+postgresql_pg_hba_default:
+  - { type: local, database: all, user: '{{ postgresql_admin_user }}', address: '', method: '{{ postgresql_default_auth_method }}', comment: '' }
+  
+postgresql_pg_hba_custom:
+  - { type: host,  database: all, user: "{{ miarec_db_user }}", address: '127.0.0.1/32', method: 'md5', comment: 'IPv4 local connections:' }
+  - { type: host,  database: all, user: "{{ miarec_db_user }}", address: '::1/128',      method: 'md5', comment: 'IPv6 local connections:' }
+
+  
+# --------------------------------------
+# List of databases to be created
+# --------------------------------------
+postgresql_databases:
+  - name: "{{ miarec_db_name }}"
+    owner: "{{ miarec_db_user }}"
+  
+
+# --------------------------------------
+# List of database extensions to be created
+# --------------------------------------
+postgresql_database_extensions:
+  - db: "{{ miarec_db_name }}"
+    extensions:
+      - hstore 
+      - uuid-ossp
+     
+
+# --------------------------------------
+# List of users to be created
+# --------------------------------------
+postgresql_users:
+  - name: "{{ miarec_db_user }}"
+    pass: "{{ miarec_db_password }}"
+    encrypted: no       # denotes if the password is already encrypted.

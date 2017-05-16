@@ -1,0 +1,12 @@
+- name: Deploy MiaRec application
+  hosts: miarec
+  vars_files:
+    - ../../vars/postgresql.yml
+    - ../../vars/python.yml
+  become: yes
+  vars:
+    miarecweb_version: 5.2.0.2119
+    miarec_version: 5.2.1.169
+  roles:
+    - miarecweb
+    - miarec
