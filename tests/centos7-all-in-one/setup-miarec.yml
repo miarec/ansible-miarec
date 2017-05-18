@@ -5,8 +5,8 @@
     - ../../vars/python.yml
   become: yes
   vars:
-    miarecweb_version: 6.0.0.70
-    miarec_version: 6.0.0.54
+    miarecweb_version: 6.0.0.54
+    miarec_version: 6.0.0.10
   roles:
     - miarecweb
     - miarec
