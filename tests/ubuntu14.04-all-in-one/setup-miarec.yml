@@ -8,5 +8,5 @@
     miarecweb_version: 6.0.0.54
     miarec_version: 5.2.1.155
   roles:
-    - miarecweb
-    - miarec
+    - {role: 'miarecweb', tags: 'miarecweb' }
+    - {role: 'miarec', tags: 'miarec' }
