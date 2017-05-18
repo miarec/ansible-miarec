@@ -1,0 +1,6 @@
+vagrant-miarec ansible_ssh_host=192.168.66.13
+
+[miarec]
+vagrant-miarec
+
+
