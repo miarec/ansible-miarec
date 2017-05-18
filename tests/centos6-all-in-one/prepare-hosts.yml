@@ -1,0 +1,23 @@
+- name: Prepare server
+  hosts: miarec
+  vars_files:
+    - ../../vars/postgresql.yml
+    - ../../vars/python.yml
+    - ../../vars/redis.yml
+    - ../../vars/apache.yml
+    - ../../vars/iptables.yml
+  become: yes
+  vars:
+    miarecweb_version: no
+    miarec_version: yes
+  roles:
+    - disable-selinux
+    - postgresql
+    - python
+    - redis
+    - apache
+    - apache-wsgi
+    - iptables
+
+
+
