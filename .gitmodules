@@ -25,3 +25,6 @@
 [submodule "roles/disable-selinux"]
 	path = roles/disable-selinux
 	url = https://github.com/miarec/ansible-role-disable-selinux
+[submodule "roles/miarec-screen"]
+	path = roles/miarec-screen
+	url = https://github.com/miarec/ansible-role-miarec-screen

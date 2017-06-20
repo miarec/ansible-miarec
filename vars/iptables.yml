@@ -30,3 +30,9 @@ iptables_custom_rules:
   - name: open_ciscobib_rtp
     rules: '-A INPUT -p udp --dport 20000:21999 -j ACCEPT'
     state: present
+  - name: open_screenrec_controller_tcp
+    rules: '-A INPUT -p tcp --dport 6091 -j ACCEPT'
+    state: present
+  - name: open_screenrec_controller_tls
+    rules: '-A INPUT -p tcp --dport 6092 -j ACCEPT'
+    state: present

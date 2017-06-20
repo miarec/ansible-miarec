@@ -7,6 +7,8 @@
   vars:
     miarecweb_version: 6.0.0.54
     miarec_version: 6.0.0.10
+    miarec_screen_version: 1.1.0.11
   roles:
     - miarecweb
     - miarec
+    - miarec-screen
