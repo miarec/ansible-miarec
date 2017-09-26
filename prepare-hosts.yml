@@ -13,6 +13,5 @@
     - {role: 'python', tags: 'python' }
     - {role: 'redis', tags: 'redis' }
     - {role: 'apache', tags: 'apache' }
-    - {role: 'apache-wsgi', tags: 'apache-wsgi' }
     - {role: 'iptables', tags: 'iptables' }
 

@@ -5,8 +5,10 @@
     - ../../vars/python.yml
   become: yes
   vars:
-    miarecweb_version: 6.0.0.54
-    miarec_version: 5.2.1.155
+    miarecweb_version: 6.0.0.189
+    miarec_version: 6.0.0.33
+    miarec_screen_version: 1.1.0.17
   roles:
     - {role: 'miarecweb', tags: 'miarecweb' }
-    - {role: 'miarec', tags: 'miarec' }
+    - {role: 'miarec', tags: 'miarec' } 
+    - {role: 'miarec-screen', tags: 'miarec-screen' }      

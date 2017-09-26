@@ -7,9 +7,6 @@
 [submodule "roles/iptables"]
 	path = roles/iptables
 	url = https://github.com/miarec/ansible-role-iptables
-[submodule "roles/apache-wsgi"]
-	path = roles/apache-wsgi
-	url = https://github.com/miarec/ansible-apache-wsgi
 [submodule "roles/python"]
 	path = roles/python
 	url = https://github.com/miarec/ansible-python

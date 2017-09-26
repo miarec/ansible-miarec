@@ -7,16 +7,12 @@
     - ../../vars/apache.yml
     - ../../vars/iptables.yml
   become: yes
-  vars:
-    miarecweb_version: no
-    miarec_version: yes
   roles:
     - {role: 'disable-selinux', tags: 'disable-selinux' }
     - {role: 'postgresql', tags: 'postgresql' }
     - {role: 'python', tags: 'python' }
     - {role: 'redis', tags: 'redis' }
     - {role: 'apache', tags: 'apache' }
-    - {role: 'apache-wsgi', tags: 'apache-wsgi' }
     - {role: 'iptables', tags: 'iptables' }
 
 
