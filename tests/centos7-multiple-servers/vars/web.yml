@@ -1,0 +1,15 @@
+# -------------------------------------------------
+# Firewall configuration for Web server
+# Here we allow inbound connections from recorder and web servers
+# -------------------------------------------------
+iptables_keep_unmanaged: yes
+iptables_custom_rules:
+  - name: open_web_http_port
+    rules: "-A INPUT -p tcp --dport 80 -j ACCEPT"
+    state: present
+  - name: open_web_https_port
+    rules: "-A INPUT -p tcp --dport 443 -j ACCEPT"
+    state: present
+
+miarecweb_redis_host: "{{ hostvars[groups['redis'][0]].ansible_eth1.ipv4.address }}"
+miarecweb_db_host: "{{ hostvars[groups['db'][0]].ansible_eth1.ipv4.address }}"

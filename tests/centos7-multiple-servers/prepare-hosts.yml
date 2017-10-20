@@ -1,0 +1,60 @@
+- name: Gather facts of all hosts
+  hosts: all
+  gather_facts: True
+  tasks:
+    - debug: var=ansible_distribution
+
+- name: Prepare database host
+  hosts: db
+  vars_files:
+    - ../../vars/postgresql.yml
+    - vars/postgresql.yml
+    - vars/secrets.yml
+    # - ../../vars/python.yml
+    # - ../../vars/redis.yml
+    # - ../../vars/apache.yml
+    # - ../../vars/iptables.yml
+  become: yes
+  roles:
+    - {role: 'disable-selinux', tags: 'disable-selinux' }
+    - {role: 'postgresql', tags: 'postgresql' }
+    - {role: 'iptables', tags: 'iptables' } 
+
+
+
+- name: Prepare redis host
+  hosts: redis
+  vars_files:
+    - ../../vars/redis.yml
+    - vars/redis.yml
+    - vars/secrets.yml
+  become: yes
+  roles:
+    - {role: 'disable-selinux', tags: 'disable-selinux' }
+    - {role: 'redis', tags: 'redis' }
+    - {role: 'iptables', tags: 'iptables' } 
+
+
+- name: Prepare web host
+  hosts: web
+  vars_files:
+    - ../../vars/apache.yml
+    - ../../vars/python.yml
+    - vars/web.yml
+    - vars/secrets.yml
+  become: yes
+  roles:
+    - {role: 'disable-selinux', tags: 'disable-selinux' }
+    - {role: 'apache', tags: 'apache' }
+    - {role: 'python', tags: 'python' }
+    - {role: 'iptables', tags: 'iptables' } 
+
+
+- name: Prepare recorder host
+  hosts: recorder
+  vars_files:
+    - vars/recorder.yml
+  become: yes
+  roles:
+    - {role: 'disable-selinux', tags: 'disable-selinux' }
+    - {role: 'iptables', tags: 'iptables' } 

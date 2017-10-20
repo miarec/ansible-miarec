@@ -1,0 +1,36 @@
+- name: Gather facts of all hosts
+  hosts: all
+  gather_facts: True
+
+- name: Deploy MiaRec Web application
+  hosts: web
+  vars_files:
+    - ../../vars/postgresql.yml
+    - ../../vars/python.yml
+    - vars/web.yml
+    - vars/secrets.yml
+  become: yes
+  pre_tasks:
+    - debug: var=miarecweb_db_host
+    - debug: var=miarecweb_redis_host
+  vars:
+    miarecweb_version: 6.0.0.189
+  roles:
+    - {role: 'miarecweb', tags: 'miarecweb' }
+
+    
+- name: Deploy MiaRec Recorder application
+  hosts: recorder
+  vars_files:
+    - ../../vars/postgresql.yml
+    - vars/recorder.yml
+    - vars/secrets.yml
+  become: yes
+  pre_tasks:
+    - debug: var=miarecweb_db_host
+    - debug: var=miarecweb_redis_host
+    - debug: var=miarec_db_password
+  vars:
+    miarec_version: 6.0.0.31
+  roles:
+    - {role: 'miarec', tags: 'miarec' }

@@ -1,0 +1,21 @@
+---
+# The variables file used by the playbooks in the redis group.
+
+## Networking/connection options (bind to all interfaces)
+redis_bind: 0.0.0.0 
+
+# -------------------------------------------------
+# Firewall configuration for Redis server
+# Here we allow inbound connections from recorder and web servers
+# -------------------------------------------------
+iptables_keep_unmanaged: yes
+iptables_custom_rules:
+  - name: open_redis_port_rec1
+    rules: "-A INPUT -p tcp --dport {{ redis_port }} -s {{ hostvars['rec1.miarec'].ansible_eth1.ipv4.address }} -j ACCEPT"
+    state: present
+  - name: open_redis_port_rec2
+    rules: "-A INPUT -p tcp --dport {{ redis_port }} -s {{ hostvars['rec2.miarec'].ansible_eth1.ipv4.address }} -j ACCEPT"
+    state: present
+  - name: open_redis_port_web
+    rules: "-A INPUT -p tcp --dport {{ redis_port }} -s {{ hostvars['web.miarec'].ansible_eth1.ipv4.address }} -j ACCEPT"
+    state: present
