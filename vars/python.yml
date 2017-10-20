@@ -1,6 +1,6 @@
 ---
 ## Installation options
-python_version: 3.5.3
+python_version: 3.6.3
 python_verify_gpg_signature: true
 
 python_cleanup_downloads: true
