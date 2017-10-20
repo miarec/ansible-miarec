@@ -8,9 +8,3 @@ apache_listen_port: 80
 
 # On Debian/Ubuntu, a default virtualhost is included in Apache's configuration. Set this to true to remove that default virtualhost configuration file.
 apache_remove_default_vhost: true
-
-## -------------------------------
-## Apache mod_wsgi options
-## -------------------------------
-wsgi_version: 4.5.14
-
