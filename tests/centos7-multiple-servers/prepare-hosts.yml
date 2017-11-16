@@ -1,8 +1,8 @@
-- name: Gather facts of all hosts
-  hosts: all
-  gather_facts: True
-  tasks:
-    - debug: var=ansible_distribution
+# - name: Gather facts of all hosts
+#  hosts: all
+#  gather_facts: True
+#  tasks:
+#    - debug: var=ansible_distribution
 
 # ------------------------------------------------
 # Disable SELinux on all hosts
@@ -10,7 +10,8 @@
 - name: Disable SELinux
   hosts: all
   roles:
-    - {role: 'disable-selinux', tags: 'disable-selinux' }
+    - role: 'disable-selinux'
+      tags: 'disable-selinux'
 
 
 # ------------------------------------------------
@@ -20,15 +21,20 @@
   hosts: db
   vars_files:
     - ../../vars/postgresql.yml
-  vars:
-    # Listen on all interfaces. By default, it listens on localhost only
-    - postgresql_listen_addresses: "*"
+
+  become: yes
+  roles:
+    - role: 'postgresql'
+      tags: 'postgresql'
+
+      # Listen on all interfaces. By default, it listens on localhost only
+      postgresql_listen_addresses: "*"
 
       # -------------------------------------------------
-      # Define the trusted hosts in pg_hba.conf file as well
+      # Define the trusted hosts in pg_hba.conf file
       # Here we allow inbound connections from recorder and web servers
       # -------------------------------------------------
-    - postgresql_pg_hba_custom:
+      postgresql_pg_hba_custom:
         - comment: 'IPv4 local connections:'
           address: '127.0.0.1/32'
           type: host
@@ -71,12 +77,14 @@
           database: all
           method: 'md5'
 
-      # -------------------------------------------------
-      # Firewall configuration for Database server
-      # Here we allow inbound connections from recorder and web servers
-      # -------------------------------------------------
-    - iptables_keep_unmanaged: yes
-    - iptables_custom_rules:
+    # -------------------------------------------------
+    # Firewall configuration for Database server
+    # Here we allow inbound connections from recorder and web servers
+    # -------------------------------------------------
+    - role: 'iptables'
+      tags: 'iptables'
+      iptables_keep_unmanaged: yes
+      iptables_custom_rules:
         - name: open_postgresql_port_rec1
           rules: "-A INPUT -p tcp --dport 5432 -s {{ rec1_ip_address }} -j ACCEPT"
           state: present
@@ -90,11 +98,6 @@
           rules: "-A INPUT -p tcp --dport 5432 -s {{ web2_ip_address }} -j ACCEPT"
           state: present
 
-  become: yes
-  roles:
-    - {role: 'postgresql', tags: 'postgresql'}
-    - {role: 'iptables', tags: 'iptables'} 
-
 
 
 # ------------------------------------------------
@@ -105,16 +108,20 @@
   vars_files:
     - ../../vars/redis.yml
   become: yes
-  vars:
-    # Networking/connection options (bind to all interfaces)
-    - redis_bind: 0.0.0.0 
+  roles:
+    - role: 'redis'
+      tags: 'redis'
+      # Networking/connection options (bind to all interfaces)
+      redis_bind: 0.0.0.0 
 
-    # -------------------------------------------------
-    # Firewall configuration for Redis server
-    # Here we allow inbound connections from recorder and web servers
-    # -------------------------------------------------
-    - iptables_keep_unmanaged: yes
-    - iptables_custom_rules:
+    - role: 'iptables'
+      tags: 'iptables'
+      # -------------------------------------------------
+      # Firewall configuration for Redis server
+      # Here we allow inbound connections from recorder and web servers
+      # -------------------------------------------------
+      iptables_keep_unmanaged: yes
+      iptables_custom_rules:
         - name: open_redis_port_rec1
           rules: "-A INPUT -p tcp --dport {{ redis_port }} -s {{ rec1_ip_address }} -j ACCEPT"
           state: present
@@ -127,9 +134,6 @@
         - name: open_redis_port_web2
           rules: "-A INPUT -p tcp --dport {{ redis_port }} -s {{ web2_ip_address }} -j ACCEPT"
           state: present
-  roles:
-    - {role: 'redis', tags: 'redis' }
-    - {role: 'iptables', tags: 'iptables' } 
 
 
 # ------------------------------------------------
@@ -140,22 +144,24 @@
   vars_files:
     - ../../vars/apache.yml
   become: yes
-  vars:
-    # -------------------------------------------------
-    # Firewall configuration for Web server
-    # Here we allow inbound connections to port 80 and 443
-    # -------------------------------------------------
-    - iptables_keep_unmanaged: yes
-    - iptables_custom_rules:
+  roles:
+    - role: 'apache'
+      tags: 'apache'
+
+    - role: 'iptables'
+      tags: 'iptables'
+      # -------------------------------------------------
+      # Firewall configuration for Web server
+      # Here we allow inbound connections to port 80 and 443
+      # -------------------------------------------------
+      iptables_keep_unmanaged: yes
+      iptables_custom_rules:
         - name: open_web_http_port
           rules: "-A INPUT -p tcp --dport 80 -j ACCEPT"
           state: present
         - name: open_web_https_port
           rules: "-A INPUT -p tcp --dport 443 -j ACCEPT"
           state: present
-  roles:
-    - {role: 'apache', tags: 'apache' }
-    - {role: 'iptables', tags: 'iptables' } 
 
 
 # ------------------------------------------------
@@ -170,7 +176,8 @@
     - ../../vars/python.yml
   become: yes
   roles:
-    - {role: 'python', tags: 'python' }
+    - role: 'python'
+      tags: 'python'
 
 
 # ------------------------------------------------
@@ -179,12 +186,14 @@
 - name: Prepare recorder hosts
   hosts: recorder
   become: yes
-  vars:
-    # -------------------------------------------------
-    # Firewall configuration for Recorder server
-    # -------------------------------------------------
-    - iptables_keep_unmanaged: yes
-    - iptables_custom_rules:
+  roles:
+    - role: 'iptables' 
+      tags: 'iptables'
+      # -------------------------------------------------
+      # Firewall configuration for Recorder server
+      # -------------------------------------------------
+      iptables_keep_unmanaged: yes
+      iptables_custom_rules:
         - name: open_rest_api
           rules: '-A INPUT -p tcp --dport 6088 -j ACCEPT'
           state: present
@@ -212,5 +221,3 @@
         - name: open_ciscobib_rtp
           rules: '-A INPUT -p udp --dport 20000:21999 -j ACCEPT'
           state: present
-  roles:
-    - {role: 'iptables', tags: 'iptables' } 

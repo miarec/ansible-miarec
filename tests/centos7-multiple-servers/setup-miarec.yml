@@ -1,36 +1,37 @@
-- name: Gather facts of all hosts
-  hosts: all
-  gather_facts: True
-
+# ------------------------------------------------
+# Deploy MiaRec Web UI and celery task manager
+# ------------------------------------------------
 - name: Deploy MiaRec Web application
-  hosts: web
+  hosts: 
+    - web
+    - celery
+    - celerybeat
   vars_files:
     - ../../vars/postgresql.yml
     - ../../vars/python.yml
-    - vars/web.yml
-    - vars/secrets.yml
   become: yes
-  pre_tasks:
-    - debug: var=miarecweb_db_host
-    - debug: var=miarecweb_redis_host
-  vars:
-    miarecweb_version: 6.0.0.266
   roles:
-    - {role: 'miarecweb', tags: 'miarecweb' }
+    - role: 'miarecweb'
+      tags: 'miarecweb'
+      miarecweb_version: 6.0.0.370
+      miarecweb_db_host: "{{ db_ip_address }}"
+      miarecweb_redis_host: "{{ redis_ip_address }}"
+      miarecweb_install_apache: "{{ 'web' in group_names }}"
+      miarecweb_install_celeryd: "{{ 'celery' in group_names }}"
+      miarecweb_install_celerybeat: "{{ 'celerybeat' in group_names }}"
 
     
+# ------------------------------------------------
+# Deploy MiaRec recorder
+# ------------------------------------------------
 - name: Deploy MiaRec Recorder application
   hosts: recorder
   vars_files:
     - ../../vars/postgresql.yml
-    - vars/recorder.yml
-    - vars/secrets.yml
   become: yes
-  pre_tasks:
-    - debug: var=miarecweb_db_host
-    - debug: var=miarecweb_redis_host
-    - debug: var=miarec_db_password
-  vars:
-    miarec_version: 6.0.0.35
   roles:
-    - {role: 'miarec', tags: 'miarec' }
+    - role: 'miarec'
+      tags: 'miarec'
+      miarec_version: 6.0.0.31
+      miarec_db_host: "{{ db_ip_address }}"
+      miarec_redis_host: "{{ redis_ip_address }}"
