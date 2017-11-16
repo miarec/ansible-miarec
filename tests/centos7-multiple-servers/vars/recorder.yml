@@ -1,6 +1,5 @@
 # -------------------------------------------------
-# Firewall configuration for Web server
-# Here we allow inbound connections from recorder and web servers
+# Firewall configuration for Recorder server
 # -------------------------------------------------
 iptables_keep_unmanaged: yes
 iptables_custom_rules:

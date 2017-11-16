@@ -14,7 +14,7 @@
     - debug: var=miarecweb_db_host
     - debug: var=miarecweb_redis_host
   vars:
-    miarecweb_version: 6.0.0.189
+    miarecweb_version: 6.0.0.266
   roles:
     - {role: 'miarecweb', tags: 'miarecweb' }
 
@@ -31,6 +31,6 @@
     - debug: var=miarecweb_redis_host
     - debug: var=miarec_db_password
   vars:
-    miarec_version: 6.0.0.31
+    miarec_version: 6.0.0.35
   roles:
     - {role: 'miarec', tags: 'miarec' }

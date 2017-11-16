@@ -4,57 +4,213 @@
   tasks:
     - debug: var=ansible_distribution
 
+# ------------------------------------------------
+# Disable SELinux on all hosts
+# ------------------------------------------------
+- name: Disable SELinux
+  hosts: all
+  roles:
+    - {role: 'disable-selinux', tags: 'disable-selinux' }
+
+
+# ------------------------------------------------
+# Install database
+# ------------------------------------------------
 - name: Prepare database host
   hosts: db
   vars_files:
     - ../../vars/postgresql.yml
-    - vars/postgresql.yml
-    - vars/secrets.yml
-    # - ../../vars/python.yml
-    # - ../../vars/redis.yml
-    # - ../../vars/apache.yml
-    # - ../../vars/iptables.yml
+  vars:
+    # Listen on all interfaces. By default, it listens on localhost only
+    - postgresql_listen_addresses: "*"
+
+      # -------------------------------------------------
+      # Define the trusted hosts in pg_hba.conf file as well
+      # Here we allow inbound connections from recorder and web servers
+      # -------------------------------------------------
+    - postgresql_pg_hba_custom:
+        - comment: 'IPv4 local connections:'
+          address: '127.0.0.1/32'
+          type: host
+          database: all
+          user: "{{ miarec_db_user }}"
+          method: 'md5'
+
+        - comment: 'IPv6 local connections:'
+          address: '::1/128'
+          type: host
+          database: all
+          user: "{{ miarec_db_user }}"
+          method: 'md5'
+
+        - comment: "IPv4 connection from rec1:"
+          address: "{{ rec1_ip_address }}/32" 
+          user: "{{ miarec_db_user }}"
+          type: host
+          database: all
+          method: 'md5'
+
+        - comment: "IPv4 connection from rec2:"
+          address: "{{ rec2_ip_address }}/32" 
+          user: "{{ miarec_db_user }}"
+          type: host
+          database: all
+          method: 'md5'
+
+        - comment: "IPv4 connection from web1:"
+          address: "{{ web1_ip_address }}/32" 
+          user: "{{ miarec_db_user }}"
+          type: host
+          database: all
+          method: 'md5'
+
+        - comment: "IPv4 connection from web2:"
+          address: "{{ web2_ip_address }}/32" 
+          user: "{{ miarec_db_user }}"
+          type: host
+          database: all
+          method: 'md5'
+
+      # -------------------------------------------------
+      # Firewall configuration for Database server
+      # Here we allow inbound connections from recorder and web servers
+      # -------------------------------------------------
+    - iptables_keep_unmanaged: yes
+    - iptables_custom_rules:
+        - name: open_postgresql_port_rec1
+          rules: "-A INPUT -p tcp --dport 5432 -s {{ rec1_ip_address }} -j ACCEPT"
+          state: present
+        - name: open_postgresql_port_rec2
+          rules: "-A INPUT -p tcp --dport 5432 -s {{ rec2_ip_address }} -j ACCEPT"
+          state: present
+        - name: open_postgresql_port_web1
+          rules: "-A INPUT -p tcp --dport 5432 -s {{ web1_ip_address }} -j ACCEPT"
+          state: present
+        - name: open_postgresql_port_web2
+          rules: "-A INPUT -p tcp --dport 5432 -s {{ web2_ip_address }} -j ACCEPT"
+          state: present
+
   become: yes
   roles:
-    - {role: 'disable-selinux', tags: 'disable-selinux' }
-    - {role: 'postgresql', tags: 'postgresql' }
-    - {role: 'iptables', tags: 'iptables' } 
+    - {role: 'postgresql', tags: 'postgresql'}
+    - {role: 'iptables', tags: 'iptables'} 
 
 
 
+# ------------------------------------------------
+# Install redis
+# ------------------------------------------------
 - name: Prepare redis host
   hosts: redis
   vars_files:
     - ../../vars/redis.yml
-    - vars/redis.yml
-    - vars/secrets.yml
   become: yes
+  vars:
+    # Networking/connection options (bind to all interfaces)
+    - redis_bind: 0.0.0.0 
+
+    # -------------------------------------------------
+    # Firewall configuration for Redis server
+    # Here we allow inbound connections from recorder and web servers
+    # -------------------------------------------------
+    - iptables_keep_unmanaged: yes
+    - iptables_custom_rules:
+        - name: open_redis_port_rec1
+          rules: "-A INPUT -p tcp --dport {{ redis_port }} -s {{ rec1_ip_address }} -j ACCEPT"
+          state: present
+        - name: open_redis_port_rec2
+          rules: "-A INPUT -p tcp --dport {{ redis_port }} -s {{ rec2_ip_address }} -j ACCEPT"
+          state: present
+        - name: open_redis_port_web1
+          rules: "-A INPUT -p tcp --dport {{ redis_port }} -s {{ web1_ip_address }} -j ACCEPT"
+          state: present
+        - name: open_redis_port_web2
+          rules: "-A INPUT -p tcp --dport {{ redis_port }} -s {{ web2_ip_address }} -j ACCEPT"
+          state: present
   roles:
-    - {role: 'disable-selinux', tags: 'disable-selinux' }
     - {role: 'redis', tags: 'redis' }
     - {role: 'iptables', tags: 'iptables' } 
 
 
-- name: Prepare web host
+# ------------------------------------------------
+# Install Apache
+# ------------------------------------------------
+- name: Prepare web hosts
   hosts: web
   vars_files:
     - ../../vars/apache.yml
-    - ../../vars/python.yml
-    - vars/web.yml
-    - vars/secrets.yml
   become: yes
+  vars:
+    # -------------------------------------------------
+    # Firewall configuration for Web server
+    # Here we allow inbound connections to port 80 and 443
+    # -------------------------------------------------
+    - iptables_keep_unmanaged: yes
+    - iptables_custom_rules:
+        - name: open_web_http_port
+          rules: "-A INPUT -p tcp --dport 80 -j ACCEPT"
+          state: present
+        - name: open_web_https_port
+          rules: "-A INPUT -p tcp --dport 443 -j ACCEPT"
+          state: present
   roles:
-    - {role: 'disable-selinux', tags: 'disable-selinux' }
     - {role: 'apache', tags: 'apache' }
-    - {role: 'python', tags: 'python' }
     - {role: 'iptables', tags: 'iptables' } 
 
 
-- name: Prepare recorder host
-  hosts: recorder
+# ------------------------------------------------
+# Install Python (web, celery, celerybeat
+# ------------------------------------------------
+- name: Prepare celery hosts
+  hosts: 
+    - web
+    - celery
+    - celerybeat
   vars_files:
-    - vars/recorder.yml
+    - ../../vars/python.yml
   become: yes
   roles:
-    - {role: 'disable-selinux', tags: 'disable-selinux' }
+    - {role: 'python', tags: 'python' }
+
+
+# ------------------------------------------------
+# Recorder servers
+# ------------------------------------------------
+- name: Prepare recorder hosts
+  hosts: recorder
+  become: yes
+  vars:
+    # -------------------------------------------------
+    # Firewall configuration for Recorder server
+    # -------------------------------------------------
+    - iptables_keep_unmanaged: yes
+    - iptables_custom_rules:
+        - name: open_rest_api
+          rules: '-A INPUT -p tcp --dport 6088 -j ACCEPT'
+          state: present
+        - name: open_live_monitoring_signaling
+          rules: '-A INPUT -p tcp --dport 6554 -j ACCEPT'
+          state: present
+        - name: open_live_monitoring_rtp
+          rules: '-A INPUT -p udp --dport 7000:7999 -j ACCEPT'
+          state: present
+        - name: open_siprec_signaling_tcp
+          rules: '-A INPUT -p tcp --dport 5080 -j ACCEPT'
+          state: present
+        - name: open_siprec_signaling_ucp
+          rules: '-A INPUT -p udp --dport 5080 -j ACCEPT'
+          state: present
+        - name: open_siprec_rtp
+          rules: '-A INPUT -p udp --dport 22000:23999 -j ACCEPT'
+          state: present
+        - name: open_ciscobib_signaling_tcp
+          rules: '-A INPUT -p tcp --dport 5070 -j ACCEPT'
+          state: present
+        - name: open_ciscobib_signaling_ucp
+          rules: '-A INPUT -p udp --dport 5070 -j ACCEPT'
+          state: present
+        - name: open_ciscobib_rtp
+          rules: '-A INPUT -p udp --dport 20000:21999 -j ACCEPT'
+          state: present
+  roles:
     - {role: 'iptables', tags: 'iptables' } 
