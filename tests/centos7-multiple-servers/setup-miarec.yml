@@ -35,3 +35,5 @@
       miarec_version: 6.0.0.31
       miarec_db_host: "{{ db_ip_address }}"
       miarec_redis_host: "{{ redis_ip_address }}"
+      miarec_http_call_events_host: '{{ web1_ip_address }}'
+      miarec_rest_api_permitted_hosts: '{{ [web1_ip_address, web2_ip_address] | join(";") }}'

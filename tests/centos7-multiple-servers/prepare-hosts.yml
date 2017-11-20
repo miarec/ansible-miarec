@@ -17,7 +17,7 @@
 # ------------------------------------------------
 # Install database
 # ------------------------------------------------
-- name: Prepare database host
+- name: Install PostgreSQL
   hosts: db
   vars_files:
     - ../../vars/postgresql.yml
@@ -77,33 +77,11 @@
           database: all
           method: 'md5'
 
-    # -------------------------------------------------
-    # Firewall configuration for Database server
-    # Here we allow inbound connections from recorder and web servers
-    # -------------------------------------------------
-    - role: 'iptables'
-      tags: 'iptables'
-      iptables_keep_unmanaged: yes
-      iptables_custom_rules:
-        - name: open_postgresql_port_rec1
-          rules: "-A INPUT -p tcp --dport 5432 -s {{ rec1_ip_address }} -j ACCEPT"
-          state: present
-        - name: open_postgresql_port_rec2
-          rules: "-A INPUT -p tcp --dport 5432 -s {{ rec2_ip_address }} -j ACCEPT"
-          state: present
-        - name: open_postgresql_port_web1
-          rules: "-A INPUT -p tcp --dport 5432 -s {{ web1_ip_address }} -j ACCEPT"
-          state: present
-        - name: open_postgresql_port_web2
-          rules: "-A INPUT -p tcp --dport 5432 -s {{ web2_ip_address }} -j ACCEPT"
-          state: present
-
-
 
 # ------------------------------------------------
 # Install redis
 # ------------------------------------------------
-- name: Prepare redis host
+- name: Install redis
   hosts: redis
   vars_files:
     - ../../vars/redis.yml
@@ -114,32 +92,11 @@
       # Networking/connection options (bind to all interfaces)
       redis_bind: 0.0.0.0 
 
-    - role: 'iptables'
-      tags: 'iptables'
-      # -------------------------------------------------
-      # Firewall configuration for Redis server
-      # Here we allow inbound connections from recorder and web servers
-      # -------------------------------------------------
-      iptables_keep_unmanaged: yes
-      iptables_custom_rules:
-        - name: open_redis_port_rec1
-          rules: "-A INPUT -p tcp --dport {{ redis_port }} -s {{ rec1_ip_address }} -j ACCEPT"
-          state: present
-        - name: open_redis_port_rec2
-          rules: "-A INPUT -p tcp --dport {{ redis_port }} -s {{ rec2_ip_address }} -j ACCEPT"
-          state: present
-        - name: open_redis_port_web1
-          rules: "-A INPUT -p tcp --dport {{ redis_port }} -s {{ web1_ip_address }} -j ACCEPT"
-          state: present
-        - name: open_redis_port_web2
-          rules: "-A INPUT -p tcp --dport {{ redis_port }} -s {{ web2_ip_address }} -j ACCEPT"
-          state: present
-
 
 # ------------------------------------------------
 # Install Apache
 # ------------------------------------------------
-- name: Prepare web hosts
+- name: Install Apache
   hosts: web
   vars_files:
     - ../../vars/apache.yml
@@ -148,26 +105,11 @@
     - role: 'apache'
       tags: 'apache'
 
-    - role: 'iptables'
-      tags: 'iptables'
-      # -------------------------------------------------
-      # Firewall configuration for Web server
-      # Here we allow inbound connections to port 80 and 443
-      # -------------------------------------------------
-      iptables_keep_unmanaged: yes
-      iptables_custom_rules:
-        - name: open_web_http_port
-          rules: "-A INPUT -p tcp --dport 80 -j ACCEPT"
-          state: present
-        - name: open_web_https_port
-          rules: "-A INPUT -p tcp --dport 443 -j ACCEPT"
-          state: present
-
 
 # ------------------------------------------------
-# Install Python (web, celery, celerybeat
+# Install Python (web, celery, celerybeat)
 # ------------------------------------------------
-- name: Prepare celery hosts
+- name: Install Python
   hosts: 
     - web
     - celery
@@ -179,45 +121,3 @@
     - role: 'python'
       tags: 'python'
 
-
-# ------------------------------------------------
-# Recorder servers
-# ------------------------------------------------
-- name: Prepare recorder hosts
-  hosts: recorder
-  become: yes
-  roles:
-    - role: 'iptables' 
-      tags: 'iptables'
-      # -------------------------------------------------
-      # Firewall configuration for Recorder server
-      # -------------------------------------------------
-      iptables_keep_unmanaged: yes
-      iptables_custom_rules:
-        - name: open_rest_api
-          rules: '-A INPUT -p tcp --dport 6088 -j ACCEPT'
-          state: present
-        - name: open_live_monitoring_signaling
-          rules: '-A INPUT -p tcp --dport 6554 -j ACCEPT'
-          state: present
-        - name: open_live_monitoring_rtp
-          rules: '-A INPUT -p udp --dport 7000:7999 -j ACCEPT'
-          state: present
-        - name: open_siprec_signaling_tcp
-          rules: '-A INPUT -p tcp --dport 5080 -j ACCEPT'
-          state: present
-        - name: open_siprec_signaling_ucp
-          rules: '-A INPUT -p udp --dport 5080 -j ACCEPT'
-          state: present
-        - name: open_siprec_rtp
-          rules: '-A INPUT -p udp --dport 22000:23999 -j ACCEPT'
-          state: present
-        - name: open_ciscobib_signaling_tcp
-          rules: '-A INPUT -p tcp --dport 5070 -j ACCEPT'
-          state: present
-        - name: open_ciscobib_signaling_ucp
-          rules: '-A INPUT -p udp --dport 5070 -j ACCEPT'
-          state: present
-        - name: open_ciscobib_rtp
-          rules: '-A INPUT -p udp --dport 20000:21999 -j ACCEPT'
-          state: present
