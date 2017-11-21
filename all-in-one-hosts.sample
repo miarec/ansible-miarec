@@ -4,6 +4,7 @@
 ; Parameters:
 ;   - ansible_ssh_host => ip address to access the host using Ansible
 ;   - private_ip_address => ip address to access the host from other components (for example, web application needs to connecto to database)
+;                           For 'all-in-one' setup, the private_ip_address should be set to '127.0.0.1' as all communication is done internally
 ; ---------------------------------
 
 miarec  ansible_ssh_host=192.168.88.30  private_ip_address=127.0.0.1
