@@ -10,15 +10,18 @@
     - ../../vars/postgresql.yml
     - ../../vars/python.yml
   become: yes
+  pre_tasks:
+    - set_fact:
+        miarecweb_db_host: "{{ hostvars[groups.db.0].private_ip_address }}"
+        miarecweb_redis_host: "{{ hostvars[groups.redis.0].private_ip_address }}"
+        miarecweb_install_apache: "{{ 'web' in group_names }}"
+        miarecweb_install_celeryd: "{{ 'celery' in group_names }}"
+        miarecweb_install_celerybeat: "{{ 'celerybeat' in group_names }}"
+    - debug: var=miarecweb_db_host
+    - debug: var=miarecweb_redis_host
   roles:
     - role: 'miarecweb'
-      tags: 'miarecweb'
-      miarecweb_version: 6.0.0.370
-      miarecweb_db_host: "{{ db_ip_address }}"
-      miarecweb_redis_host: "{{ redis_ip_address }}"
-      miarecweb_install_apache: "{{ 'web' in group_names }}"
-      miarecweb_install_celeryd: "{{ 'celery' in group_names }}"
-      miarecweb_install_celerybeat: "{{ 'celerybeat' in group_names }}"
+  tags: 'miarecweb'
 
     
 # ------------------------------------------------
@@ -29,11 +32,17 @@
   vars_files:
     - ../../vars/postgresql.yml
   become: yes
+  pre_tasks:
+    - set_fact:
+        miarec_db_host: "{{ hostvars[groups.db.0].private_ip_address }}"
+        miarec_redis_host: "{{ hostvars[groups.redis.0].private_ip_address }}"
+        miarec_http_call_events_host: "{{ hostvars[groups.web.0].private_ip_address }}"
+        miarec_rest_api_permitted_hosts: "{{ groups['web'] | map('extract', hostvars, ['private_ip_address']) | join(';') }}"
+
+    - debug: var=miarec_db_host
+    - debug: var=miarec_redis_host
+    - debug: var=miarec_http_call_events_host
+    - debug: var=miarec_rest_api_permitted_hosts
   roles:
     - role: 'miarec'
-      tags: 'miarec'
-      miarec_version: 6.0.0.31
-      miarec_db_host: "{{ db_ip_address }}"
-      miarec_redis_host: "{{ redis_ip_address }}"
-      miarec_http_call_events_host: '{{ web1_ip_address }}'
-      miarec_rest_api_permitted_hosts: '{{ [web1_ip_address, web2_ip_address] | join(";") }}'
+  tags: 'miarec'
