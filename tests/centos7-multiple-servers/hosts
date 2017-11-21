@@ -1,7 +1,12 @@
 [all]
+
 ; ---------------------------------
 ; All hosts
+; Parameters:
+;   - ansible_ssh_host => ip address to access the host using Ansible
+;   - private_ip_address => ip address to access the host from other components (for example, web application needs to connecto to database)
 ; ---------------------------------
+
 rec1.miarec  ansible_ssh_host=192.168.88.11  private_ip_address=192.168.88.11  ansible_ssh_private_key_file=.vagrant/machines/rec1/virtualbox/private_key
 rec2.miarec  ansible_ssh_host=192.168.88.12  private_ip_address=192.168.88.12  ansible_ssh_private_key_file=.vagrant/machines/rec2/virtualbox/private_key
 db.miarec    ansible_ssh_host=192.168.88.15  private_ip_address=192.168.88.15  ansible_ssh_private_key_file=.vagrant/machines/db/virtualbox/private_key
@@ -12,7 +17,7 @@ web2.miarec  ansible_ssh_host=192.168.88.22  private_ip_address=192.168.88.22  a
 
 [all:vars]
 ; -------------------------------
-; Version info
+; Version of installed packages
 ; -------------------------------
 miarecweb_version   = 6.0.0.370
 miarec_version      = 6.0.0.31

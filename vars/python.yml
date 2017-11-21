@@ -1,8 +1,0 @@
----
-## Installation options
-python_version: 3.6.3
-python_verify_gpg_signature: true
-
-python_cleanup_downloads: true
-python_force_install: false
-

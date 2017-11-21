@@ -1,0 +1,114 @@
+# ------------------------------------------------
+# Database
+# Firewall configuration for Database server
+# Here we allow inbound connections from recorder and web servers
+# ------------------------------------------------
+- name: Configure firewall on database host
+  hosts: db
+  become: yes
+  pre_tasks:
+    - set_fact:
+        tmp_rule:
+          name: "open_postgresql_port_{{ hostvars[item].inventory_hostname.replace('.', '_') }}"
+          rules: "-A INPUT -p tcp --dport 5432 -s {{ hostvars[item].private_ip_address }} -j ACCEPT"
+          state: present
+      with_items: "{{ groups.recorder + groups.web }}"
+      when: hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
+      register: tmp_iptables_rules
+
+    - set_fact:
+        iptables_keep_unmanaged: yes
+        iptables_custom_rules: "{{ tmp_iptables_rules.results | selectattr('changed', 'equalto', True) | map(attribute='ansible_facts.tmp_rule') | list }}"
+  roles:
+    - iptables
+
+# ------------------------------------------------
+# Redis
+# Firewall configuration for Redis server
+# Here we allow inbound connections from recorder and web servers
+# ------------------------------------------------
+- name: Configure firewall on Redis host
+  hosts: redis
+  vars_files:
+    - vars/redis.yml
+  become: yes
+  pre_tasks:
+    - set_fact:
+        tmp_rule:
+          - name: "open_redis_port_{{ hostvars[item].inventory_hostname.replace('.', '_') }}"
+            rules: "-A INPUT -p tcp --dport {{ redis_port }} -s {{ hostvars[item].private_ip_address }} -j ACCEPT"
+            state: present
+      with_items: "{{ groups.recorder + groups.web }}"
+      when: hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
+      register: tmp_iptables_rules
+
+    - set_fact:
+        iptables_keep_unmanaged: yes
+        iptables_custom_rules: "{{ tmp_iptables_rules.results | selectattr('changed', 'equalto', True) | map(attribute='ansible_facts.tmp_rule') | list }}"
+  roles:
+    - iptables
+
+
+# ------------------------------------------------
+# Web server
+# Firewall configuration for Web server
+# Here we allow inbound connections to port 80 and 443
+# ------------------------------------------------
+- name: Configure firewall on Web hosts
+  hosts: web
+  become: yes
+  pre_tasks:
+    - set_fact:
+        iptables_keep_unmanaged: yes
+        iptables_custom_rules:
+          - name: open_web_http_port
+            rules: "-A INPUT -p tcp --dport 80 -j ACCEPT"
+            state: present
+          - name: open_web_https_port
+            rules: "-A INPUT -p tcp --dport 443 -j ACCEPT"
+            state: present
+  roles:
+    - iptables
+
+
+# ------------------------------------------------
+# Recorder servers
+# Firewall configuration for Recorder server (SIPREC, CiscoBiB, REST API, etc)
+# ------------------------------------------------
+- name: Configure firewall on Recorder host
+  hosts: recorder
+  become: yes
+  pre_tasks:
+    - set_fact:
+        iptables_keep_unmanaged: yes
+        iptables_custom_rules:
+          - name: open_rest_api
+            rules: '-A INPUT -p tcp --dport 6088 -j ACCEPT'
+            state: present
+          - name: open_live_monitoring_signaling
+            rules: '-A INPUT -p tcp --dport 6554 -j ACCEPT'
+            state: present
+          - name: open_live_monitoring_rtp
+            rules: '-A INPUT -p udp --dport 7000:7999 -j ACCEPT'
+            state: present
+          - name: open_siprec_signaling_tcp
+            rules: '-A INPUT -p tcp --dport 5080 -j ACCEPT'
+            state: present
+          - name: open_siprec_signaling_ucp
+            rules: '-A INPUT -p udp --dport 5080 -j ACCEPT'
+            state: present
+          - name: open_siprec_rtp
+            rules: '-A INPUT -p udp --dport 22000:23999 -j ACCEPT'
+            state: present
+          - name: open_ciscobib_signaling_tcp
+            rules: '-A INPUT -p tcp --dport 5070 -j ACCEPT'
+            state: present
+          - name: open_ciscobib_signaling_ucp
+            rules: '-A INPUT -p udp --dport 5070 -j ACCEPT'
+            state: present
+          - name: open_ciscobib_rtp
+            rules: '-A INPUT -p udp --dport 20000:21999 -j ACCEPT'
+            state: present
+  roles:
+    - iptables
+

@@ -1,6 +1,5 @@
 ---
 ## Installation options
-redis_version: 3.2.8
 
 ## Networking/connection options
 redis_bind: 127.0.0.1

@@ -20,7 +20,7 @@
 - name: Install PostgreSQL
   hosts: db
   vars_files:
-    - ../../vars/postgresql.yml
+    - ../../vars/db.yml
 
   pre_tasks:
     - set_fact:
@@ -106,7 +106,7 @@
 - name: Install Apache
   hosts: web
   vars_files:
-    - ../../vars/apache.yml
+    - ../../vars/web.yml
   become: yes
   roles:
     - role: 'apache'
@@ -122,7 +122,7 @@
     - celery
     - celerybeat
   vars_files:
-    - ../../vars/python.yml
+    - ../../vars/web.yml
   become: yes
   roles:
     - role: 'python'

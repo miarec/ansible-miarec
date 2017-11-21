@@ -7,8 +7,8 @@
     - celery
     - celerybeat
   vars_files:
-    - ../../vars/postgresql.yml
-    - ../../vars/python.yml
+    - ../../vars/db.yml
+    - ../../vars/web.yml
   become: yes
   pre_tasks:
     - set_fact:
@@ -30,7 +30,7 @@
 - name: Deploy MiaRec Recorder application
   hosts: recorder
   vars_files:
-    - ../../vars/postgresql.yml
+    - ../../vars/db.yml
   become: yes
   pre_tasks:
     - set_fact:
