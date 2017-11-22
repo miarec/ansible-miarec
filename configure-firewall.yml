@@ -18,7 +18,7 @@
 
     - set_fact:
         iptables_keep_unmanaged: yes
-        iptables_custom_rules: "{{ tmp_iptables_rules.results | selectattr('changed', 'equalto', True) | map(attribute='ansible_facts.tmp_rule') | list }}"
+        iptables_custom_rules: "{{ tmp_iptables_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
   roles:
     - iptables
 
@@ -44,7 +44,7 @@
 
     - set_fact:
         iptables_keep_unmanaged: yes
-        iptables_custom_rules: "{{ tmp_iptables_rules.results | selectattr('changed', 'equalto', True) | map(attribute='ansible_facts.tmp_rule') | list }}"
+        iptables_custom_rules: "{{ tmp_iptables_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
   roles:
     - iptables
 

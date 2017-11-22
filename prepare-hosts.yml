@@ -49,7 +49,7 @@
 
       
     - set_fact:
-        pg_hba_rules: "{{ tmp_pg_hba_rules.results | selectattr('changed', 'equalto', True) | map(attribute='ansible_facts.tmp_rule') | list }}"
+        pg_hba_rules: "{{ tmp_pg_hba_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
 
     - set_fact:
         postgresql_pg_hba_custom: "{{ postgresql_pg_hba_custom }}  + {{ pg_hba_rules }}"
@@ -82,7 +82,7 @@
       register: tmp_ip_addresses
 
     - set_fact:
-        all_ip_addresses: "{{ tmp_ip_addresses.results | selectattr('changed', 'equalto', True) | map(attribute='ansible_facts.ip_address') | list }}"
+        all_ip_addresses: "{{ tmp_ip_addresses.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.ip_address') | list }}"
 
     - set_fact:
         # Bind to all interfaces if other components are connecting to it remotely
