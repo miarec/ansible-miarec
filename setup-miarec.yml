@@ -46,3 +46,24 @@
   roles:
     - role: 'miarec'
   tags: 'miarec'
+
+# ------------------------------------------------
+# Deploy MiaRec Screen Controller
+# ------------------------------------------------
+- name: Deploy MiaRec Screen Controller
+  hosts: screen
+  vars_files:
+    - vars/db.yml
+  become: yes
+  pre_tasks:
+    - set_fact:
+        miarec_db_host: "{{ hostvars[groups.db.0].private_ip_address }}"
+        miarec_redis_host: "{{ hostvars[groups.redis.0].private_ip_address }}"
+        miarec_rest_api_permitted_hosts: "{{ groups['web'] | map('extract', hostvars, ['private_ip_address']) | join(';') }}"
+
+    - debug: var=miarec_db_host
+    - debug: var=miarec_redis_host
+    - debug: var=miarec_rest_api_permitted_hosts
+  roles:
+    - role: 'miarec-screen'
+  tags: 'miarec-screen'

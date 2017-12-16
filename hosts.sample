@@ -1,2 +1,0 @@
-localhost ansible_connection=local
-miarec ansible_host=10.1.2.3 ansible_port=22 ansible_user=root
