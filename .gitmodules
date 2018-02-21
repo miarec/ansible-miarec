@@ -25,3 +25,6 @@
 [submodule "roles/miarec-screen"]
 	path = roles/miarec-screen
 	url = https://github.com/miarec/ansible-role-miarec-screen
+[submodule "roles/sox"]
+	path = roles/sox
+	url = https://github.com/miarec/ansible-sox-role
