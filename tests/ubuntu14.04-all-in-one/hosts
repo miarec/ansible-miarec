@@ -1,6 +1,43 @@
-vagrant-miarec ansible_ssh_host=192.168.66.13
+[all]
+; ---------------------------------
+; All-in-one host
+; Parameters:
+;   - ansible_ssh_host => ip address to access the host using Ansible
+;   - private_ip_address => ip address to access the host from other components (for example, web application needs to connecto to database)
+; ---------------------------------
 
-[miarec]
-vagrant-miarec
+miarec ansible_ssh_host=192.168.66.13  private_ip_address=127.0.0.1 ansible_user=vagrant ansible_ssh_extra_args='-o StrictHostKeyChecking=no' ansible_ssh_private_key_file=tests/ubuntu14.04-all-in-one/.vagrant/machines/miarec/virtualbox/private_key
 
 
+[all:vars]
+; -------------------------------
+; Version of installed packages
+; -------------------------------
+miarecweb_version   = 6.0.0.508
+miarec_version      = 6.0.0.33
+miarec_screen_version = 1.1.0.17 
+postgresql_version  = 9.5
+python_version      = 3.6.3
+redis_version       = 3.2.8
+
+
+[recorder]
+miarec
+
+[screen]
+miarec
+
+[db]
+miarec
+
+[redis]
+miarec
+
+[web]
+miarec
+
+[celery]
+miarec
+
+[celerybeat]
+miarec

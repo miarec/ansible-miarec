@@ -124,3 +124,14 @@
     - role: 'python'
   tags: 'python'
 
+# ------------------------------------------------
+# Install Sox (celery)
+# ------------------------------------------------
+- name: Install Sox
+  hosts: 
+    - celery
+  become: yes
+  roles:
+    - role: 'sox'
+  tags: 'sox'  
+  
