@@ -112,3 +112,26 @@
   roles:
     - iptables
 
+
+# ------------------------------------------------
+# Screen Recorder servers
+# Firewall configuration for Recorder server (REST API, client connections, etc.)
+# ------------------------------------------------
+- name: Configure firewall on Screen Recorder host
+  hosts: screen
+  become: yes
+  pre_tasks:
+    - set_fact:
+        iptables_keep_unmanaged: yes
+        iptables_custom_rules:
+          - name: open_screen_rest_api
+            rules: '-A INPUT -p tcp --dport 6089 -j ACCEPT'
+            state: present
+          - name: open_screen_client_tcp
+            rules: '-A INPUT -p tcp --dport 6091 -j ACCEPT'
+            state: present
+          - name: open_screen_client_tls
+            rules: '-A INPUT -p tcp --dport 6092 -j ACCEPT'
+            state: present
+  roles:
+    - iptables
