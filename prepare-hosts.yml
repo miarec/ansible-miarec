@@ -59,7 +59,6 @@
 
     - debug: var=postgresql_pg_hba_custom
 
-  become: yes
   roles:
     - role: 'postgresql'
   tags: 'postgresql'
@@ -72,7 +71,6 @@
   hosts: redis
   vars_files:
     - vars/redis.yml
-  become: yes
   pre_tasks:
 
     - set_fact:
@@ -103,7 +101,6 @@
   hosts: web
   vars_files:
     - vars/web.yml
-  become: yes
   roles:
     - role: 'apache'
   tags: 'apache'
@@ -119,7 +116,6 @@
     - celerybeat
   vars_files:
     - vars/web.yml
-  become: yes
   roles:
     - role: 'python'
   tags: 'python'
@@ -130,7 +126,6 @@
 - name: Install Sox
   hosts: 
     - celery
-  become: yes
   roles:
     - role: 'sox'
   tags: 'sox'  
