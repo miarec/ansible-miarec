@@ -1,0 +1,45 @@
+[all]
+; ---------------------------------
+; All-in-one host
+; Parameters:
+;   - ansible_ssh_host => ip address to access the host using Ansible
+;   - private_ip_address => ip address to access the host from other components (for example, web application needs to connecto to database)
+;                           For 'all-in-one' setup, the private_ip_address should be set to '127.0.0.1' as all communication is done internally
+; ---------------------------------
+
+miarec ansible_connection=local private_ip_address=127.0.0.1
+
+
+[all:vars]
+; -------------------------------
+; Version of installed packages
+; -------------------------------
+miarecweb_version   = 6.0.0.440
+miarec_version      = 6.0.0.49
+miarec_screen_version = 1.1.0.17 
+postgresql_version  = 9.5
+python_version      = 3.6.3
+redis_version       = 3.2.8
+
+
+[recorder]
+miarec
+
+[screen]
+miarec
+
+[db]
+miarec
+
+[redis]
+miarec
+
+[web]
+miarec
+
+[celery]
+miarec
+
+[celerybeat]
+miarec
+
