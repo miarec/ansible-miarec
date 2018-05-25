@@ -53,3 +53,12 @@ postgresql_users:
   - name: "{{ miarec_db_user }}"
     pass: "{{ miarec_db_password }}"
     encrypted: no       # denotes if the password is already encrypted.
+
+    
+# --------------------------------------
+# Optimizations
+# --------------------------------------    
+postgresql_max_connections:      200       # default 100
+postgresql_shared_buffers:       256MB     # default 128MB
+postgresql_temp_buffers:         32MB      # default 8MB
+postgresql_work_mem:             16MB      # default 1MB
