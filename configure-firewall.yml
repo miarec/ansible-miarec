@@ -6,13 +6,15 @@
 - name: Configure firewall on database host
   hosts: db
   become: yes
+  vars_files:
+    - vars/firewall.yml
   pre_tasks:
     - set_fact:
         tmp_rule:
           name: "open_postgresql_port_{{ hostvars[item].inventory_hostname.replace('.', '_') }}"
           rules: "-A INPUT -p tcp --dport 5432 -s {{ hostvars[item].private_ip_address }} -j ACCEPT"
           state: present
-      with_items: "{{ groups.recorder + groups.web }}"
+      with_items: "{{ groups.recorder + groups.screen + groups.web + groups.celery + groups.celerybeat }}"
       when: hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
       register: tmp_iptables_rules
 
@@ -21,6 +23,7 @@
         iptables_custom_rules: "{{ tmp_iptables_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
   roles:
     - iptables
+  tags: 'postgresql'
 
 # ------------------------------------------------
 # Redis
@@ -30,6 +33,7 @@
 - name: Configure firewall on Redis host
   hosts: redis
   vars_files:
+    - vars/firewall.yml
     - vars/redis.yml
   become: yes
   pre_tasks:
@@ -38,7 +42,7 @@
           - name: "open_redis_port_{{ hostvars[item].inventory_hostname.replace('.', '_') }}"
             rules: "-A INPUT -p tcp --dport {{ redis_port }} -s {{ hostvars[item].private_ip_address }} -j ACCEPT"
             state: present
-      with_items: "{{ groups.recorder + groups.web }}"
+      with_items: "{{ groups.recorder + groups.screen + groups.web + groups.celery + groups.celerybeat }}"
       when: hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
       register: tmp_iptables_rules
 
@@ -47,6 +51,7 @@
         iptables_custom_rules: "{{ tmp_iptables_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
   roles:
     - iptables
+  tags: 'redis'
 
 
 # ------------------------------------------------
@@ -57,6 +62,8 @@
 - name: Configure firewall on Web hosts
   hosts: web
   become: yes
+  vars_files:
+    - vars/firewall.yml
   pre_tasks:
     - set_fact:
         iptables_keep_unmanaged: yes
@@ -69,6 +76,7 @@
             state: present
   roles:
     - iptables
+  tags: 'apache'
 
 
 # ------------------------------------------------
@@ -78,39 +86,51 @@
 - name: Configure firewall on Recorder host
   hosts: recorder
   become: yes
+  vars_files:
+    - vars/firewall.yml
   pre_tasks:
     - set_fact:
         iptables_keep_unmanaged: yes
         iptables_custom_rules:
           - name: open_rest_api
-            rules: '-A INPUT -p tcp --dport 6088 -j ACCEPT'
-            state: present
+            rules: '-A INPUT -p tcp --dport {{ miarec_rest_api_port }} -j ACCEPT'
+            state: '{{ (miarec_rest_api_port != 0 ) | ternary("present", "absent") }}'
+            # state: absent
+
           - name: open_live_monitoring_signaling
-            rules: '-A INPUT -p tcp --dport 6554 -j ACCEPT'
-            state: present
+            rules: '-A INPUT -p tcp --dport {{ miarec_live_monitoring_signaling_port }} -j ACCEPT'
+            state: '{{ (miarec_live_monitoring_signaling_port != 0 ) | ternary("present", "absent") }}'
+
           - name: open_live_monitoring_rtp
-            rules: '-A INPUT -p udp --dport 7000:7999 -j ACCEPT'
-            state: present
+            rules: '-A INPUT -p udp --dport {{ miarec_live_monitoring_rtp_port_begin }}:{{ miarec_live_monitoring_rtp_port_end }} -j ACCEPT'
+            state: '{{ (miarec_live_monitoring_rtp_port_begin != 0 ) | ternary("present", "absent") }}'
+
           - name: open_siprec_signaling_tcp
-            rules: '-A INPUT -p tcp --dport 5080 -j ACCEPT'
-            state: present
-          - name: open_siprec_signaling_ucp
-            rules: '-A INPUT -p udp --dport 5080 -j ACCEPT'
-            state: present
+            rules: '-A INPUT -p tcp --dport {{ miarec_siprec_signaling_port }} -j ACCEPT'
+            state: '{{ (miarec_siprec_signaling_port != 0 ) | ternary("present", "absent") }}'
+
+          - name: open_siprec_signaling_udp
+            rules: '-A INPUT -p udp --dport {{ miarec_siprec_signaling_port }} -j ACCEPT'
+            state: '{{ (miarec_siprec_signaling_port != 0 ) | ternary("present", "absent") }}'
+
           - name: open_siprec_rtp
-            rules: '-A INPUT -p udp --dport 22000:23999 -j ACCEPT'
-            state: present
+            rules: '-A INPUT -p udp --dport {{ miarec_siprec_rtp_port_begin }}:{{ miarec_siprec_rtp_port_end }} -j ACCEPT'
+            state: '{{ (miarec_siprec_rtp_port_begin != 0 ) | ternary("present", "absent") }}'
+            
           - name: open_ciscobib_signaling_tcp
-            rules: '-A INPUT -p tcp --dport 5070 -j ACCEPT'
-            state: present
-          - name: open_ciscobib_signaling_ucp
-            rules: '-A INPUT -p udp --dport 5070 -j ACCEPT'
-            state: present
+            rules: '-A INPUT -p tcp --dport {{ miarec_ciscobib_signaling_port }} -j ACCEPT'
+            state: '{{ (miarec_ciscobib_signaling_port != 0 ) | ternary("present", "absent") }}'
+
+          - name: open_ciscobib_signaling_udp
+            rules: '-A INPUT -p udp --dport {{ miarec_ciscobib_signaling_port }} -j ACCEPT'
+            state: '{{ (miarec_ciscobib_signaling_port != 0 ) | ternary("present", "absent") }}'
+
           - name: open_ciscobib_rtp
-            rules: '-A INPUT -p udp --dport 20000:21999 -j ACCEPT'
-            state: present
+            rules: '-A INPUT -p udp --dport {{ miarec_ciscobib_rtp_port_begin }}:{{ miarec_ciscobib_rtp_port_end }} -j ACCEPT'
+            state: '{{ (miarec_ciscobib_rtp_port_begin != 0 ) | ternary("present", "absent") }}'
   roles:
     - iptables
+  tags: 'miarec'
 
 
 # ------------------------------------------------
@@ -120,18 +140,24 @@
 - name: Configure firewall on Screen Recorder host
   hosts: screen
   become: yes
+  vars_files:
+    - vars/firewall.yml
   pre_tasks:
     - set_fact:
         iptables_keep_unmanaged: yes
         iptables_custom_rules:
+
           - name: open_screen_rest_api
-            rules: '-A INPUT -p tcp --dport 6089 -j ACCEPT'
-            state: present
+            rules: '-A INPUT -p tcp --dport {{ miarec_screen_rest_api_port }} -j ACCEPT'
+            state: '{{ (miarec_screen_rest_api_port != 0 ) | ternary("present", "absent") }}'
+
           - name: open_screen_client_tcp
-            rules: '-A INPUT -p tcp --dport 6091 -j ACCEPT'
-            state: present
+            rules: '-A INPUT -p tcp --dport {{ miarec_screen_client_tcp_port }} -j ACCEPT'
+            state: '{{ (miarec_screen_client_tcp_port != 0 ) | ternary("present", "absent") }}'
+            
           - name: open_screen_client_tls
-            rules: '-A INPUT -p tcp --dport 6092 -j ACCEPT'
-            state: present
+            rules: '-A INPUT -p tcp --dport {{ miarec_screen_client_tls_port }} -j ACCEPT'
+            state: '{{ (miarec_screen_client_tls_port != 0 ) | ternary("present", "absent") }}'
   roles:
     - iptables
+  tags: 'miarec-screen'
