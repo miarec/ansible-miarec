@@ -101,6 +101,7 @@
   hosts: web
   vars_files:
     - vars/web.yml
+  become: yes
   roles:
     - role: 'apache'
   tags: 'apache'
