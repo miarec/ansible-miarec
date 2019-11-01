@@ -126,6 +126,8 @@
 - name: Install Sox
   hosts: 
     - celery
+  vars_files:
+    - vars/web.yml
   roles:
     - role: 'sox'
   tags: 'sox'  
