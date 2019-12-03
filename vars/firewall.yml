@@ -15,8 +15,8 @@ miarec_ciscobib_rtp_port_begin: 20000
 miarec_ciscobib_rtp_port_end: 21999
 
 miarec_siprec_signaling_port: 5080
-miarec_siprec_rtp_port_begin: 23000
-miarec_siprec_rtp_port_end: 24999
+miarec_siprec_rtp_port_begin: 22000
+miarec_siprec_rtp_port_end: 23999
 
 miarec_screen_rest_api_port: 6089
 
