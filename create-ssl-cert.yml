@@ -1,0 +1,13 @@
+
+# ------------------------------------------------
+# Install LetsEncrypt and generate certificates
+# ------------------------------------------------
+- name: Generate SSL Certificates using LetsEncrypt
+  hosts: 
+    - web
+  vars_files:
+    - vars/web.yml
+  roles:
+    - role: 'letsencrypt'
+  tags: 'letsencrypt'  
+  
