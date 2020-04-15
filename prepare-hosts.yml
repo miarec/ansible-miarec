@@ -15,6 +15,7 @@
   hosts: db
   vars_files:
     - vars/db.yml
+  become: yes
 
   pre_tasks:
     - set_fact:
@@ -55,7 +56,7 @@
         postgresql_pg_hba_custom: "{{ postgresql_pg_hba_custom }}  + {{ pg_hba_rules }}"
         # Listen on all interfaces. By default, it listens on localhost only
         postgresql_listen_addresses: "*"
-      when: pg_hba_rules
+      when: pg_hba_rules | length > 0
 
     - debug: var=postgresql_pg_hba_custom
 
@@ -71,6 +72,7 @@
   hosts: redis
   vars_files:
     - vars/redis.yml
+  become: yes
   pre_tasks:
 
     - set_fact:
@@ -85,7 +87,7 @@
     - set_fact:
         # Bind to all interfaces if other components are connecting to it remotely
         redis_bind: 0.0.0.0 
-      when: all_ip_addresses
+      when: all_ip_addresses | length > 0
 
     - debug: var=all_ip_addresses
     - debug: var=redis_bind
@@ -115,6 +117,7 @@
     - web
     - celery
     - celerybeat
+  become: yes
   vars_files:
     - vars/web.yml
   roles:
@@ -129,6 +132,7 @@
     - celery
   vars_files:
     - vars/web.yml
+  become: yes
   roles:
     - role: 'sox'
   tags: 'sox'  
