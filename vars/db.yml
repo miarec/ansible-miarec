@@ -52,13 +52,18 @@ postgresql_database_extensions:
 postgresql_users:
   - name: "{{ miarec_db_user }}"
     pass: "{{ miarec_db_password }}"
-    encrypted: no       # denotes if the password is already encrypted.
+    encrypted: yes       # denotes if the password is already encrypted.
 
     
 # --------------------------------------
 # Optimizations
 # --------------------------------------    
-postgresql_max_connections:      200       # default 100
-postgresql_shared_buffers:       256MB     # default 128MB
-postgresql_temp_buffers:         32MB      # default 8MB
-postgresql_work_mem:             16MB      # default 1MB
+postgresql_max_connections:      200
+postgresql_work_mem:             64MB
+postgresql_temp_buffers:         32MB
+
+# Recommended value for postgresql_shared_buffers is 25% of RAM.
+postgresql_shared_buffers:       "{{ (ansible_memory_mb.real.total/4) | int }}MB"
+
+# Recommended value for postgresql_effective_cache_size is 50% of RAM.
+postgresql_effective_cache_size: "{{ (ansible_memory_mb.real.total/2) | int }}MB"           
