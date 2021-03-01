@@ -48,7 +48,6 @@
 
     - debug: var=tmp_pg_hba_rules
 
-      
     - set_fact:
         pg_hba_rules: "{{ tmp_pg_hba_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
 
@@ -59,6 +58,16 @@
       when: pg_hba_rules | length > 0
 
     - debug: var=postgresql_pg_hba_custom
+
+    - name: Install pip3
+      become: yes
+      apt: name=python3-pip state=present update_cache=true
+      when: ansible_os_family == "Debian"
+
+    - name: Install psycopg2 for ansible to be able to create postgresql users
+      become: yes
+      pip: name=psycopg2-binary
+      when: ansible_os_family == "Debian"
 
   roles:
     - role: 'postgresql'
