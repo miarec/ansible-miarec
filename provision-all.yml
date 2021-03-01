@@ -1,0 +1,5 @@
+- name: Prepare hosts
+  import_playbook: prepare-hosts.yml
+
+- name: Install MiaRec
+  import_playbook: setup-miarec.yml
