@@ -31,3 +31,6 @@
 [submodule "roles/letsencrypt"]
 	path = roles/letsencrypt
 	url = https://github.com/miarec/ansible-role-letsencrypt
+[submodule "roles/miarecweb-lb"]
+	path = roles/miarecweb-lb
+	url = https://github.com/miarec/ansible-role-miarecweb-lb

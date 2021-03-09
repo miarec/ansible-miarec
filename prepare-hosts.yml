@@ -146,3 +146,41 @@
     - role: 'sox'
   tags: 'sox'  
   
+
+# ------------------------------------------------
+# Install HAProxy (lb)
+# ------------------------------------------------
+- name: Install HAProxy
+  hosts: 
+    - lb
+  vars_files:
+    - vars/web.yml
+  become: yes
+  pre_tasks:
+    - set_fact:
+        tmp_server:
+          name: "primary_{{ item }}"
+          address: "{{ item }}:443"
+          backup: False
+      with_items: "{{ primary_servers }}"
+      register: tmp_primary_servers
+
+    - debug: var=tmp_primary_servers
+
+    - set_fact:
+        tmp_server:
+          name: "backup_{{ item }}"
+          address: "{{ item }}:443"
+          backup: True
+      with_items: "{{ secondary_servers }}"
+      register: tmp_secondary_servers
+
+    - debug: var=tmp_secondary_servers
+
+    - set_fact:
+        haproxy_backend_servers: "{{ tmp_primary_servers.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_server') | list + tmp_secondary_servers.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_server') | list }}"
+
+    - debug: var=haproxy_backend_servers
+  roles:
+    - role: 'miarecweb-lb'
+  tags: 'lb'  
