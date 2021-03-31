@@ -34,3 +34,6 @@
 [submodule "roles/miarecweb-lb"]
 	path = roles/miarecweb-lb
 	url = https://github.com/miarec/ansible-role-miarecweb-lb
+[submodule "roles/pgbouncer"]
+	path = roles/pgbouncer
+	url = https://github.com/miarec/ansible-role-pgbouncer
