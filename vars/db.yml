@@ -60,6 +60,20 @@ postgresql_users:
 
 
 # --------------------------------------
+# pgbouncer configuration
+# --------------------------------------
+pgbouncer_max_client_conn: 200
+pgbouncer_hba_custom: "{{ postgresql_pg_hba_custom }}"
+pgbouncer_users: "{{ postgresql_users }}"
+pgbouncer_listen_addr: 127.0.0.1
+
+pgbouncer_stats_users:
+  - postgres
+  - stats
+  - "{{ miarec_db_user }}"  
+
+
+# --------------------------------------
 # Optimizations
 # --------------------------------------    
 postgresql_max_connections:      200

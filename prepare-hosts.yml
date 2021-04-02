@@ -34,6 +34,8 @@
             user: "{{ miarec_db_user }}"
             method: 'md5'
 
+      when: not install_pgbouncer|default(False)|bool
+
     - set_fact:
         tmp_rule:
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
@@ -43,21 +45,24 @@
           database: "{{ miarec_db_name }}"
           method: 'md5'
       with_items: "{{ groups.recorder + groups.web }}"
-      when: hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
+      when: not install_pgbouncer|default(False)|bool and hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
       register: tmp_pg_hba_rules
 
     - debug: var=tmp_pg_hba_rules
+      when: not install_pgbouncer|default(False)|bool
 
     - set_fact:
         pg_hba_rules: "{{ tmp_pg_hba_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
+      when: not install_pgbouncer|default(False)|bool
 
     - set_fact:
         postgresql_pg_hba_custom: "{{ postgresql_pg_hba_custom }}  + {{ pg_hba_rules }}"
         # Listen on all interfaces. By default, it listens on localhost only
         postgresql_listen_addresses: "*"
-      when: pg_hba_rules | length > 0
+      when: not install_pgbouncer|default(False)|bool and pg_hba_rules|length > 0
 
     - debug: var=postgresql_pg_hba_custom
+      when: not install_pgbouncer|default(False)|bool
 
     - name: Install pip3
       become: yes
@@ -71,8 +76,70 @@
 
   roles:
     - role: 'postgresql'
+
   tags: 'postgresql'
 
+
+# ------------------------------------------------
+# Install PGBouncer connection pooler
+# ------------------------------------------------
+- name: Install PGBouncer
+  hosts: db
+  vars_files:
+    - vars/db.yml
+  become: yes
+
+  pre_tasks:
+    - set_fact:
+        pgbouncer_hba_custom:
+          - comment: 'IPv4 local connections:'
+            address: '127.0.0.1/32'
+            type: host
+            database: all
+            user: "{{ miarec_db_user }}"
+            method: 'md5'
+
+          - comment: 'IPv6 local connections:'
+            address: '::1/128'
+            type: host
+            database: all
+            user: "{{ miarec_db_user }}"
+            method: 'md5'
+      when: install_pgbouncer|default(False)|bool
+
+    - set_fact:
+        tmp_rule:
+          comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
+          address: "{{ hostvars[item].private_ip_address }}/32" 
+          user: "{{ miarec_db_user }}"
+          type: host
+          database: "{{ miarec_db_name }}"
+          method: 'md5'
+      with_items: "{{ groups.recorder + groups.web }}"
+      when: install_pgbouncer|default(False)|bool and hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
+      register: tmp_pg_hba_rules
+
+    - debug: var=tmp_pg_hba_rules
+      when: install_pgbouncer|default(False)|bool
+
+    - set_fact:
+        pg_hba_rules: "{{ tmp_pg_hba_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
+      when: install_pgbouncer|default(False)|bool
+
+    - set_fact:
+        pgbouncer_hba_custom: "{{ pgbouncer_hba_custom }}  + {{ pg_hba_rules }}"
+        # Listen on all interfaces. By default, it listens on localhost only
+        pgbouncer_listen_addr: "*"
+      when: install_pgbouncer|default(False)|bool and pg_hba_rules | length > 0
+
+    - debug: var=pgbouncer_hba_custom
+      when: install_pgbouncer|default(False)|bool
+
+  roles:
+    - role: 'pgbouncer'
+      when: install_pgbouncer|default(False)|bool
+
+  tags: 'pgbouncer'
 
 # ------------------------------------------------
 # Install redis
