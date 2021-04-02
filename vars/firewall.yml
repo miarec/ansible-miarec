@@ -5,6 +5,7 @@
 #   miarec_rest_api_port: 0 
 #
 miarec_rest_api_port: 6088
+miarec_db_port: 5432
 
 miarec_live_monitoring_signaling_port: 6554
 miarec_live_monitoring_rtp_port_begin: 7000

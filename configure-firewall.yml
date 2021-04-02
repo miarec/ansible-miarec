@@ -12,7 +12,7 @@
     - set_fact:
         tmp_rule:
           name: "open_postgresql_port_{{ hostvars[item].inventory_hostname.replace('.', '_') }}"
-          rules: "-A INPUT -p tcp --dport 5432 -s {{ hostvars[item].private_ip_address }} -j ACCEPT"
+          rules: "-A INPUT -p tcp --dport {{ miarec_db_port }} -s {{ hostvars[item].private_ip_address }} -j ACCEPT"
           state: present
       with_items: "{{ groups.recorder + groups.screen + groups.web + groups.celery + groups.celerybeat }}"
       when: hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
