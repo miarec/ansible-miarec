@@ -4,7 +4,7 @@
 postgresql_add_to_path: true
 postgresql_ext_install_dev_headers: true
 
-  
+
 miarec_db_name: "miarecdb"
 miarec_db_user: "miarec"
 miarec_db_password: "{{ secret_db_password | default('password') }}"
@@ -28,6 +28,9 @@ postgresql_pg_hba_custom:
   - { type: host,  database: all, user: "{{ miarec_db_user }}", address: '::1/128',      method: 'md5', comment: 'IPv6 local connections:' }
 
   
+postgresql_shared_preload_libraries: 
+  - pg_stat_statements
+
 # --------------------------------------
 # List of databases to be created
 # --------------------------------------
@@ -44,7 +47,8 @@ postgresql_database_extensions:
     extensions:
       - hstore 
       - uuid-ossp
-     
+      - pg_stat_statements
+
 
 # --------------------------------------
 # List of users to be created
@@ -54,7 +58,7 @@ postgresql_users:
     pass: "{{ miarec_db_password }}"
     encrypted: yes       # denotes if the password is already encrypted.
 
-    
+
 # --------------------------------------
 # Optimizations
 # --------------------------------------    
