@@ -113,7 +113,7 @@
           address: "{{ hostvars[item].private_ip_address }}/32" 
           user: "{{ miarec_db_user }}"
           type: host
-          database: "{{ miarec_db_name }}"
+          database: "{{ miarec_db_name }},pgbouncer"
           method: 'md5'
       with_items: "{{ groups.recorder + groups.web }}"
       when: install_pgbouncer|default(False)|bool and hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
