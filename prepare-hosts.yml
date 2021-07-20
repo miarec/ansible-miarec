@@ -3,6 +3,9 @@
 # ------------------------------------------------
 - name: Disable SELinux
   hosts: all
+  pre_tasks:
+    - include_vars: vars/custom.yml
+      failed_when: false
   roles:
     - role: 'disable-selinux'
       tags: 'disable-selinux'
@@ -18,6 +21,9 @@
   become: yes
 
   pre_tasks:
+    - include_vars: vars/custom.yml
+      failed_when: false
+      
     - set_fact:
         postgresql_pg_hba_custom:
           - comment: 'IPv4 local connections:'
@@ -90,6 +96,9 @@
   become: yes
 
   pre_tasks:
+    - include_vars: vars/custom.yml
+      failed_when: false
+      
     - set_fact:
         pgbouncer_hba_custom:
           - comment: 'IPv4 local connections:'
@@ -150,7 +159,9 @@
     - vars/redis.yml
   become: yes
   pre_tasks:
-
+    - include_vars: vars/custom.yml
+      failed_when: false
+      
     - set_fact:
         ip_address: "{{ hostvars[item].private_ip_address }}" 
       with_items: "{{ groups.recorder + groups.web }}"
@@ -180,6 +191,9 @@
   vars_files:
     - vars/web.yml
   become: yes
+  pre_tasks:
+    - include_vars: vars/custom.yml
+      failed_when: false
   roles:
     - role: 'apache'
   tags: 'apache'
@@ -196,6 +210,9 @@
   become: yes
   vars_files:
     - vars/web.yml
+  pre_tasks:
+    - include_vars: vars/custom.yml
+      failed_when: false
   roles:
     - role: 'python'
   tags: 'python'
@@ -208,6 +225,9 @@
     - celery
   vars_files:
     - vars/web.yml
+  pre_tasks:
+    - include_vars: vars/custom.yml
+      failed_when: false
   become: yes
   roles:
     - role: 'sox'
@@ -222,6 +242,9 @@
     - lb
   vars_files:
     - vars/web.yml
+  pre_tasks:
+    - include_vars: vars/custom.yml
+      failed_when: false
   become: yes
   pre_tasks:
     - set_fact:
