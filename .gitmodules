@@ -37,3 +37,12 @@
 [submodule "roles/pgbouncer"]
 	path = roles/pgbouncer
 	url = https://github.com/miarec/ansible-role-pgbouncer
+[submodule "roles/prometheus"]
+	path = roles/prometheus
+	url = https://github.com/miarec/ansible-role-prometheus
+[submodule "roles/prometheus-client"]
+	path = roles/prometheus-client
+	url = https://github.com/miarec/ansible-role-prometheus-client
+[submodule "roles/grafana"]
+	path = roles/grafana
+	url = https://github.com/miarec/ansible-role-grafana
