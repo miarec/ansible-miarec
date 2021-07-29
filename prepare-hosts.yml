@@ -1,3 +1,4 @@
+
 # ------------------------------------------------
 # Disable SELinux on all hosts
 # ------------------------------------------------
@@ -10,6 +11,45 @@
     - role: 'disable-selinux'
       tags: 'disable-selinux'
 
+
+# ------------------------------------------------
+# Instal prometheus on web
+# ------------------------------------------------
+- name: Install Prometheus
+  hosts: web
+  pre_tasks:
+    - include_vars: vars/custom.yml
+      failed_when: false
+  become: yes
+  roles:
+    - role: 'prometheus'
+      tags: 'prometheus'
+
+# ------------------------------------------------
+# Instal node_exporter on all hosts
+# ------------------------------------------------
+- name: Install node_exporter
+  hosts: all
+  pre_tasks:
+    - include_vars: vars/custom.yml
+      failed_when: false
+  become: yes
+  roles:
+    - role: 'prometheus-client'
+      tags: 'prometheus-client'
+
+# ------------------------------------------------
+# Instal Grafana on web
+# ------------------------------------------------
+- name: Install grafana
+  hosts: web
+  pre_tasks:
+    - include_vars: vars/custom.yml
+      failed_when: false
+  become: yes
+  roles:
+    - role: 'grafana'
+      tags: 'grafana'
 
 # ------------------------------------------------
 # Install database
