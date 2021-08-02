@@ -43,3 +43,6 @@ miarec
 [celerybeat]
 miarec
 
+[monitor]
+miarec
+

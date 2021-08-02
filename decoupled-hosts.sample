@@ -9,12 +9,13 @@
 ;                           For 'all-in-one' setup, the private_ip_address should be set to '127.0.0.1' as all communication is done internally
 ; ---------------------------------
 
-rec1.miarec  ansible_ssh_host=192.168.88.11  private_ip_address=192.168.88.11  ansible_user=root 
-rec2.miarec  ansible_ssh_host=192.168.88.12  private_ip_address=192.168.88.12  ansible_user=root 
-db.miarec    ansible_ssh_host=192.168.88.15  private_ip_address=192.168.88.15  ansible_user=root 
-redis.miarec ansible_ssh_host=192.168.88.16  private_ip_address=192.168.88.16  ansible_user=root 
-web1.miarec  ansible_ssh_host=192.168.88.21  private_ip_address=192.168.88.21  ansible_user=root 
-web2.miarec  ansible_ssh_host=192.168.88.22  private_ip_address=192.168.88.22  ansible_user=root 
+rec1.miarec     ansible_ssh_host=192.168.88.11  private_ip_address=192.168.88.11  ansible_user=root 
+rec2.miarec     ansible_ssh_host=192.168.88.12  private_ip_address=192.168.88.12  ansible_user=root 
+db.miarec       ansible_ssh_host=192.168.88.15  private_ip_address=192.168.88.15  ansible_user=root 
+redis.miarec    ansible_ssh_host=192.168.88.16  private_ip_address=192.168.88.16  ansible_user=root 
+web1.miarec     ansible_ssh_host=192.168.88.21  private_ip_address=192.168.88.21  ansible_user=root 
+web2.miarec     ansible_ssh_host=192.168.88.22  private_ip_address=192.168.88.22  ansible_user=root 
+monitor.miarec  ansible_ssh_host=192.168.88.23  private_ip_address=192.168.88.23  ansible_user=root 
 
 
 [all:vars]
@@ -53,4 +54,7 @@ web2.miarec
 
 [celerybeat]
 web1.miarec
+
+[monitor]
+monitor.miarec
 
