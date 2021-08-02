@@ -74,15 +74,6 @@
           - name: open_web_https_port
             rules: "-A INPUT -p tcp --dport 443 -j ACCEPT"
             state: present
-          - name: open_prometheus
-            rules: "-A INPUT -p tcp --dport 9090 -j ACCEPT"
-            state: present
-          - name: open_grafana
-            rules: "-A INPUT -p tcp --dport 3000 -j ACCEPT"
-            state: present
-          - name: open_node_exporter
-            rules: "-A INPUT -p tcp --dport 9100 -j ACCEPT"
-            state: present
   roles:
     - iptables
   tags: 'apache'
@@ -170,3 +161,49 @@
   roles:
     - iptables
   tags: 'miarec-screen'
+
+
+# ------------------------------------------------
+# Monitor Server
+# Firewall configuration for Prometheus/Grafana Server
+# Here we allow inbound connections to port 3000 / 9090
+# ------------------------------------------------
+- name: Configure firewall on monitor host
+  hosts: monitor
+  become: yes
+  vars_files:
+    - vars/monitor.yml
+  pre_tasks:
+    - set_fact:
+        iptables_keep_unmanaged: yes
+        iptables_custom_rules:
+          - name: open_grafana
+            rules: "-A INPUT -p tcp --dport {{ grafana_listen_port }} -j ACCEPT"
+            state: present
+          - name: open_prometheus
+            rules: "-A INPUT -p tcp --dport 9090 -j ACCEPT"
+            state: present
+  roles:
+    - iptables
+  tags: "'grafana' 'prometheus'"
+
+# ------------------------------------------------
+# Monitoring Client
+# Firewall configuration for Node_exporter Client
+# Here we allow inbound connections to port 9100
+# ------------------------------------------------
+- name: Configure firewall on all hosts
+  hosts: all
+  become: yes
+  vars_files:
+    - vars/monitor.yml
+  pre_tasks:
+    - set_fact:
+        iptables_keep_unmanaged: yes
+        iptables_custom_rules:
+          - name: open_node_exporter
+            rules: "-A INPUT -p tcp --dport 9100 -j ACCEPT"
+            state: present
+  roles:
+    - iptables
+  tags: 'prometheus-client'
