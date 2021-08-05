@@ -164,15 +164,37 @@
 
 
 # ------------------------------------------------
-# Monitor Server
-# Firewall configuration for Prometheus/Grafana Server
-# Here we allow inbound connections to port 3000 / 9090
+# Prometheus Server
+# Firewall configuration for Prometheus Server
+# Here we allow inbound connections to port 9090 or custom port
 # ------------------------------------------------
-- name: Configure firewall on monitor host
-  hosts: monitor
+- name: Configure firewall on prometheus host
+  hosts: prometheus
   become: yes
   vars_files:
-    - vars/monitor.yml
+    - vars/firewall.yml
+  pre_tasks:
+    - set_fact:
+        iptables_keep_unmanaged: yes
+        iptables_custom_rules:
+          - name: open_prometheus
+            rules: "-A INPUT -p tcp --dport {{ prometheus_listen_port }} -j ACCEPT"
+            state: present
+  roles:
+    - iptables
+  tags: 
+    -prometheus
+
+# ------------------------------------------------
+# Grafana Server
+# Firewall configuration for Grafana Server
+# Here we allow inbound connections to port 3000 or custom port
+# ------------------------------------------------
+- name: Configure firewall on grafana host
+  hosts: grafana
+  become: yes
+  vars_files:
+    - vars/firewall.yml
   pre_tasks:
     - set_fact:
         iptables_keep_unmanaged: yes
@@ -180,30 +202,29 @@
           - name: open_grafana
             rules: "-A INPUT -p tcp --dport {{ grafana_listen_port }} -j ACCEPT"
             state: present
-          - name: open_prometheus
-            rules: "-A INPUT -p tcp --dport 9090 -j ACCEPT"
-            state: present
   roles:
     - iptables
-  tags: "'grafana' 'prometheus'"
+  tags: 
+    -grafana
 
 # ------------------------------------------------
 # Monitoring Client
-# Firewall configuration for Node_exporter Client
-# Here we allow inbound connections to port 9100
+# Firewall configuration for node_exporter Client
+# Here we allow inbound connections to port 9100 or custom port
 # ------------------------------------------------
-- name: Configure firewall on all hosts
+- name: Configure firewall on all hosts for Node_exporter
   hosts: all
   become: yes
   vars_files:
-    - vars/monitor.yml
+    - vars/firewall.yml
   pre_tasks:
     - set_fact:
         iptables_keep_unmanaged: yes
         iptables_custom_rules:
           - name: open_node_exporter
-            rules: "-A INPUT -p tcp --dport 9100 -j ACCEPT"
+            rules: "-A INPUT -p tcp --dport {{ node_exporter_listen_port }} -j ACCEPT"
             state: present
   roles:
     - iptables
-  tags: 'prometheus-client'
+  tags:
+    - prometheus-client

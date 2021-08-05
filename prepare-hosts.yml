@@ -17,7 +17,7 @@
 - name: Install node_exporter
   hosts: all
   pre_tasks:
-    - include_vars: vars/custom.yml
+    - include_vars: vars/firewall.yml
       failed_when: false
   become: yes
   roles:
@@ -28,9 +28,9 @@
 # Instal prometheus on monitor host
 # ------------------------------------------------
 - name: Install Prometheus
-  hosts: monitor
+  hosts: prometheus
   pre_tasks:
-    - include_vars: vars/custom.yml
+    - include_vars: vars/firewall.yml
       failed_when: false
   become: yes
   roles:
@@ -42,9 +42,9 @@
 # Instal Grafana on monitor host
 # ------------------------------------------------
 - name: Install grafana
-  hosts: monitor
+  hosts: grafana
   pre_tasks:
-    - include_vars: vars/custom.yml
+    - include_vars: vars/firewall.yml
       failed_when: false
   become: yes
   roles:
