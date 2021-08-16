@@ -55,6 +55,12 @@ web2.miarec
 [celerybeat]
 web1.miarec
 
-[monitor]
+[prometheus]
 monitor.miarec
+
+[grafana]
+monitor.miarec
+
+[grafana:vars]
+grafana_admin_password = "SET_ADMIN_PASSWORD_HERE"
 

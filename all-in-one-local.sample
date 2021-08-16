@@ -43,6 +43,11 @@ miarec
 [celerybeat]
 miarec
 
-[monitor]
+[prometheus]
 miarec
 
+[grafana]
+miarec
+
+[grafana:vars]
+grafana_admin_password = "SET_ADMIN_PASSWORD_HERE"
