@@ -30,6 +30,10 @@ python_version      = 3.6.3
 redis_version       = 3.2.8
 
 
+grafana_admin_password = "SET_ADMIN_PASSWORD_HERE"
+install_prometheus_client = yes
+
+
 [recorder]
 rec1.miarec
 rec2.miarec
@@ -60,7 +64,3 @@ monitor.miarec
 
 [grafana]
 monitor.miarec
-
-[grafana:vars]
-grafana_admin_password = "SET_ADMIN_PASSWORD_HERE"
-

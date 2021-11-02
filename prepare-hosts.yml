@@ -24,7 +24,8 @@
       failed_when: false
   become: yes
   roles:
-    - prometheus-client
+    - role: prometheus-client
+      when: install_prometheus_client|default(False)|bool
   tags:
     - prometheus-client
 
@@ -327,3 +328,4 @@
     - miarecweb-lb
   tags: 
     - lb
+
