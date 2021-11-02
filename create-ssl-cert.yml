@@ -8,6 +8,7 @@
   vars_files:
     - vars/web.yml
   roles:
-    - role: 'letsencrypt'
-  tags: 'letsencrypt'  
+    - letsencrypt
+  tags: 
+    - letsencrypt
   

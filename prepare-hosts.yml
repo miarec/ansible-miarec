@@ -8,21 +8,25 @@
     - include_vars: vars/custom.yml
       failed_when: false
   roles:
-    - role: 'disable-selinux'
-      tags: 'disable-selinux'
+    - disable-selinux
+  tags: 
+    - disable-selinux
 
 # ------------------------------------------------
 # Instal node_exporter on all hosts
 # ------------------------------------------------
 - name: Install node_exporter
   hosts: all
+  vars_files:
+    - vars/firewall.yml
   pre_tasks:
-    - include_vars: vars/firewall.yml
+    - include_vars: vars/custom.yml
       failed_when: false
   become: yes
   roles:
-    - role: 'prometheus-client'
-      tags: 'prometheus-client'
+    - prometheus-client
+  tags:
+    - prometheus-client
 
 # ------------------------------------------------
 # Instal prometheus on monitor host
@@ -34,8 +38,9 @@
       failed_when: false
   become: yes
   roles:
-    - role: 'prometheus'
-      tags: 'prometheus'
+    - prometheus
+  tags: 
+    - prometheus
 
 
 # ------------------------------------------------
@@ -48,8 +53,9 @@
       failed_when: false
   become: yes
   roles:
-    - role: 'grafana'
-      tags: 'grafana'
+    - grafana
+  tags: 
+    - grafana
 
 # ------------------------------------------------
 # Install database
@@ -121,9 +127,10 @@
       when: ansible_os_family == "Debian"
 
   roles:
-    - role: 'postgresql'
+    - postgresql
 
-  tags: 'postgresql'
+  tags: 
+    - postgresql
 
 
 # ------------------------------------------------
@@ -185,10 +192,11 @@
       when: install_pgbouncer|default(False)|bool
 
   roles:
-    - role: 'pgbouncer'
+    - role: pgbouncer
       when: install_pgbouncer|default(False)|bool
 
-  tags: 'pgbouncer'
+  tags: 
+    - pgbouncer
 
 # ------------------------------------------------
 # Install redis
@@ -219,8 +227,9 @@
     - debug: var=all_ip_addresses
     - debug: var=redis_bind
   roles:
-    - role: 'redis'
-  tags: 'redis'
+    - redis
+  tags:
+    - redis
 
 
 # ------------------------------------------------
@@ -235,8 +244,9 @@
     - include_vars: vars/custom.yml
       failed_when: false
   roles:
-    - role: 'apache'
-  tags: 'apache'
+    - apache
+  tags: 
+    - apache
 
 
 # ------------------------------------------------
@@ -254,8 +264,9 @@
     - include_vars: vars/custom.yml
       failed_when: false
   roles:
-    - role: 'python'
-  tags: 'python'
+    - python
+  tags: 
+    - python
 
 # ------------------------------------------------
 # Install Sox (celery)
@@ -270,8 +281,9 @@
       failed_when: false
   become: yes
   roles:
-    - role: 'sox'
-  tags: 'sox'  
+    - sox
+  tags: 
+    - sox
   
 
 # ------------------------------------------------
@@ -312,5 +324,6 @@
 
     - debug: var=haproxy_backend_servers
   roles:
-    - role: 'miarecweb-lb'
-  tags: 'lb'  
+    - miarecweb-lb
+  tags: 
+    - lb

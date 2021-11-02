@@ -22,8 +22,9 @@
     - debug: var=miarecweb_db_host
     - debug: var=miarecweb_redis_host
   roles:
-    - role: 'miarecweb'
-  tags: 'miarecweb'
+    - miarecweb
+  tags: 
+    - miarecweb
 
     
 # ------------------------------------------------
@@ -48,8 +49,9 @@
     - debug: var=miarec_http_call_events_host
     - debug: var=miarec_rest_api_permitted_hosts
   roles:
-    - role: 'miarec'
-  tags: 'miarec'
+    - miarec
+  tags: 
+    - miarec
 
 # ------------------------------------------------
 # Deploy MiaRec Screen Controller
@@ -71,5 +73,6 @@
     - debug: var=miarec_redis_host
     - debug: var=miarec_rest_api_permitted_hosts
   roles:
-    - role: 'miarec-screen'
-  tags: 'miarec-screen'
+    - miarec-screen
+  tags: 
+    - miarec-screen

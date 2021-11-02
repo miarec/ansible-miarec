@@ -23,7 +23,8 @@
         iptables_custom_rules: "{{ tmp_iptables_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
   roles:
     - iptables
-  tags: 'postgresql'
+  tags: 
+    - postgresql
 
 # ------------------------------------------------
 # Redis
@@ -51,7 +52,8 @@
         iptables_custom_rules: "{{ tmp_iptables_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
   roles:
     - iptables
-  tags: 'redis'
+  tags: 
+    - redis
 
 
 # ------------------------------------------------
@@ -76,7 +78,8 @@
             state: present
   roles:
     - iptables
-  tags: 'apache'
+  tags: 
+    - apache
 
 
 # ------------------------------------------------
@@ -130,7 +133,8 @@
             state: '{{ (miarec_ciscobib_rtp_port_begin != 0 ) | ternary("present", "absent") }}'
   roles:
     - iptables
-  tags: 'miarec'
+  tags: 
+    - miarec
 
 
 # ------------------------------------------------
@@ -160,7 +164,8 @@
             state: '{{ (miarec_screen_client_tls_port != 0 ) | ternary("present", "absent") }}'
   roles:
     - iptables
-  tags: 'miarec-screen'
+  tags: 
+    - miarec-screen
 
 
 # ------------------------------------------------
@@ -183,7 +188,7 @@
   roles:
     - iptables
   tags: 
-    -prometheus
+    - prometheus
 
 # ------------------------------------------------
 # Grafana Server
@@ -205,7 +210,7 @@
   roles:
     - iptables
   tags: 
-    -grafana
+    - grafana
 
 # ------------------------------------------------
 # Monitoring Client
