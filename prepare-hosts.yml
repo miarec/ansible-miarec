@@ -294,11 +294,11 @@
     - lb
   vars_files:
     - vars/web.yml
+  become: yes
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
-  become: yes
-  pre_tasks:
+
     - set_fact:
         tmp_server:
           name: "primary_{{ item }}"
