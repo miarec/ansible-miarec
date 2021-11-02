@@ -13,52 +13,6 @@
     - disable-selinux
 
 # ------------------------------------------------
-# Instal node_exporter on all hosts
-# ------------------------------------------------
-- name: Install node_exporter
-  hosts: all
-  vars_files:
-    - vars/firewall.yml
-  pre_tasks:
-    - include_vars: vars/custom.yml
-      failed_when: false
-  become: yes
-  roles:
-    - role: prometheus-client
-      when: install_prometheus_client|default(False)|bool
-  tags:
-    - prometheus-client
-
-# ------------------------------------------------
-# Instal prometheus on monitor host
-# ------------------------------------------------
-- name: Install Prometheus
-  hosts: prometheus
-  pre_tasks:
-    - include_vars: vars/firewall.yml
-      failed_when: false
-  become: yes
-  roles:
-    - prometheus
-  tags: 
-    - prometheus
-
-
-# ------------------------------------------------
-# Instal Grafana on monitor host
-# ------------------------------------------------
-- name: Install grafana
-  hosts: grafana
-  pre_tasks:
-    - include_vars: vars/firewall.yml
-      failed_when: false
-  become: yes
-  roles:
-    - grafana
-  tags: 
-    - grafana
-
-# ------------------------------------------------
 # Install database
 # ------------------------------------------------
 - name: Install PostgreSQL
@@ -126,6 +80,24 @@
       become: yes
       pip: name=psycopg2-binary
       when: ansible_os_family == "Debian"
+
+    - name: Install Software Collections (SCL) repository | CentOS
+      package: 
+        name: centos-release-scl
+        state: present
+      become: yes
+      when: 
+        - postgresql_version is version ('11', '>=')
+        - ansible_distribution == "CentOS" 
+
+    - name: Install LLVM Clang Toolset | CentOS
+      package: 
+        name: llvm-toolset-7-clang
+        state: present
+      become: yes
+      when: 
+        - postgresql_version is version ('11', '>=')
+        - ansible_distribution == "CentOS" 
 
   roles:
     - postgresql
@@ -329,3 +301,48 @@
   tags: 
     - lb
 
+# ------------------------------------------------
+# Instal node_exporter on all hosts
+# ------------------------------------------------
+- name: Install node_exporter
+  hosts: all
+  vars_files:
+    - vars/firewall.yml
+  pre_tasks:
+    - include_vars: vars/custom.yml
+      failed_when: false
+  become: yes
+  roles:
+    - role: prometheus-client
+      when: install_prometheus_client|default(False)|bool
+  tags:
+    - prometheus-client
+
+# ------------------------------------------------
+# Instal prometheus on monitor host
+# ------------------------------------------------
+- name: Install Prometheus
+  hosts: prometheus
+  pre_tasks:
+    - include_vars: vars/firewall.yml
+      failed_when: false
+  become: yes
+  roles:
+    - prometheus
+  tags: 
+    - prometheus
+
+
+# ------------------------------------------------
+# Instal Grafana on monitor host
+# ------------------------------------------------
+- name: Install grafana
+  hosts: grafana
+  pre_tasks:
+    - include_vars: vars/firewall.yml
+      failed_when: false
+  become: yes
+  roles:
+    - grafana
+  tags: 
+    - grafana
