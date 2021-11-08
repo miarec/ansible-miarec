@@ -23,7 +23,8 @@
         iptables_custom_rules: "{{ tmp_iptables_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
   roles:
     - iptables
-  tags: 'postgresql'
+  tags: 
+    - postgresql
 
 # ------------------------------------------------
 # Redis
@@ -51,7 +52,8 @@
         iptables_custom_rules: "{{ tmp_iptables_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
   roles:
     - iptables
-  tags: 'redis'
+  tags: 
+    - redis
 
 
 # ------------------------------------------------
@@ -76,7 +78,8 @@
             state: present
   roles:
     - iptables
-  tags: 'apache'
+  tags: 
+    - apache
 
 
 # ------------------------------------------------
@@ -130,7 +133,8 @@
             state: '{{ (miarec_ciscobib_rtp_port_begin != 0 ) | ternary("present", "absent") }}'
   roles:
     - iptables
-  tags: 'miarec'
+  tags: 
+    - miarec
 
 
 # ------------------------------------------------
@@ -160,4 +164,72 @@
             state: '{{ (miarec_screen_client_tls_port != 0 ) | ternary("present", "absent") }}'
   roles:
     - iptables
-  tags: 'miarec-screen'
+  tags: 
+    - miarec-screen
+
+
+# ------------------------------------------------
+# Prometheus Server
+# Firewall configuration for Prometheus Server
+# Here we allow inbound connections to port 9090 or custom port
+# ------------------------------------------------
+- name: Configure firewall on prometheus host
+  hosts: prometheus
+  become: yes
+  vars_files:
+    - vars/firewall.yml
+  pre_tasks:
+    - set_fact:
+        iptables_keep_unmanaged: yes
+        iptables_custom_rules:
+          - name: open_prometheus
+            rules: "-A INPUT -p tcp --dport {{ prometheus_listen_port }} -j ACCEPT"
+            state: present
+  roles:
+    - iptables
+  tags: 
+    - prometheus
+
+# ------------------------------------------------
+# Grafana Server
+# Firewall configuration for Grafana Server
+# Here we allow inbound connections to port 3000 or custom port
+# ------------------------------------------------
+- name: Configure firewall on grafana host
+  hosts: grafana
+  become: yes
+  vars_files:
+    - vars/firewall.yml
+  pre_tasks:
+    - set_fact:
+        iptables_keep_unmanaged: yes
+        iptables_custom_rules:
+          - name: open_grafana
+            rules: "-A INPUT -p tcp --dport {{ grafana_listen_port }} -j ACCEPT"
+            state: present
+  roles:
+    - iptables
+  tags: 
+    - grafana
+
+# ------------------------------------------------
+# Monitoring Client
+# Firewall configuration for node_exporter Client
+# Here we allow inbound connections to port 9100 or custom port
+# ------------------------------------------------
+- name: Configure firewall on all hosts for Node_exporter
+  hosts: all
+  become: yes
+  vars_files:
+    - vars/firewall.yml
+  pre_tasks:
+    - set_fact:
+        iptables_keep_unmanaged: yes
+        iptables_custom_rules:
+          - name: open_node_exporter
+            rules: "-A INPUT -p tcp --dport {{ node_exporter_listen_port }} -j ACCEPT"
+            state: present
+  roles:
+    - iptables
+  tags:
+    - prometheus-client

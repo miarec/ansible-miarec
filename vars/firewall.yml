@@ -23,3 +23,7 @@ miarec_screen_rest_api_port: 6089
 
 miarec_screen_client_tcp_port: 6091
 miarec_screen_client_tls_port: 6092
+
+grafana_listen_port: 3000
+prometheus_listen_port: 9090
+node_exporter_listen_port: 9100

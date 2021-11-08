@@ -1,3 +1,4 @@
+
 # ------------------------------------------------
 # Disable SELinux on all hosts
 # ------------------------------------------------
@@ -7,9 +8,9 @@
     - include_vars: vars/custom.yml
       failed_when: false
   roles:
-    - role: 'disable-selinux'
-      tags: 'disable-selinux'
-
+    - disable-selinux
+  tags: 
+    - disable-selinux
 
 # ------------------------------------------------
 # Install database
@@ -80,10 +81,29 @@
       pip: name=psycopg2-binary
       when: ansible_os_family == "Debian"
 
-  roles:
-    - role: 'postgresql'
+    - name: Install Software Collections (SCL) repository | CentOS
+      package: 
+        name: centos-release-scl
+        state: present
+      become: yes
+      when: 
+        - postgresql_version is version ('11', '>=')
+        - ansible_distribution == "CentOS" 
 
-  tags: 'postgresql'
+    - name: Install LLVM Clang Toolset | CentOS
+      package: 
+        name: llvm-toolset-7-clang
+        state: present
+      become: yes
+      when: 
+        - postgresql_version is version ('11', '>=')
+        - ansible_distribution == "CentOS" 
+
+  roles:
+    - postgresql
+
+  tags: 
+    - postgresql
 
 
 # ------------------------------------------------
@@ -145,10 +165,11 @@
       when: install_pgbouncer|default(False)|bool
 
   roles:
-    - role: 'pgbouncer'
+    - role: pgbouncer
       when: install_pgbouncer|default(False)|bool
 
-  tags: 'pgbouncer'
+  tags: 
+    - pgbouncer
 
 # ------------------------------------------------
 # Install redis
@@ -179,8 +200,9 @@
     - debug: var=all_ip_addresses
     - debug: var=redis_bind
   roles:
-    - role: 'redis'
-  tags: 'redis'
+    - redis
+  tags:
+    - redis
 
 
 # ------------------------------------------------
@@ -195,8 +217,9 @@
     - include_vars: vars/custom.yml
       failed_when: false
   roles:
-    - role: 'apache'
-  tags: 'apache'
+    - apache
+  tags: 
+    - apache
 
 
 # ------------------------------------------------
@@ -214,8 +237,9 @@
     - include_vars: vars/custom.yml
       failed_when: false
   roles:
-    - role: 'python'
-  tags: 'python'
+    - python
+  tags: 
+    - python
 
 # ------------------------------------------------
 # Install Sox (celery)
@@ -230,8 +254,9 @@
       failed_when: false
   become: yes
   roles:
-    - role: 'sox'
-  tags: 'sox'  
+    - sox
+  tags: 
+    - sox
   
 
 # ------------------------------------------------
@@ -272,5 +297,52 @@
 
     - debug: var=haproxy_backend_servers
   roles:
-    - role: 'miarecweb-lb'
-  tags: 'lb'  
+    - miarecweb-lb
+  tags: 
+    - lb
+
+# ------------------------------------------------
+# Instal node_exporter on all hosts
+# ------------------------------------------------
+- name: Install node_exporter
+  hosts: all
+  vars_files:
+    - vars/firewall.yml
+  pre_tasks:
+    - include_vars: vars/custom.yml
+      failed_when: false
+  become: yes
+  roles:
+    - role: prometheus-client
+      when: install_prometheus_client|default(False)|bool
+  tags:
+    - prometheus-client
+
+# ------------------------------------------------
+# Instal prometheus on monitor host
+# ------------------------------------------------
+- name: Install Prometheus
+  hosts: prometheus
+  pre_tasks:
+    - include_vars: vars/firewall.yml
+      failed_when: false
+  become: yes
+  roles:
+    - prometheus
+  tags: 
+    - prometheus
+
+
+# ------------------------------------------------
+# Instal Grafana on monitor host
+# ------------------------------------------------
+- name: Install grafana
+  hosts: grafana
+  pre_tasks:
+    - include_vars: vars/firewall.yml
+      failed_when: false
+  become: yes
+  roles:
+    - grafana
+  tags: 
+    - grafana
