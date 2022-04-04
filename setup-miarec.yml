@@ -73,3 +73,19 @@
   roles:
     - role: 'miarec-screen'
   tags: 'miarec-screen'
+
+
+# ------------------------------------------------
+# Deploy MiaRec Live Monitoring
+# ------------------------------------------------
+- name: Deploy MiaRec Live Monitoring
+  hosts: livemon
+  vars_files:
+    - vars/firewall.yml
+  pre_tasks:
+    - include_vars: vars/custom.yml
+      failed_when: false
+
+  roles:
+    - role: 'miarec_livemon'
+  tags: 'miarec-livemon'

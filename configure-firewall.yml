@@ -161,3 +161,31 @@
   roles:
     - iptables
   tags: 'miarec-screen'
+
+
+# ------------------------------------------------
+# Live Monitoring servers
+# Firewall configuration for Recorder server (REST API)
+# ------------------------------------------------
+- name: Configure firewall on Live Monitoring host
+  hosts: livemon
+  become: yes
+  vars_files:
+    - vars/firewall.yml
+  pre_tasks:
+    - set_fact:
+        tmp_rule:
+          - name: "open_livemon_rest_api_port_{{ hostvars[item].inventory_hostname.replace('.', '_') }}"
+            rules: "-A INPUT -p tcp --dport {{ miarec_livemon_rest_api_port }} -s {{ hostvars[item].private_ip_address }} -j ACCEPT"
+            state: present
+      with_items: "{{ groups.web }}"
+      when: hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
+      register: tmp_iptables_rules
+
+    - set_fact:
+        iptables_keep_unmanaged: yes
+        iptables_custom_rules: "{{ tmp_iptables_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
+
+  roles:
+    - iptables
+  tags: 'miarec-livemon'

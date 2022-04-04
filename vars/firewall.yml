@@ -7,6 +7,8 @@
 miarec_rest_api_port: 6088
 miarec_db_port: 5432
 
+miarec_livemon_rest_api_port: 6087
+
 miarec_live_monitoring_signaling_port: 6554
 miarec_live_monitoring_rtp_port_begin: 7000
 miarec_live_monitoring_rtp_port_end: 7999
@@ -20,6 +22,6 @@ miarec_siprec_rtp_port_begin: 22000
 miarec_siprec_rtp_port_end: 23999
 
 miarec_screen_rest_api_port: 6089
-
 miarec_screen_client_tcp_port: 6091
 miarec_screen_client_tls_port: 6092
+
