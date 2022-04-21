@@ -40,3 +40,4 @@
 [submodule "roles/miarec_livemon"]
 	path = roles/miarec_livemon
 	url = https://github.com/miarec/ansible-role-miarec_livemon
+	branch = 2022-04-livemon
