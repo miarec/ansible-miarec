@@ -280,7 +280,7 @@
 # ------------------------------------------------
 - name: Install Kamailio and RTPProxy
   hosts:
-    - sip-proxy
+    - sipproxy
   become: true
   pre_tasks:
     - set_fact:
@@ -297,5 +297,5 @@
     - set_fact:
         dispatcher_destinations: "{{ _tmp_dispatch_dest.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_dest') | list }}"
   roles:
-    - role: 'sip-proxy'
-  tags: 'sip-proxy'
+    - role: 'sipproxy'
+  tags: 'sipproxy'
