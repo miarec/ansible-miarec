@@ -2,7 +2,7 @@
 # Deploy MiaRec Web UI and celery task manager
 # ------------------------------------------------
 - name: Deploy MiaRec Web application
-  hosts: 
+  hosts:
     - web
     - celery
     - celerybeat
@@ -12,10 +12,10 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
-      
+
     - set_fact:
-        miarecweb_db_host: "{{ hostvars[groups.db.0].private_ip_address }}"
-        miarecweb_redis_host: "{{ hostvars[groups.redis.0].private_ip_address }}"
+        miarecweb_db_host: "{{ db_host_service if db_host_service is defined else hostvars[groups.db.0].private_ip_address }}"
+        miarecweb_redis_host: "{{ redis_host_service if redis_host_service is defined else hostvars[groups.redis.0].private_ip_address }}"
         miarecweb_install_apache: "{{ 'web' in group_names }}"
         miarecweb_install_celeryd: "{{ 'celery' in group_names }}"
         miarecweb_install_celerybeat: "{{ 'celerybeat' in group_names }}"
@@ -25,7 +25,7 @@
     - role: 'miarecweb'
   tags: 'miarecweb'
 
-    
+
 # ------------------------------------------------
 # Deploy MiaRec recorder
 # ------------------------------------------------
@@ -36,10 +36,10 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
-      
+
     - set_fact:
-        miarec_db_host: "{{ hostvars[groups.db.0].private_ip_address }}"
-        miarec_redis_host: "{{ hostvars[groups.redis.0].private_ip_address }}"
+        miarec_db_host: "{{ db_host_service if db_host_service is defined else hostvars[groups.db.0].private_ip_address }}"
+        miarec_redis_host: "{{ redis_host_service if redis_host_service is defined else hostvars[groups.redis.0].private_ip_address }}"
         miarec_http_call_events_host: "{{ hostvars[groups.web.0].private_ip_address }}"
         miarec_rest_api_permitted_hosts: "{{ groups['web'] | map('extract', hostvars, ['private_ip_address']) | join(';') }}"
 
@@ -63,8 +63,8 @@
       failed_when: false
 
     - set_fact:
-        miarec_db_host: "{{ hostvars[groups.db.0].private_ip_address }}"
-        miarec_redis_host: "{{ hostvars[groups.redis.0].private_ip_address }}"
+        miarec_db_host: "{{ db_host_service if db_host_service is defined else hostvars[groups.db.0].private_ip_address }}"
+        miarec_redis_host: "{{ redis_host_service if redis_host_service is defined else hostvars[groups.redis.0].private_ip_address }}"
         miarec_rest_api_permitted_hosts: "{{ groups['web'] | map('extract', hostvars, ['private_ip_address']) | join(';') }}"
 
     - debug: var=miarec_db_host

@@ -23,7 +23,7 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
-      
+
     - set_fact:
         postgresql_pg_hba_custom:
           - comment: 'IPv4 local connections:'
@@ -45,7 +45,7 @@
     - set_fact:
         tmp_rule:
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
-          address: "{{ hostvars[item].private_ip_address }}/32" 
+          address: "{{ hostvars[item].private_ip_address }}/32"
           user: "{{ miarec_db_user }}"
           type: host
           database: "{{ miarec_db_name }}"
@@ -98,7 +98,7 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
-      
+
     - set_fact:
         pgbouncer_hba_custom:
           - comment: 'IPv4 local connections:'
@@ -119,7 +119,7 @@
     - set_fact:
         tmp_rule:
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
-          address: "{{ hostvars[item].private_ip_address }}/32" 
+          address: "{{ hostvars[item].private_ip_address }}/32"
           user: "{{ miarec_db_user }}"
           type: host
           database: "{{ miarec_db_name }},pgbouncer"
@@ -161,9 +161,9 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
-      
+
     - set_fact:
-        ip_address: "{{ hostvars[item].private_ip_address }}" 
+        ip_address: "{{ hostvars[item].private_ip_address }}"
       with_items: "{{ groups.recorder + groups.web }}"
       when: hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
       register: tmp_ip_addresses
@@ -173,7 +173,7 @@
 
     - set_fact:
         # Bind to all interfaces if other components are connecting to it remotely
-        redis_bind: 0.0.0.0 
+        redis_bind: 0.0.0.0
       when: all_ip_addresses | length > 0
 
     - debug: var=all_ip_addresses
@@ -203,7 +203,7 @@
 # Install Python (web, celery, celerybeat)
 # ------------------------------------------------
 - name: Install Python
-  hosts: 
+  hosts:
     - web
     - celery
     - celerybeat
@@ -221,7 +221,7 @@
 # Install Sox (celery)
 # ------------------------------------------------
 - name: Install Sox
-  hosts: 
+  hosts:
     - celery
   vars_files:
     - vars/web.yml
@@ -231,14 +231,14 @@
   become: yes
   roles:
     - role: 'sox'
-  tags: 'sox'  
-  
+  tags: 'sox'
+
 
 # ------------------------------------------------
 # Install HAProxy (lb)
 # ------------------------------------------------
 - name: Install HAProxy
-  hosts: 
+  hosts:
     - lb
   vars_files:
     - vars/web.yml
@@ -273,4 +273,29 @@
     - debug: var=haproxy_backend_servers
   roles:
     - role: 'miarecweb-lb'
-  tags: 'lb'  
+  tags: 'lb'
+
+# ------------------------------------------------
+# Install Kamailio/RTPProxy (sip-proxy)
+# ------------------------------------------------
+- name: Install Kamailio and RTPProxy
+  hosts:
+    - sipproxy
+  become: true
+  pre_tasks:
+    - set_fact:
+        tmp_dest:
+          name: "{{ hostvars[item].inventory_hostname }}"
+          ip: "{{ hostvars[item].private_ip_address }}"
+          port: "{{ hostvars[item].siprec_port | default('5080') }}"
+          protocol: "{{ hostvars[item].siprec_protocol | default('tcp') }}"
+          flags: "{{ hostvars[item].siprec_flags | default('0') }}"
+          priority: "{{ hostvars[item].siprec_priority | default('0') }}"
+          attrs: "{{ hostvars[item].siprec_attrs | default('') }}"
+      with_items: "{{ groups.recorder }}"
+      register: _tmp_dispatch_dest
+    - set_fact:
+        dispatcher_destinations: "{{ _tmp_dispatch_dest.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_dest') | list }}"
+  roles:
+    - role: 'sipproxy'
+  tags: 'sipproxy'

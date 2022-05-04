@@ -37,3 +37,9 @@
 [submodule "roles/pgbouncer"]
 	path = roles/pgbouncer
 	url = https://github.com/miarec/ansible-role-pgbouncer
+[submodule "roles/sip-proxy"]
+	path = roles/sip-proxy
+	url = https://github.com/miarec/ansible-role-sip-proxy.git
+[submodule "roles/sipproxy"]
+	path = roles/sipproxy
+	url = https://github.com/miarec/ansible-role-sip-proxy.git
