@@ -82,13 +82,52 @@ pgbouncer_stats_users:
 
 # --------------------------------------
 # Optimizations
-# --------------------------------------    
+# -------------------------------------- 
+# The recommended number is the GREATEST(4 x CPU cores, 100). Connection pooler is recommended as well.
 postgresql_max_connections:      200
-postgresql_work_mem:             64MB
-postgresql_temp_buffers:         32MB
 
-# Recommended value for postgresql_shared_buffers is 25% of RAM.
-postgresql_shared_buffers:       "{{ (ansible_memory_mb.real.total/4) | int }}MB"
+# A reasonable starting point is the LEAST(RAM/2, 10GB)
+postgresql_shared_buffers: "{{ (ansible_memory_mb.real.total/2) | int }}MB"
 
-# Recommended value for postgresql_effective_cache_size is 50% of RAM.
-postgresql_effective_cache_size: "{{ (ansible_memory_mb.real.total/2) | int }}MB"           
+# The recommended starting point for work_mem is ((Total RAM - shared_buffers)/(16 x CPU cores))
+postgresql_work_mem:  512MB
+
+# A value of 1GB is a good start (a default is 16MB) 
+postgresql_maintenance_work_mem: 1GB
+
+# Recommended value is up to 1GB
+postgresql_autovacuum_work_mem: 256MB 
+
+# For SSD disks, it is recommended to set this value to 200
+postgresql_effective_io_concurrency: 200
+
+# Set this parameter to 'on' as most database servers are likely to be bottlenecked on I/O rather than CPU
+postgresql_wal_compression: on
+
+# The recommended value is a minimum of 15 minutes
+postgresql_checkpoint_timeout: 15min
+
+# The recommended value is 0.9 (which will become the default in PostgreSQL 14)
+postgresql_checkpoint_completion_target: 0.9
+
+# The recommended value is half to two-thirds of the available disk space where the WAL is locate
+postgresql_max_wal_size: 32GB
+
+# This should be set to the smaller value of either 0.75* total ram amount, 
+# "or the sum of buff/cache, free ram and shared buffers in the output of free command"
+postgresql_effective_cache_size: "{{ (ansible_memory_mb.real.total/2) | int }}MB"  
+
+# If using SSD disks, the recommended value is 1.1
+postgresql_random_page_cost: 1.1
+
+# A default value (0.01) is low. Recommended value is 0.03
+postgresql_cpu_tuple_cost: 0.03
+
+# The default value (3) is low, therefore it is recommended to increase this value to 5 as a starting point.
+postgresql_autovacuum_max_workers: 5
+
+# The default value (200) is low, we recommend increasing this value to 3000.
+postgresql_autovacuum_vacuum_cost_limit: 3000
+
+# The default value (8MB) is low
+postgresql_temp_buffers: 64MB
