@@ -64,7 +64,12 @@ postgresql_users:
 # --------------------------------------
 # pgbouncer configuration
 # --------------------------------------
-pgbouncer_max_client_conn: 200
+pgbouncer_max_client_conn: 500
+pgbouncer_default_pool_size: 50
+pgbouncer_reserve_pool_size: 20
+pgbouncer_max_db_connections: 100
+pgbouncer_max_user_connections: 100
+
 pgbouncer_hba_custom: "{{ postgresql_pg_hba_custom }}"
 pgbouncer_users: "{{ postgresql_users }}"
 pgbouncer_listen_addr: 127.0.0.1
