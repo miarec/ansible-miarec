@@ -2,7 +2,7 @@
 # Deploy MiaRec Web UI and celery task manager
 # ------------------------------------------------
 - name: Deploy MiaRec Web application
-  hosts: 
+  hosts:
     - web
     - celery
     - celerybeat
@@ -12,7 +12,7 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
-      
+
     - set_fact:
         miarecweb_db_host: "{{ hostvars[groups.db.0].private_ip_address }}"
         miarecweb_redis_host: "{{ hostvars[groups.redis.0].private_ip_address }}"
@@ -21,11 +21,26 @@
         miarecweb_install_celerybeat: "{{ 'celerybeat' in group_names }}"
     - debug: var=miarecweb_db_host
     - debug: var=miarecweb_redis_host
+
+    - name: Discover Python3 version when installed from package
+      block:
+      - name: Get package installed python3 version
+        shell: python3 --version
+        register: _installed_python_version
+
+      - name: Set Python3 version and Install Directory
+        set_fact:
+          python_version: "{{ _installed_python_version.stdout | split(' ') | last }}"
+          python_install_dir: /usr
+
+      when: python_version is not defined
+
+
   roles:
     - role: 'miarecweb'
   tags: 'miarecweb'
 
-    
+
 # ------------------------------------------------
 # Deploy MiaRec recorder
 # ------------------------------------------------
@@ -36,7 +51,7 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
-      
+
     - set_fact:
         miarec_db_host: "{{ hostvars[groups.db.0].private_ip_address }}"
         miarec_redis_host: "{{ hostvars[groups.redis.0].private_ip_address }}"
