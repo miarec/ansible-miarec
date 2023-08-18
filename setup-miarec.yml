@@ -28,12 +28,16 @@
         shell: python3 --version
         register: _installed_python_version
 
+      - name: Get python install directory
+        shell: which python3
+        register: _installed_python_install_dir
+
       - name: Set Python3 version and Install Directory
         set_fact:
           python_version: "{{ _installed_python_version.stdout | split(' ') | last }}"
-          python_install_dir: /usr
+          python_install_dir: "{{ _installed_python_install_dir.stdout | split('/bin') | first }}"
 
-      when: python_version is not defined
+      when: not python_install_from_source
 
 
   roles:
