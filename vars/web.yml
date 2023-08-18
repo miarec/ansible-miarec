@@ -18,7 +18,7 @@ python_cleanup_downloads: true
 python_force_install: false
 
 # Download the required sox components from MiaRec web-site to avoid dependencies on sourceforge.net and other sites
-sox_download_url: "https://miarec-download.s3.amazonaws.com/sox-{{ sox_version }}.tar.gz" 
+sox_download_url: "https://miarec-download.s3.amazonaws.com/sox-{{ sox_version }}.tar.gz"
 libmad_download_url: "https://miarec-download.s3.amazonaws.com/libmad-{{ libmad_version }}.tar.gz"
 libogg_download_url: "https://miarec-download.s3.amazonaws.com/libogg-{{ libogg_version }}.tar.gz"
 flac_download_url: "https://miarec-download.s3.amazonaws.com/flac-{{ flac_version }}.tar.xz"
