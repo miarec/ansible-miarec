@@ -9,7 +9,42 @@
 
     - set_fact:
         openssl_root: "{{ groups.db.0 }}"
-        openssl_clients: "{{ groups.db + groups.recorder}}"
+
+    - set_fact:
+        tmp_servers:
+          common_name: "{{ hostvars[item].inventory_hostname }}"
+          alt_dns: ["{{ hostvars[item].private_ip_address }}", "foo", "bar"]
+          country: US
+          org: miarec
+      with_items: "{{ groups.db + groups.recorder }}"
+      register: _tmp_openssl_servers
+      # when: install_pgbouncer|default(False)|bool and hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
+      # register: tmp_pg_hba_rules
+
+    - set_fact:
+        openssl_servers: "{{ _tmp_openssl_servers.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_servers') | list  }}"
+
+    # - debug:
+    #     var: openssl_servers
+
+    # - set_fact:
+    #     tmp_rule:
+    #       comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
+    #       address: "{{ hostvars[item].private_ip_address }}/32"
+    #   with_items: "{{ groups.recorder + groups.web }}"
+    #   register: tmp_pg_hba_rules
+
+    # - debug: var=tmp_pg_hba_rules
+
+    # - set_fact:
+    #     tmp_rule:
+    #       common_name: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
+    #       alt_DNS: "{{ hostvars[item].private_ip_address }}/32"
+    #   with_items: "{{ groups.db + groups.recorder }}"
+    #   register: tmp_pg_hba_rules
+
+    # - debug: var=tmp_pg_hba_rules
+
 
   roles:
     - role: 'private-tls'
