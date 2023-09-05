@@ -12,3 +12,16 @@ redis_verify_checksum: true
 redis_logfile: "/var/log/redis/redis_{{ redis_port }}.log"
 # Enable syslog. "yes" or "no"
 redis_syslog_enabled: "no"
+
+
+
+
+redis_install_from_source: true
+redis_version: 6.2.13
+redis_make_tls: true
+
+redis_tls_dir: /etc/pki/tls/redis
+
+redis_tls_cert: "{{ redis_tls_dir }}/redis.crt"
+redis_tls_key:  "{{ redis_tls_dir }}/redis.key"
+redis_tls_ca_cert: "{{ redis_tls_dir }}/redis-CA.pem"
