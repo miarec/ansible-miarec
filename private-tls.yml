@@ -1,3 +1,4 @@
+---
 # ------------------------------------------------
 # Create SelfSigned Certificate for intra cluster traffic
 # ------------------------------------------------
@@ -28,6 +29,8 @@
 
     - set_fact:
         openssl_servers: "{{ _tmp_openssl_servers.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_servers') | list  }}"
+
+
 
   post_tasks:
 
@@ -86,6 +89,8 @@
   #   - debug:
   #       var: _db_cert_key
 
+
+# Force this dependent on variabl
   tasks:
     - name: Create pki directory
       file:
@@ -107,4 +112,7 @@
       copy:
         content: "{{ _db_key.results.0.stdout }}"
         dest: "{{ redis_tls_key }}"
+
+
+
 
