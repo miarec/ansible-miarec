@@ -31,26 +31,26 @@
 
   post_tasks:
 
-    - name: Fetch CA server certs from root
+    - name: Fetch CA certs from root
       command:
-        cmd:  cat {{ openssl_ca_dir }}/{{ openssl_ca_common_name }}.key
+        cmd:  cat {{ openssl_ca_dir }}/{{ openssl_ca_common_name }}.pem
       register: _ca_cert
       when: inventory_hostname in openssl_root
       become: true
       changed_when: false
 
-    - name: Fetch for server certs for db
+    - name: Fetch server certs for db from root
       command:
-        cmd:  cat {{ openssl_servers_dir }}/{{ hostvars[item].inventory_hostname }}/{{ hostvars[item].inventory_hostname }}.crt   # This needs to be a variale
+        cmd:  cat {{ openssl_servers_dir }}/{{ hostvars[item].inventory_hostname }}/{{ hostvars[item].inventory_hostname }}.crt
       register: _db_cert
       when: inventory_hostname in openssl_root
       become: true
       with_items: "{{ groups.db }}"
       changed_when: false
 
-    - name: Fetch for server key for db
+    - name: Fetch server key for db from root
       command:
-        cmd:  cat {{ openssl_servers_dir }}/{{ hostvars[item].inventory_hostname }}/{{ hostvars[item].inventory_hostname }}.key   # This needs to be a variale
+        cmd:  cat {{ openssl_servers_dir }}/{{ hostvars[item].inventory_hostname }}/{{ hostvars[item].inventory_hostname }}.key
       register: _db_key
       when: inventory_hostname in openssl_root
       become: true
