@@ -10,30 +10,23 @@
     - name: Define CA Root server and variables
       set_fact:
         openssl_root: "{{ groups.db.0 }}"
-
         openssl_ca_common_name: miarec-CA
         openssl_ca_key: "{{ openssl_ca_common_name }}.key"
         openssl_base_dir: /etc/openssl
         openssl_ca_dir: "{{ openssl_base_dir }}/ca"
         openssl_servers_dir: "{{ openssl_base_dir }}/servers"
 
-
     - set_fact:
         tmp_servers:
           common_name: "{{ hostvars[item].inventory_hostname }}"
           alt_dns: ["{{ hostvars[item].private_ip_address }}"]
-          # country: US
-          # org: miarec
       with_items: "{{ groups.db + groups.recorder }}"
       register: _tmp_openssl_servers
 
     - set_fact:
         openssl_servers: "{{ _tmp_openssl_servers.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_servers') | list  }}"
 
-
-
   post_tasks:
-
     - name: Fetch CA certs from root
       command:
         cmd:  cat {{ openssl_ca_dir }}/{{ openssl_ca_common_name }}.pem
@@ -60,16 +53,6 @@
       with_items: "{{ groups.db }}"
       changed_when: false
 
-
-    # - set_fact:
-    #     tmp_clients:
-    #       common_name: "{{ hostvars[item].inventory_hostname }}"
-    #   with_items: "{{ groups.web }}"
-    #   register: _tmp_openssl_clients
-
-    # - set_fact:
-    #     openssl_clients: "{{ _tmp_openssl_clients.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_clients') | list  }}"
-
   roles:
     - role: 'private-tls'
 
@@ -84,19 +67,11 @@
   vars_files:
     - vars/redis.yml
 
-  # pre_tasks:
-
-  #   - debug:
-  #       var: _db_cert_key
-
-
-# Force this dependent on variabl
   tasks:
     - name: Create pki directory
       file:
         dest: "{{ redis_tls_dir }}"
         state: directory
-
 
     - name: Place CA Cert on DB
       copy:
