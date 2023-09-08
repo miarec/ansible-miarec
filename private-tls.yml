@@ -20,7 +20,7 @@
         tmp_servers:
           common_name: "{{ hostvars[item].inventory_hostname }}"
           alt_dns: ["{{ hostvars[item].private_ip_address }}"]
-      with_items: "{{ groups.db + groups.recorder }}"
+      with_items: "{{ groups.db }}"
       register: _tmp_openssl_servers
 
     - set_fact:
@@ -72,6 +72,7 @@
       file:
         dest: "{{ redis_tls_dir }}"
         state: directory
+        mode: 0755
 
     - name: Place CA Cert on DB
       copy:
