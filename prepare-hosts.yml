@@ -31,7 +31,7 @@
       package:
         name: centos-release-scl
         state: present
-      when: 
+      when:
         - ansible_distribution == "CentOS"
         - postgresql_version is version('11', '>=')
 
@@ -39,10 +39,10 @@
       package:
         name: llvm-toolset-7-clang
         state: present
-      when: 
+      when:
         - ansible_os_family == "RedHat"
         - postgresql_version is version('11', '>=')
-      
+
     - set_fact:
         postgresql_pg_hba_custom:
           - comment: 'IPv4 local connections:'
@@ -61,12 +61,16 @@
 
       when: not install_pgbouncer|default(False)|bool
 
+    - debug: var=postgresql_ssl
+
     - set_fact:
         tmp_rule:
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
-          address: "{{ hostvars[item].private_ip_address }}/32" 
+          address: "{{ hostvars[item].private_ip_address }}/32"
           user: "{{ miarec_db_user }}"
-          type: host
+          # type: "host"     # This needs to be conditional to enforce SSL
+          # type: "{% if postgresql_ssl == "on" %}hostssl{% else %}host{% endif %}"     # This needs to be conditional to enforce SSL
+          type: "{{ 'hostssl' if postgresql_ssl == 'on' else 'host' }}"
           database: "{{ miarec_db_name }}"
           method: 'md5'
       with_items: "{{ groups.recorder + groups.web }}"
@@ -117,7 +121,7 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
-      
+
     - set_fact:
         pgbouncer_hba_custom:
           - comment: 'IPv4 local connections:'
@@ -138,7 +142,7 @@
     - set_fact:
         tmp_rule:
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
-          address: "{{ hostvars[item].private_ip_address }}/32" 
+          address: "{{ hostvars[item].private_ip_address }}/32"
           user: "{{ miarec_db_user }}"
           type: host
           database: "{{ miarec_db_name }},pgbouncer"
@@ -180,9 +184,9 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
-      
+
     - set_fact:
-        ip_address: "{{ hostvars[item].private_ip_address }}" 
+        ip_address: "{{ hostvars[item].private_ip_address }}"
       with_items: "{{ groups.recorder + groups.web }}"
       when: hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
       register: tmp_ip_addresses
@@ -192,7 +196,7 @@
 
     - set_fact:
         # Bind to all interfaces if other components are connecting to it remotely
-        redis_bind: 0.0.0.0 
+        redis_bind: 0.0.0.0
       when: all_ip_addresses | length > 0
 
     - debug: var=all_ip_addresses
@@ -222,7 +226,7 @@
 # Install Python (web, celery, celerybeat)
 # ------------------------------------------------
 - name: Install Python
-  hosts: 
+  hosts:
     - web
     - celery
     - celerybeat
@@ -240,7 +244,7 @@
 # Install Sox (celery)
 # ------------------------------------------------
 - name: Install Sox
-  hosts: 
+  hosts:
     - celery
   vars_files:
     - vars/web.yml
@@ -250,14 +254,14 @@
   become: yes
   roles:
     - role: 'sox'
-  tags: 'sox'  
-  
+  tags: 'sox'
+
 
 # ------------------------------------------------
 # Install HAProxy (lb)
 # ------------------------------------------------
 - name: Install HAProxy
-  hosts: 
+  hosts:
     - lb
   vars_files:
     - vars/web.yml
@@ -307,4 +311,4 @@
 
   roles:
     - role: 'miarecweb-lb'
-  tags: 'lb'  
+  tags: 'lb'

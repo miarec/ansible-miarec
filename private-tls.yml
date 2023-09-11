@@ -1,4 +1,7 @@
 ---
+## Right now im using same certificate for postgres and redis,  I will change this
+
+
 # ------------------------------------------------
 # Create SelfSigned Certificate for intra cluster traffic
 # ------------------------------------------------
@@ -21,6 +24,14 @@
           common_name: "{{ hostvars[item].inventory_hostname }}"
           alt_dns: ["{{ hostvars[item].private_ip_address }}"]
       with_items: "{{ groups.db }}"
+      register: _tmp_openssl_servers
+
+    - set_fact:
+        tmp_servers:
+          common_name: "miarec-postgresql"
+          alt_dns: ["{{ hostvars[item].private_ip_address }}"]
+
+      # with_items: "{{ groups.db }}"
       register: _tmp_openssl_servers
 
     - set_fact:
@@ -90,5 +101,36 @@
         dest: "{{ redis_tls_key }}"
 
 
+# ------------------------------------------------
+# Place Server certs on DB for PostgreSQL
+# ------------------------------------------------
+- name: Put Server Certs on DB for redis
+  hosts:
+    - db
+
+  become: true
+  vars_files:
+    - vars/db.yml
+
+  tasks:
+    - name: Create pki directory
+      file:
+        dest: "{{ postgresql_ssl_dir }}"
+        state: directory
+
+    - name: Place CA Cert on DB
+      copy:
+        content: "{{ _ca_cert.stdout }}"
+        dest: "{{ postgresql_ssl_ca_file }}"
+
+    - name: Place Server Cert on DB
+      copy:
+        content: "{{ _db_cert.results.0.stdout }}"
+        dest: "{{ postgresql_ssl_cert_file }}"
+
+    - name: Place Server Key on DB
+      copy:
+        content: "{{ _db_key.results.0.stdout }}"
+        dest: "{{ postgresql_ssl_key_file }}"
 
 
