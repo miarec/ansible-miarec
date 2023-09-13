@@ -16,8 +16,8 @@ redis_syslog_enabled: "no"
 
 
 # These will be in inventory
-redis_install_from_source: true
-redis_version: 6.2.13
+# redis_install_from_source: true
+# redis_version: 6.2.13
 # redis_make_tls: true
 
 redis_tls_dir: /etc/pki/tls/redis

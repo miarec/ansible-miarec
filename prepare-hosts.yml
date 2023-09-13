@@ -47,14 +47,16 @@
         postgresql_pg_hba_custom:
           - comment: 'IPv4 local connections:'
             address: '127.0.0.1/32'
-            type: host
+            # type: host
+            host: "{{ 'hostssl' if postgresql_ssl == 'on' else 'host' }}"
             database: all
             user: "{{ miarec_db_user }}"
             method: 'md5'
 
           - comment: 'IPv6 local connections:'
             address: '::1/128'
-            type: host
+            # type: host
+            host: "{{ 'hostssl' if postgresql_ssl == 'on' else 'host' }}"
             database: all
             user: "{{ miarec_db_user }}"
             method: 'md5'
