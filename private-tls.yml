@@ -2,15 +2,13 @@
 # ------------------------------------------------
 # Create SelfSigned Certificate for intra cluster traffic
 # ------------------------------------------------
-- name: Generate Private TLS infrastructure
+- name: Generate Private TLS infrastructure.
   hosts:
-    # - all
     - db
 
   pre_tasks:
     - name: Define CA Root server and variables
       set_fact:
-        # openssl_root: "{{ groups.db.0 }}"
         openssl_ca_common_name: miarec-CA
         openssl_ca_key: "{{ openssl_ca_common_name }}.key"
 
@@ -19,24 +17,26 @@
         openssl_servers_dir: "{{ openssl_base_dir }}/servers"
 
         # this should be rendered based on if tls is enables for services
-        openssl_servers_db_services:
-          - redis
-          - postgresql
-          - pgbouncer
+        # openssl_servers_db_services:
+        #   - redis
+        #   - postgresql
+        #   - pgbouncer
 
-# generate server certs for hosts, no services
+    - name: Define which services to generate certificates for based on varaibles.
+      set_fact:
+        openssl_servers_db_services: "{{ openssl_servers_db_services|default([]) + [item] }}"
+      with_items:
+        - "{{ redis_make_tls|default(False)|bool | ternary('redis', '') }}"
+        - "{{ (postgresql_ssl == 'on') | ternary('postgresql', '') }}"
+        - "{{ pgbouncer_client_tls|default(False)|bool | ternary('pgbouncer-client', '') }}"
+        - "{{ pgbouncer_server_tls|default(False)|bool | ternary('pgbouncer-server', '') }}"
+      when: item != ''
+
     # - set_fact:
-    #     tmp_servers:
-    #       common_name: "{{ hostvars[item].inventory_hostname }}"
-    #       alt_dns: ["{{ hostvars[item].private_ip_address }}"]
-    #   with_items: "{{ groups.db }}"
-    #   register: _tmp_openssl_servers
+    #     openssl_servers_db_services: "{{ test_list | join('\n') }}"
 
-    # - set_fact:
-    #     openssl_servers: "{{ _tmp_openssl_servers.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_servers') | list  }}"
+    # - debug: var=openssl_servers_db_services
 
-
-    # generate server certs for services
     - set_fact:
         _tmp_openssl_servers_db_services:
           - common_name: "{{ item }}.{{ hostvars[groups['db'][0]].inventory_hostname }}"
@@ -46,41 +46,6 @@
 
     - set_fact:
         openssl_servers: "{{ _tmp_openssl_servers_db_services_results.results | map(attribute='ansible_facts._tmp_openssl_servers_db_services') | list }}"
-
-    # - debug: var=openssl_servers
-
-    # - debug:
-    #     msg: "{{ hostvars[groups['recorder'][0]].private_ip_address }}"
-
-
-  # post_tasks:
-  #   - name: Fetch CA certs from root
-  #     command:
-  #       cmd:  cat {{ openssl_ca_dir }}/{{ openssl_ca_common_name }}.pem
-  #     register: _ca_cert_content
-  #     # when: inventory_hostname in openssl_root
-  #     become: true
-  #     changed_when: false
-
-  #   - name: Fetch server certs for db from root
-  #     command:
-  #       cmd:  cat {{ openssl_servers_dir }}/{{ hostvars[item].inventory_hostname }}/{{ hostvars[item].inventory_hostname }}.crt
-  #     register: _db_cert
-  #     when: inventory_hostname in openssl_root
-  #     become: true
-  #     with_items: "{{ groups.db }}"
-  #     changed_when: false
-
-  #   - name: Fetch server key for db from root
-  #     command:
-  #       cmd:  cat {{ openssl_servers_dir }}/{{ hostvars[item].inventory_hostname }}/{{ hostvars[item].inventory_hostname }}.key
-  #     register: _db_key
-  #     when: inventory_hostname in openssl_root
-  #     become: true
-  #     with_items: "{{ groups.db }}"
-  #     changed_when: false
-
-    # - debug: var=_ca_cert_content
 
   roles:
     - role: 'private-tls'
@@ -157,48 +122,54 @@
   vars_files:
     - vars/redis.yml
 
-  pre_tasks:
-    - set_fact:
-        _redis_common_name: "redis.{{ hostvars[groups['db'][0]].inventory_hostname }}"
-
   tasks:
-    - name: Redis TLS - Create TLS directory
-      file:
-        dest: "{{ redis_tls_dir }}"
-        state: directory
+    - name: Redis TLS - Fetch server certificate, key and ca from Root.
+      block:
+        - set_fact:
+            _redis_common_name: "redis.{{ hostvars[groups['db'][0]].inventory_hostname }}"
 
-    - name: Redis TLS - Fetch ca cert from root
-      command:
-        cmd:  cat {{ openssl_ca_dir }}/{{ openssl_ca_common_name }}.pem
-      register: _redis_ca
-      changed_when: false
+        - name: Redis TLS - Fetch ca cert from root
+          command:
+            cmd:  cat {{ openssl_ca_dir }}/{{ openssl_ca_common_name }}.pem
+          register: _redis_ca
+          changed_when: false
 
-    - name: Redis TLS - Put ca cert on DB
-      copy:
-        content: "{{ _redis_ca.stdout }}"
-        dest: "{{ redis_tls_ca_cert }}"
+        - name: Redis TLS - Fetch server cert from root
+          command:
+            cmd:  cat {{ openssl_servers_dir }}/{{ _redis_common_name }}/{{ _redis_common_name }}.crt
+          register: _redis_cert
+          changed_when: false
 
-    - name: Redis TLS - Fetch server cert from root
-      command:
-        cmd:  cat {{ openssl_servers_dir }}/{{ _redis_common_name }}/{{ _redis_common_name }}.crt
-      register: _redis_cert
-      changed_when: false
+        - name: Redis TLS - Fetch server key from root
+          command:
+            cmd:  cat {{ openssl_servers_dir }}/{{ _redis_common_name }}/{{ _redis_common_name }}.key
+          register: _redis_key
+          changed_when: false
+      when: redis_make_tls|default(false)|bool
 
-    - name: Redis TLS - Put Server Cert on DB
-      copy:
-        content: "{{ _redis_cert.stdout }}"
-        dest: "{{ redis_tls_cert }}"
 
-    - name: Redis TLS - Fetch server key from root
-      command:
-        cmd:  cat {{ openssl_servers_dir }}/{{ _redis_common_name }}/{{ _redis_common_name }}.key
-      register: _redis_key
-      changed_when: false
+    - name: Redis TLS - Put server certificate, key and ca to Host.
+      block:
+        - name: Redis TLS - Create TLS directory
+          file:
+            dest: "{{ redis_tls_dir }}"
+            state: directory
 
-    - name: Put Server key on redis
-      copy:
-        content: "{{ _redis_key.stdout }}"
-        dest: "{{ redis_tls_key }}"
+        - name: Redis TLS - Put ca cert on host
+          copy:
+            content: "{{ _redis_ca.stdout }}"
+            dest: "{{ redis_tls_ca_cert }}"
+
+        - name: Redis TLS - Put server certificate on host
+          copy:
+            content: "{{ _redis_cert.stdout }}"
+            dest: "{{ redis_tls_cert }}"
+
+        - name: Redis TLS - Put server key on host
+          copy:
+            content: "{{ _redis_key.stdout }}"
+            dest: "{{ redis_tls_key }}"
+      when: redis_make_tls|default(false)|bool
 
 # ------------------------------------------------
 # Place Server certs on DB for PostgreSQL
@@ -215,50 +186,61 @@
     - vars/db.yml
 
   pre_tasks:
-    - set_fact:
-        _postgresql_common_name: "postgresql.{{ hostvars[groups['db'][0]].inventory_hostname }}"
+
 
   tasks:
-    - name: Create TLS directory
-      file:
-        dest: "{{ postgresql_ssl_dir }}"
-        state: directory
 
-    - name: PostgreSQL TLS - Fetch ca cert from root
-      command:
-        cmd:  cat {{ openssl_ca_dir }}/{{ openssl_ca_common_name }}.pem
-      register: _postgresql_ca
-      changed_when: false
+    - name: PostgreSQL TLS - Fetch server certificate, key and ca from Root.
+      block:
+        - set_fact:
+            _postgresql_common_name: "postgresql.{{ hostvars[groups['db'][0]].inventory_hostname }}"
 
-    - name: PostgreSQL TLS - Place CA Cert on DB
-      copy:
-        content: "{{ _postgresql_ca.stdout }}"
-        dest: "{{ postgresql_ssl_ca_file }}"
+        - name: PostgreSQL TLS - Fetch ca certificate from root
+          command:
+            cmd:  cat {{ openssl_ca_dir }}/{{ openssl_ca_common_name }}.pem
+          register: _postgresql_ca
+          changed_when: false
 
-    - name: PostgreSQL TLS - Fetch server cert from root
-      command:
-        cmd:  cat {{ openssl_servers_dir }}/{{ _postgresql_common_name }}/{{ _postgresql_common_name }}.crt
-      register: _postgresql_cert
-      changed_when: false
+        - name: PostgreSQL TLS - Fetch server cert from root
+          command:
+            cmd:  cat {{ openssl_servers_dir }}/{{ _postgresql_common_name }}/{{ _postgresql_common_name }}.crt
+          register: _postgresql_cert
+          changed_when: false
 
-    - name: PostgreSQL TLS - Place Server Cert on DB
-      copy:
-        content: "{{ _postgresql_cert.stdout }}"
-        dest: "{{ postgresql_ssl_cert_file }}"
+        - name: PostgreSQL TLS - Fetch server key from root
+          command:
+            cmd:  cat {{ openssl_servers_dir }}/{{ _postgresql_common_name }}/{{ _postgresql_common_name }}.key
+          register: _postgresql_key
+          changed_when: false
 
-    - name: PostgreSQL TLS - Fetch server key from root
-      command:
-        cmd:  cat {{ openssl_servers_dir }}/{{ _postgresql_common_name }}/{{ _postgresql_common_name }}.key
-      register: _postgresql_key
-      changed_when: false
+      when: postgresql_ssl == 'on'
 
-    - name: PostgreSQL TLS - Place Server Key on DB
-      copy:
-        content: "{{ _postgresql_key.stdout }}"
-        dest: "{{ postgresql_ssl_key_file }}"
+
+    - name: PostgreSQL TLS - Put server certificate, key and ca to Host.
+      block:
+        - name: PostgreSQL TLS - Create TLS directory
+          file:
+            dest: "{{ postgresql_ssl_dir }}"
+            state: directory
+
+        - name: PostgreSQL TLS - Place CA Cert on DB
+          copy:
+            content: "{{ _postgresql_ca.stdout }}"
+            dest: "{{ postgresql_ssl_ca_file }}"
+
+        - name: PostgreSQL TLS - Place Server Cert on DB
+          copy:
+            content: "{{ _postgresql_cert.stdout }}"
+            dest: "{{ postgresql_ssl_cert_file }}"
+
+        - name: PostgreSQL TLS - Place Server Key on DB
+          copy:
+            content: "{{ _postgresql_key.stdout }}"
+            dest: "{{ postgresql_ssl_key_file }}"
+      when: postgresql_ssl == 'on'
 
 # ------------------------------------------------
-# Place Server certs on DB for PGBouncer
+# Place Server certs on DB for Client Side PGBouncer
 # ------------------------------------------------
 
 # make this conditional on variable
@@ -276,41 +258,47 @@
         _pgbouncer_common_name: "pgbouncer.{{ hostvars[groups['db'][0]].inventory_hostname }}"
 
   tasks:
-    - name: Create TLS directory
-      file:
-        dest: "{{ pgbouncer_client_tls_dir }}"
-        state: directory
+    - name: PGBouncer Client side TLS - Fetch server certificate, key and ca from Root.
+      block:
+        - name: PGBouncer Client side TLS - Fetch ca cert from root
+          command:
+            cmd:  cat {{ openssl_ca_dir }}/{{ openssl_ca_common_name }}.pem
+          register: _pgbouncer_ca
+          changed_when: false
 
-    - name: PGBouncer TLS - Fetch ca cert from root
-      command:
-        cmd:  cat {{ openssl_ca_dir }}/{{ openssl_ca_common_name }}.pem
-      register: _pgbouncer_ca
-      changed_when: false
+        - name: PGBouncer Client side TLS - Fetch server cert from root
+          command:
+            cmd:  cat {{ openssl_servers_dir }}/{{ _pgbouncer_common_name }}/{{ _pgbouncer_common_name }}.crt
+          register: _pgbouncer_cert
+          changed_when: false
 
-    - name: PGBouncer TLS - Place CA Cert on DB
-      copy:
-        content: "{{ _pgbouncer_ca.stdout }}"
-        dest: "{{ pgbouncer_client_tls_ca_file }}"
+        - name: PGBouncer Client side TLS - Fetch server key from root
+          command:
+            cmd:  cat {{ openssl_servers_dir }}/{{ _pgbouncer_common_name }}/{{ _pgbouncer_common_name }}.key
+          register: _pgbouncer_key
+          changed_when: false
 
-    - name: PGBouncer TLS - Fetch server cert from root
-      command:
-        cmd:  cat {{ openssl_servers_dir }}/{{ _pgbouncer_common_name }}/{{ _pgbouncer_common_name }}.crt
-      register: _pgbouncer_cert
-      changed_when: false
+      when: pgbouncer_client_tls|default(false)|bool
 
-    - name: PGBouncer TLS - Place Server Cert on DB
-      copy:
-        content: "{{ _pgbouncer_cert.stdout }}"
-        dest: "{{ pgbouncer_client_tls_cert_file }}"
+    - name: PGBouncer Client side TLS - Put server certificate, key and ca to Host.
+      block:
+        - name: PGBouncer Client side TLS - Create TLS directory
+          file:
+            dest: "{{ pgbouncer_client_tls_dir }}"
+            state: directory
 
-    - name: PGBouncer TLS - Fetch server key from root
-      command:
-        cmd:  cat {{ openssl_servers_dir }}/{{ _pgbouncer_common_name }}/{{ _pgbouncer_common_name }}.key
-      register: _pgbouncer_key
-      changed_when: false
+        - name: PGBouncer Client side TLS - Place CA Cert on DB
+          copy:
+            content: "{{ _pgbouncer_ca.stdout }}"
+            dest: "{{ pgbouncer_client_tls_ca_file }}"
 
-    - name: PGBouncer TLS - Place Server Key on DB
-      copy:
-        content: "{{ _pgbouncer_key.stdout }}"
-        dest: "{{ pgbouncer_client_tls_key_file }}"
+        - name: PGBouncer Client side TLS - Place Server Cert on DB
+          copy:
+            content: "{{ _pgbouncer_cert.stdout }}"
+            dest: "{{ pgbouncer_client_tls_cert_file }}"
 
+        - name: PGBouncer Client side TLS - Place Server Key on DB
+          copy:
+            content: "{{ _pgbouncer_key.stdout }}"
+            dest: "{{ pgbouncer_client_tls_key_file }}"
+      when: pgbouncer_client_tls|default(false)|bool
