@@ -175,8 +175,6 @@
 # Place Server certs on DB for PostgreSQL
 # ------------------------------------------------
 
-# make this conditional on variable
-
 - name: Put Server Certs on DB for redis
   hosts:
     - db
