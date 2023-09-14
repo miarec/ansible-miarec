@@ -27,7 +27,7 @@
         openssl_servers_db_services: "{{ openssl_servers_db_services|default([]) + [item] }}"
       with_items:
         - "{{ redis_make_tls|default(False)|bool | ternary('redis', '') }}"
-        - "{{ (postgresql_ssl == 'on') | ternary('postgresql', '') }}"
+        - "{{ (postgresql_ssl|default('off') == 'on') | ternary('postgresql', '') }}"
         - "{{ pgbouncer_client_tls|default(False)|bool | ternary('pgbouncer-client', '') }}"
         - "{{ pgbouncer_server_tls|default(False)|bool | ternary('pgbouncer-server', '') }}"
       when: item != ''
@@ -175,7 +175,7 @@
 # Place Server certs on DB for PostgreSQL
 # ------------------------------------------------
 
-- name: Put Server Certs on DB for redis
+- name: Put Server Certs on DB for postgresql
   hosts:
     - db
 
@@ -211,7 +211,7 @@
           register: _postgresql_key
           changed_when: false
 
-      when: postgresql_ssl == 'on'
+      when: postgresql_ssl|default('off') == 'on'
 
 
     - name: PostgreSQL TLS - Put server certificate, key and ca to Host.
@@ -235,7 +235,7 @@
           copy:
             content: "{{ _postgresql_key.stdout }}"
             dest: "{{ postgresql_ssl_key_file }}"
-      when: postgresql_ssl == 'on'
+      when: postgresql_ssl|default('off') == 'on'
 
 # ------------------------------------------------
 # Place Server certs on DB for Client Side PGBouncer
@@ -253,7 +253,8 @@
 
   pre_tasks:
     - set_fact:
-        _pgbouncer_common_name: "pgbouncer.{{ hostvars[groups['db'][0]].inventory_hostname }}"
+        _pgbouncer_common_name: "pgbouncer-client.{{ hostvars[groups['db'][0]].inventory_hostname }}"
+
 
   tasks:
     - name: PGBouncer Client side TLS - Fetch server certificate, key and ca from Root.
