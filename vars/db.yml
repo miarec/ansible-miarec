@@ -24,13 +24,13 @@ postgresql_default_auth_method: "ident"
 # Override the defautl 'posgresql_pg_hba_default' option. Otherwise, the 'postgresql_pg_hba_custom' will not work (because they are placed below in file)
 postgresql_pg_hba_default:
   - { type: local, database: all, user: '{{ postgresql_admin_user }}', address: '', method: '{{ postgresql_default_auth_method }}', comment: '' }
-  
+
 postgresql_pg_hba_custom:
   - { type: host,  database: all, user: "{{ miarec_db_user }}", address: '127.0.0.1/32', method: 'md5', comment: 'IPv4 local connections:' }
   - { type: host,  database: all, user: "{{ miarec_db_user }}", address: '::1/128',      method: 'md5', comment: 'IPv6 local connections:' }
 
-  
-postgresql_shared_preload_libraries: 
+
+postgresql_shared_preload_libraries:
   - pg_stat_statements
 
 # --------------------------------------
@@ -39,7 +39,7 @@ postgresql_shared_preload_libraries:
 postgresql_databases:
   - name: "{{ miarec_db_name }}"
     owner: "{{ miarec_db_user }}"
-  
+
 
 # --------------------------------------
 # List of database extensions to be created
@@ -47,7 +47,7 @@ postgresql_databases:
 postgresql_database_extensions:
   - db: "{{ miarec_db_name }}"
     extensions:
-      - hstore 
+      - hstore
       - uuid-ossp
       - pg_stat_statements
 
@@ -77,12 +77,12 @@ pgbouncer_listen_addr: 127.0.0.1
 pgbouncer_stats_users:
   - postgres
   - stats
-  - "{{ miarec_db_user }}"  
+  - "{{ miarec_db_user }}"
 
 
 # --------------------------------------
 # Optimizations
-# -------------------------------------- 
+# --------------------------------------
 # The recommended number is the GREATEST(4 x CPU cores, 100). Connection pooler is recommended as well.
 postgresql_max_connections:      200
 
@@ -92,11 +92,11 @@ postgresql_shared_buffers: "{{ (ansible_memory_mb.real.total/2) | int }}MB"
 # The recommended starting point for work_mem is ((Total RAM - shared_buffers)/(16 x CPU cores))
 postgresql_work_mem:  512MB
 
-# A value of 1GB is a good start (a default is 16MB) 
+# A value of 1GB is a good start (a default is 16MB)
 postgresql_maintenance_work_mem: 1GB
 
 # Recommended value is up to 1GB
-postgresql_autovacuum_work_mem: 256MB 
+postgresql_autovacuum_work_mem: 256MB
 
 # For SSD disks, it is recommended to set this value to 200
 postgresql_effective_io_concurrency: 200
@@ -113,9 +113,9 @@ postgresql_checkpoint_completion_target: 0.9
 # The recommended value is half to two-thirds of the available disk space where the WAL is locate
 postgresql_max_wal_size: 32GB
 
-# This should be set to the smaller value of either 0.75* total ram amount, 
+# This should be set to the smaller value of either 0.75* total ram amount,
 # "or the sum of buff/cache, free ram and shared buffers in the output of free command"
-postgresql_effective_cache_size: "{{ (ansible_memory_mb.real.total/2) | int }}MB"  
+postgresql_effective_cache_size: "{{ (ansible_memory_mb.real.total/2) | int }}MB"
 
 # If using SSD disks, the recommended value is 1.1
 postgresql_random_page_cost: 1.1
