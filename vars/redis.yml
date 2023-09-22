@@ -12,3 +12,6 @@ redis_verify_checksum: true
 redis_logfile: "/var/log/redis/redis_{{ redis_port }}.log"
 # Enable syslog. "yes" or "no"
 redis_syslog_enabled: "no"
+
+
+# redis_install_from_source: false

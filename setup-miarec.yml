@@ -37,7 +37,7 @@
           python_version: "{{ _installed_python_version.stdout | split(' ') | last }}"
           python_install_dir: "{{ _installed_python_install_dir.stdout | split('/bin') | first }}"
 
-      when: python_install_from_source is not defined or not python_install_from_source
+      when: python_install_from_source is defined and not python_install_from_source
 
 
   roles:
