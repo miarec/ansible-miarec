@@ -1,7 +1,6 @@
 # --------------------------------------
 # Basic settings
 # --------------------------------------
-postgresql_add_to_path: true
 postgresql_ext_install_dev_headers: true
 
 
