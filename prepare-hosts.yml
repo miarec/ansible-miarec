@@ -195,6 +195,7 @@
 
     - set_fact:
         all_ip_addresses: "{{ tmp_ip_addresses.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.ip_address') | list }}"
+        redis_install_from_source: "{{ redis_install_from_source|default(true)|bool }}"
 
     - set_fact:
         # Bind to all interfaces if other components are connecting to it remotely
@@ -203,6 +204,7 @@
 
     - debug: var=all_ip_addresses
     - debug: var=redis_bind
+
   roles:
     - role: 'redis'
   tags: 'redis'
@@ -238,6 +240,9 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
+
+    - set_fact:
+        python_install_from_source: "{{ python_install_from_source|default(true)|bool }}"
   roles:
     - role: 'python'
   tags: 'python'
