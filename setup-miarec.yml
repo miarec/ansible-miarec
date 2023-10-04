@@ -19,8 +19,7 @@
         miarecweb_install_apache: "{{ 'web' in group_names }}"
         miarecweb_install_celeryd: "{{ 'celery' in group_names }}"
         miarecweb_install_celerybeat: "{{ 'celerybeat' in group_names }}"
-    - debug: var=miarecweb_db_host
-    - debug: var=miarecweb_redis_host
+        python_install_from_source: "{{ python_install_from_source|default(true)|bool }}"
 
     - name: Discover Python3 version when installed from package
       block:
@@ -37,8 +36,11 @@
           python_version: "{{ _installed_python_version.stdout | split(' ') | last }}"
           python_install_dir: "{{ _installed_python_install_dir.stdout | split('/bin') | first }}"
 
-      when: python_install_from_source is defined and not python_install_from_source
+      when: not python_install_from_source
 
+    - debug: var=miarecweb_db_host
+    - debug: var=miarecweb_redis_host
+    - debug: var=python_version
 
   roles:
     - role: 'miarecweb'
