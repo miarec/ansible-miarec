@@ -1,13 +1,14 @@
 ---
 # ------------------------------------------------
-# Create SelfSigned Certificate for intra cluster traffic
+# Create Private Self-Signed Certificate Infrastructure
+# for intra-cluster TLS traffic on Root Host
 # ------------------------------------------------
-- name: Generate Private TLS infrastructure.
+- name: Private TLS
   hosts:
     - db
 
   pre_tasks:
-    - name: Define CA Root server and variables
+    - name: Define CA variables
       set_fact:
         openssl_ca_common_name: miarec-CA
         openssl_ca_key: "{{ openssl_ca_common_name }}.key"
@@ -16,13 +17,7 @@
         openssl_ca_dir: "{{ openssl_base_dir }}/ca"
         openssl_servers_dir: "{{ openssl_base_dir }}/servers"
 
-        # this should be rendered based on if tls is enables for services
-        # openssl_servers_db_services:
-        #   - redis
-        #   - postgresql
-        #   - pgbouncer
-
-    - name: Define which services to generate certificates for based on varaibles.
+    - name: Define which services on db host to generate certificates for based on varaibles.
       set_fact:
         openssl_servers_db_services: "{{ openssl_servers_db_services|default([]) + [item] }}"
       with_items:
@@ -32,12 +27,8 @@
         - "{{ pgbouncer_server_tls|default(False)|bool | ternary('pgbouncer-server', '') }}"
       when: item != ''
 
-    # - set_fact:
-    #     openssl_servers_db_services: "{{ test_list | join('\n') }}"
-
-    # - debug: var=openssl_servers_db_services
-
-    - set_fact:
+    - name: Render list for openssl_servers.
+      set_fact:
         _tmp_openssl_servers_db_services:
           - common_name: "{{ item }}.{{ hostvars[groups['db'][0]].inventory_hostname }}"
             alt_dns: ["{{ hostvars[groups['db'][0]].private_ip_address }}"]
@@ -51,9 +42,9 @@
     - role: 'private-tls'
 
 
-# # ------------------------------------------------
-# # Update CA trust on each host
-# # ------------------------------------------------
+# ------------------------------------------------
+# Update CA trust on each host
+# ------------------------------------------------
 - name: Update CA trust
   hosts:
     - all
@@ -108,8 +99,6 @@
 
     when: _client_ca.changed
 
-
-# These steps should be conditional on veriables, liek redis_make_tls
 # make sure certificate permissions are created in the role
 
 # ------------------------------------------------
