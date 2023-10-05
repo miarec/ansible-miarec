@@ -15,3 +15,12 @@ redis_syslog_enabled: "no"
 
 
 # redis_install_from_source: false
+
+
+# TLS Loccation Settings,
+# if certs are generated via private-tls.yml
+# This is where they certs will be loaded on the db host
+redis_tls_dir: "/etc/pki/tls/redis"
+redis_tls_cert:  "{{ redis_tls_dir }}redis.crt"
+redis_tls_key:  "{{ redis_tls_dir }}redis.key"
+redis_tls_ca_cert: "{{ redis_tls_dir }}/redis-CA.pem"

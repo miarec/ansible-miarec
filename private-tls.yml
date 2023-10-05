@@ -99,8 +99,6 @@
 
     when: _client_ca.changed
 
-# make sure certificate permissions are created in the role
-
 # ------------------------------------------------
 # Place Redis Server certificate, key and CA on DB
 # ------------------------------------------------
@@ -172,11 +170,7 @@
   vars_files:
     - vars/db.yml
 
-  pre_tasks:
-
-
   tasks:
-
     - name: PostgreSQL TLS - Fetch server certificate, key and ca from Root.
       block:
         - set_fact:
@@ -229,9 +223,6 @@
 # ------------------------------------------------
 # Place Server certs on DB for Client Side PGBouncer
 # ------------------------------------------------
-
-# make this conditional on variable
-
 - name: Put Server Certs on DB for pgbouncer
   hosts:
     - db
@@ -243,7 +234,6 @@
   pre_tasks:
     - set_fact:
         _pgbouncer_common_name: "pgbouncer-client.{{ hostvars[groups['db'][0]].inventory_hostname }}"
-
 
   tasks:
     - name: PGBouncer Client side TLS - Fetch server certificate, key and ca from Root.

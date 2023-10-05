@@ -10,7 +10,6 @@
     - role: 'disable-selinux'
       tags: 'disable-selinux'
 
-
 # ------------------------------------------------
 # Install database
 # ------------------------------------------------
@@ -43,35 +42,54 @@
         - ansible_os_family == "RedHat"
         - postgresql_version is version('11', '>=')
 
+    - name: PostgreSQL | Verify Certificate have corrrect permissions when TLS is enabled.
+      block:
+      - name: Create group - {{ postgresql_service_group }}
+        group:
+          name: "{{ postgresql_service_group }}"
+          state: present
+
+      - name: Create user - {{ postgresql_service_user }}
+        user:
+          name: "{{ postgresql_service_user }}"
+          state: present
+
+      - name: Set ownership and permission on Certificate and Key
+        file:
+          name: "{{ item }}"
+          owner: "{{ postgresql_service_user }}"
+          group: "{{ postgresql_service_group }}"
+          mode: 0600
+        with_items:
+          - "{{ postgresql_ssl_cert_file }}"
+          - "{{ postgresql_ssl_key_file }}"
+          - "{{ postgresql_ssl_ca_file }}"
+
+      when: postgresql_ssl == "on"
+
     - set_fact:
         postgresql_pg_hba_custom:
           - comment: 'IPv4 local connections:'
             address: '127.0.0.1/32'
-            # type: host
-            host: "{{ 'hostssl' if postgresql_ssl == 'on' else 'host' }}"
+            type: "{{ 'hostssl' if postgresql_ssl == 'on' else 'host' }}"
             database: all
             user: "{{ miarec_db_user }}"
             method: 'md5'
 
           - comment: 'IPv6 local connections:'
             address: '::1/128'
-            # type: host
-            host: "{{ 'hostssl' if postgresql_ssl == 'on' else 'host' }}"
+            type: "{{ 'hostssl' if postgresql_ssl == 'on' else 'host' }}"
             database: all
             user: "{{ miarec_db_user }}"
             method: 'md5'
 
       when: not install_pgbouncer|default(False)|bool
 
-    - debug: var=postgresql_ssl
-
     - set_fact:
         tmp_rule:
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
           address: "{{ hostvars[item].private_ip_address }}/32"
           user: "{{ miarec_db_user }}"
-          # type: "host"     # This needs to be conditional to enforce SSL
-          # type: "{% if postgresql_ssl == "on" %}hostssl{% else %}host{% endif %}"     # This needs to be conditional to enforce SSL
           type: "{{ 'hostssl' if postgresql_ssl == 'on' else 'host' }}"
           database: "{{ miarec_db_name }}"
           method: 'md5'
@@ -123,6 +141,31 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
+
+    - name: PGBouncer | Verify Certificate have corrrect permissions when Client side TLS is enabled.
+      block:
+      - name: "Create group - {{ pgbouncer_group }}"
+        group:
+          name: "{{ pgbouncer_group }}"
+          state: present
+
+      - name: "Create user - {{ pgbouncer_user }}"
+        user:
+          name: "{{ pgbouncer_user }}"
+          state: present
+
+      - name: Set ownership and permission on Certificate and Key
+        file:
+          name: "{{ item }}"
+          owner: "{{ pgbouncer_user }}"
+          group: "{{ pgbouncer_group }}"
+          mode: 0600
+        with_items:
+          - "{{ pgbouncer_client_tls_cert_file }}"
+          - "{{ pgbouncer_client_tls_key_file }}"
+          - "{{ pgbouncer_client_tls_ca_file }}"
+
+      when: pgbouncer_client_tls|default(False)|bool
 
     - set_fact:
         pgbouncer_hba_custom:
@@ -186,6 +229,31 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
+
+    - name: Redis | Verify Certificate have corrrect permissions when TLS is enabled.
+      block:
+      - name: Create group - {{ redis_group }}
+        group:
+          name: "{{ redis_group }}"
+          state: present
+
+      - name: Create user - {{ redis_user }}
+        user:
+          name: "{{ redis_user }}"
+          state: present
+
+      - name: Set ownership and permission on Certificate and Key
+        file:
+          name: "{{ item }}"
+          owner: "{{ redis_user }}"
+          group: "{{ redis_group }}"
+          mode: 0600
+        with_items:
+          - "{{ redis_tls_cert }}"
+          - "{{ redis_tls_key }}"
+          - "{{ redis_tls_ca_cert }}"
+
+      when: redis_make_tls|default(False)|bool
 
     - set_fact:
         ip_address: "{{ hostvars[item].private_ip_address }}"
