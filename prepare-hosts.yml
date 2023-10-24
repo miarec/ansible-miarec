@@ -11,6 +11,61 @@
       tags: 'disable-selinux'
 
 # ------------------------------------------------
+# Update CA trust on each host when TLS is enabled for db
+# ------------------------------------------------
+- name: Update CA trust
+  hosts:
+    - all
+  become: true
+  pre_tasks:
+    - name: Update CA trust - Set variables
+      block:
+      - name: Update CA trust - Set variables [RedHat]
+        set_fact:
+          ca_dir_dest: /etc/pki/ca-trust/source/anchors
+          ca_file_dest: CA.pem
+        when: ansible_os_family == "RedHat"
+
+      - name: Update CA trust - Set variables [Debian]
+        set_fact:
+          ca_dir_dest: /usr/local/share/ca-certificates
+          ca_file_dest: CA.crt
+        when: ansible_os_family == "Debian"
+
+      when: redis_make_tls|default(False)|bool or pgbouncer_client_tls|default(False)|bool or (postgresql_ssl == "on")
+
+  tasks:
+  - name: Update CA trust - Load CA File on host.
+    block:
+    - name: Update CA trust - Make sure anchor directory exists
+      file:
+        path: "{{ ca_dir_dest }}"
+        state: directory
+        mode: 0755
+
+    - name: Update CA trust - Add CA file
+      copy:
+        src: "{{ ca_file_src }}"
+        dest: "{{ ca_dir_dest }}/{{ ca_file_dest }}"
+      register: _ca_trust
+
+    when: redis_make_tls|default(False)|bool or pgbouncer_client_tls|default(False)|bool or (postgresql_ssl == "on")
+
+  - name: Update CA Trust
+    block:
+    - name: Update CA trust - Updating ca trust [RedHat]
+      command: update-ca-trust extract && update-ca-trust
+      when: ansible_os_family == "RedHat"
+
+    - name: Update CA trust - Updating ca trust [Debian]
+      command: update-ca-certificates
+      when: ansible_os_family == "Debian"
+
+    when: _ca_trust.changed
+
+  tags: ca-trust
+
+# ------------------------------------------------
 # Install database
 # ------------------------------------------------
 - name: Install PostgreSQL
@@ -42,30 +97,45 @@
         - ansible_os_family == "RedHat"
         - postgresql_version is version('11', '>=')
 
-    - name: PostgreSQL | Verify Certificate have corrrect permissions when TLS is enabled.
+    # Define postgresql_ssl if not defined and cast to bool
+    - set_fact:
+        postgresql_ssl: "{{ postgresql_ssl|default(False)|bool }}"
+
+    - name: PostgreSQL | Move Certificate and Private Key when TLS is enabled.
       block:
-      - name: Create group - {{ postgresql_service_group }}
+      - name: PostgreSQL | Create group - {{ postgresql_service_group }}
         group:
           name: "{{ postgresql_service_group }}"
           state: present
+          system: true
 
-      - name: Create user - {{ postgresql_service_user }}
+      - name: PostgreSQL | Create user - {{ postgresql_service_user }}
         user:
           name: "{{ postgresql_service_user }}"
           state: present
+          system: true
 
-      - name: Set ownership and permission on Certificate and Key
+      - name: PostgreSQL | Create TLS directory
         file:
-          name: "{{ item }}"
+          dest: "{{ postgresql_ssl_dir }}"
+          state: directory
+          owner: "{{ postgresql_service_user }}"
+          group: "{{ postgresql_service_group }}"
+
+      - name: PostgreSQL | Place CA certificate, server certificate and private key on host.
+        copy:
+          src: "{{ item.src }}"
+          dest: "{{ item.dest }}"
           owner: "{{ postgresql_service_user }}"
           group: "{{ postgresql_service_group }}"
           mode: 0600
-        with_items:
-          - "{{ postgresql_ssl_cert_file }}"
-          - "{{ postgresql_ssl_key_file }}"
-          - "{{ postgresql_ssl_ca_file }}"
+        loop:
+          - { src: "{{ postgresql_key_file_src }}", dest: "{{ postgresql_ssl_key_file }}" }
+          - { src: "{{ postgresql_cert_file_src }}", dest: "{{ postgresql_ssl_cert_file }}" }
+          - { src: "{{ ca_file_src }}", dest: "{{ postgresql_ssl_ca_file }}" }
+        register: _postgresql_tls_files
 
-      when: postgresql_ssl == "on"
+      when: postgresql_ssl|default(False)|bool
 
     - set_fact:
         postgresql_pg_hba_custom:
@@ -123,6 +193,14 @@
       pip: name=psycopg2-binary
       when: ansible_os_family == "Debian"
 
+  post_tasks:
+    - name: PostgreSQL | reload service when TLS certs have changed.
+      service:
+        name: "{{ postgresql_service_name }}"
+        state: reloaded
+      become: yes
+      when: _postgresql_tls_files.changed
+
   roles:
     - role: 'postgresql'
 
@@ -142,28 +220,39 @@
     - include_vars: vars/custom.yml
       failed_when: false
 
-    - name: PGBouncer | Verify Certificate have corrrect permissions when Client side TLS is enabled.
+    - name: PGBouncer | Move Certificate and Private Key when TLS is enabled.
       block:
-      - name: "Create group - {{ pgbouncer_group }}"
+      - name: PGBouncer | Create group - {{ pgbouncer_group }}
         group:
           name: "{{ pgbouncer_group }}"
           state: present
+          system: true
 
-      - name: "Create user - {{ pgbouncer_user }}"
+      - name: PGBouncer | Create user - {{ pgbouncer_user }}
         user:
           name: "{{ pgbouncer_user }}"
           state: present
+          system: true
 
-      - name: Set ownership and permission on Certificate and Key
+      - name: PGBouncer | Create TLS directory.
         file:
-          name: "{{ item }}"
+          dest: "{{ pgbouncer_client_tls_dir }}"
+          state: directory
+          owner: "{{ pgbouncer_user }}"
+          group: "{{ pgbouncer_group }}"
+
+      - name: PGBouncer | Place CA certificate, server certificate and private key on host.
+        copy:
+          src: "{{ item.src }}"
+          dest: "{{ item.dest }}"
           owner: "{{ pgbouncer_user }}"
           group: "{{ pgbouncer_group }}"
           mode: 0600
-        with_items:
-          - "{{ pgbouncer_client_tls_cert_file }}"
-          - "{{ pgbouncer_client_tls_key_file }}"
-          - "{{ pgbouncer_client_tls_ca_file }}"
+        loop:
+          - { src: "{{ pgbouncer_key_file_src }}", dest: "{{ pgbouncer_client_tls_key_file }}" }
+          - { src: "{{ pgbouncer_cert_file_src }}", dest: "{{ pgbouncer_client_tls_cert_file }}" }
+          - { src: "{{ ca_file_src }}", dest: "{{ pgbouncer_client_tls_ca_file }}" }
+        register: _pgbouncer_tls_files
 
       when: pgbouncer_client_tls|default(False)|bool
 
@@ -212,6 +301,17 @@
     - debug: var=pgbouncer_hba_custom
       when: install_pgbouncer|default(False)|bool
 
+  post_tasks:
+    - set_fact:
+        _pgbouncer_restart_state: "{{ 'restarted' if ansible_facts['os_family'] == 'RedHat' else 'reloaded' }}"
+
+    - name: pgbouncer | reload service when TLS certs have changed.
+      service:
+        name: "pgbouncer"
+        state: "{{ _pgbouncer_restart_state }}"
+      become: yes
+      when: _pgbouncer_tls_files.changed
+
   roles:
     - role: 'pgbouncer'
       when: install_pgbouncer|default(False)|bool
@@ -230,30 +330,39 @@
     - include_vars: vars/custom.yml
       failed_when: false
 
-    - name: Redis | Verify Certificate have corrrect permissions when TLS is enabled.
+    - name: Redis | Move Certificate and Private Key when TLS is enabled.
       block:
-      - name: Create group - {{ redis_group }}
+      - name: Redis | Create group - {{ redis_group }}
         group:
           name: "{{ redis_group }}"
           state: present
 
-      - name: Create user - {{ redis_user }}
+      - name: Redis | Create user - {{ redis_user }}
         user:
           name: "{{ redis_user }}"
           state: present
 
-      - name: Set ownership and permission on Certificate and Key
+      - name: Redis | Create TLS directory.
         file:
-          name: "{{ item }}"
+          dest: "{{ redis_tls_dir }}"
+          state: directory
+          owner: "{{ redis_user }}"
+          group: "{{ redis_group }}"
+
+      - name: Redis | Place CA certificate, server certificate and private key on host.
+        copy:
+          src: "{{ item.src }}"
+          dest: "{{ item.dest }}"
           owner: "{{ redis_user }}"
           group: "{{ redis_group }}"
           mode: 0600
-        with_items:
-          - "{{ redis_tls_cert }}"
-          - "{{ redis_tls_key }}"
-          - "{{ redis_tls_ca_cert }}"
+        loop:
+          - { src: "{{ redis_key_file_src }}", dest: "{{ redis_tls_key }}" }
+          - { src: "{{ redis_cert_file_src }}", dest: "{{ redis_tls_cert }}" }
+          - { src: "{{ ca_file_src }}", dest: "{{ redis_tls_ca_cert }}" }
+        register: _redis_tls_files
 
-      when: redis_make_tls|default(False)|bool
+      when: redis_make_tls|default(false)|bool
 
     - set_fact:
         ip_address: "{{ hostvars[item].private_ip_address }}"
@@ -272,6 +381,14 @@
 
     - debug: var=all_ip_addresses
     - debug: var=redis_bind
+
+  post_tasks:
+    - name: Redis | restart service when TLS certs have changed.
+      service:
+        name: "{{ redis_service_name }}"
+        state: restarted  # Redis doesnt support reload
+      become: yes
+      when: _redis_tls_files.changed
 
   roles:
     - role: 'redis'
