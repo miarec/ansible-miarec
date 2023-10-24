@@ -40,6 +40,3 @@
 [submodule "roles/miarec_livemon"]
 	path = roles/miarec_livemon
 	url = https://github.com/miarec/ansible-role-miarec_livemon
-[submodule "roles/private-tls"]
-	path = roles/private-tls
-	url = https://github.com/miarec/ansible-private-tls.git
