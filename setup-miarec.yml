@@ -2,7 +2,7 @@
 # Deploy MiaRec Web UI and celery task manager
 # ------------------------------------------------
 - name: Deploy MiaRec Web application
-  hosts: 
+  hosts:
     - web
     - celery
     - celerybeat
@@ -12,20 +12,41 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
-      
+
     - set_fact:
         miarecweb_db_host: "{{ hostvars[groups.db.0].private_ip_address }}"
         miarecweb_redis_host: "{{ hostvars[groups.redis.0].private_ip_address }}"
         miarecweb_install_apache: "{{ 'web' in group_names }}"
         miarecweb_install_celeryd: "{{ 'celery' in group_names }}"
         miarecweb_install_celerybeat: "{{ 'celerybeat' in group_names }}"
+        python_install_from_source: "{{ python_install_from_source|default(true)|bool }}"
+
+    - name: Discover Python3 version when installed from package
+      block:
+      - name: Get package installed python3 version
+        shell: python3 --version
+        register: _installed_python_version
+
+      - name: Get python install directory
+        shell: which python3
+        register: _installed_python_install_dir
+
+      - name: Set Python3 version and Install Directory
+        set_fact:
+          python_version: "{{ _installed_python_version.stdout | split(' ') | last }}"
+          python_install_dir: "{{ _installed_python_install_dir.stdout | split('/bin') | first }}"
+
+      when: not python_install_from_source
+
     - debug: var=miarecweb_db_host
     - debug: var=miarecweb_redis_host
+    - debug: var=python_version
+
   roles:
     - role: 'miarecweb'
   tags: 'miarecweb'
 
-    
+
 # ------------------------------------------------
 # Deploy MiaRec recorder
 # ------------------------------------------------
@@ -36,7 +57,7 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
-      
+
     - set_fact:
         miarec_db_host: "{{ hostvars[groups.db.0].private_ip_address }}"
         miarec_redis_host: "{{ hostvars[groups.redis.0].private_ip_address }}"
@@ -89,3 +110,4 @@
   roles:
     - role: 'miarec_livemon'
   tags: 'miarec-livemon'
+

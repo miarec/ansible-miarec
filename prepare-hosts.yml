@@ -10,6 +10,60 @@
     - role: 'disable-selinux'
       tags: 'disable-selinux'
 
+# ------------------------------------------------
+# Update CA trust on each host when TLS is enabled for db
+# ------------------------------------------------
+- name: Update CA trust
+  hosts:
+    - all
+  become: true
+  pre_tasks:
+    - name: Update CA trust - Set variables
+      block:
+      - name: Update CA trust - Set variables [RedHat]
+        set_fact:
+          ca_dir_dest: /etc/pki/ca-trust/source/anchors
+          ca_file_dest: CA.pem
+        when: ansible_os_family == "RedHat"
+
+      - name: Update CA trust - Set variables [Debian]
+        set_fact:
+          ca_dir_dest: /usr/local/share/ca-certificates
+          ca_file_dest: CA.crt
+        when: ansible_os_family == "Debian"
+
+      when: redis_make_tls|default(False)|bool or pgbouncer_client_tls|default(False)|bool or (postgresql_ssl == "on")
+
+  tasks:
+  - name: Update CA trust - Load CA File on host.
+    block:
+    - name: Update CA trust - Make sure anchor directory exists
+      file:
+        path: "{{ ca_dir_dest }}"
+        state: directory
+        mode: 0755
+
+    - name: Update CA trust - Add CA file
+      copy:
+        src: "{{ ca_file_src }}"
+        dest: "{{ ca_dir_dest }}/{{ ca_file_dest }}"
+      register: _ca_trust
+
+    when: redis_make_tls|default(False)|bool or pgbouncer_client_tls|default(False)|bool or (postgresql_ssl == "on")
+
+  - name: Update CA Trust
+    block:
+    - name: Update CA trust - Updating ca trust [RedHat]
+      command: update-ca-trust extract && update-ca-trust
+      when: ansible_os_family == "RedHat"
+
+    - name: Update CA trust - Updating ca trust [Debian]
+      command: update-ca-certificates
+      when: ansible_os_family == "Debian"
+
+    when: _ca_trust.changed
+
+  tags: ca-trust
 
 # ------------------------------------------------
 # Install database
@@ -31,7 +85,7 @@
       package:
         name: centos-release-scl
         state: present
-      when: 
+      when:
         - ansible_distribution == "CentOS"
         - postgresql_version is version('11', '>=')
 
@@ -39,22 +93,62 @@
       package:
         name: llvm-toolset-7-clang
         state: present
-      when: 
+      when:
         - ansible_os_family == "RedHat"
         - postgresql_version is version('11', '>=')
-      
+
+    # Define postgresql_ssl if not defined and cast to bool
+    - set_fact:
+        postgresql_ssl: "{{ postgresql_ssl|default(False)|bool }}"
+
+    - name: PostgreSQL | Move Certificate and Private Key when TLS is enabled.
+      block:
+      - name: PostgreSQL | Create group - {{ postgresql_service_group }}
+        group:
+          name: "{{ postgresql_service_group }}"
+          state: present
+          system: true
+
+      - name: PostgreSQL | Create user - {{ postgresql_service_user }}
+        user:
+          name: "{{ postgresql_service_user }}"
+          state: present
+          system: true
+
+      - name: PostgreSQL | Create TLS directory
+        file:
+          dest: "{{ postgresql_ssl_dir }}"
+          state: directory
+          owner: "{{ postgresql_service_user }}"
+          group: "{{ postgresql_service_group }}"
+
+      - name: PostgreSQL | Place CA certificate, server certificate and private key on host.
+        copy:
+          src: "{{ item.src }}"
+          dest: "{{ item.dest }}"
+          owner: "{{ postgresql_service_user }}"
+          group: "{{ postgresql_service_group }}"
+          mode: 0600
+        loop:
+          - { src: "{{ postgresql_key_file_src }}", dest: "{{ postgresql_ssl_key_file }}" }
+          - { src: "{{ postgresql_cert_file_src }}", dest: "{{ postgresql_ssl_cert_file }}" }
+          - { src: "{{ ca_file_src }}", dest: "{{ postgresql_ssl_ca_file }}" }
+        register: _postgresql_tls_files
+
+      when: postgresql_ssl|default(False)|bool
+
     - set_fact:
         postgresql_pg_hba_custom:
           - comment: 'IPv4 local connections:'
             address: '127.0.0.1/32'
-            type: host
+            type: "{{ 'hostssl' if postgresql_ssl == 'on' else 'host' }}"
             database: all
             user: "{{ miarec_db_user }}"
             method: 'md5'
 
           - comment: 'IPv6 local connections:'
             address: '::1/128'
-            type: host
+            type: "{{ 'hostssl' if postgresql_ssl == 'on' else 'host' }}"
             database: all
             user: "{{ miarec_db_user }}"
             method: 'md5'
@@ -64,9 +158,9 @@
     - set_fact:
         tmp_rule:
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
-          address: "{{ hostvars[item].private_ip_address }}/32" 
+          address: "{{ hostvars[item].private_ip_address }}/32"
           user: "{{ miarec_db_user }}"
-          type: host
+          type: "{{ 'hostssl' if postgresql_ssl == 'on' else 'host' }}"
           database: "{{ miarec_db_name }}"
           method: 'md5'
       with_items: "{{ groups.recorder + groups.web }}"
@@ -99,6 +193,14 @@
       pip: name=psycopg2-binary
       when: ansible_os_family == "Debian"
 
+  post_tasks:
+    - name: PostgreSQL | reload service when TLS certs have changed.
+      service:
+        name: "{{ postgresql_service_name }}"
+        state: reloaded
+      become: yes
+      when: _postgresql_tls_files.changed
+
   roles:
     - role: 'postgresql'
 
@@ -117,7 +219,43 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
-      
+
+    - name: PGBouncer | Move Certificate and Private Key when TLS is enabled.
+      block:
+      - name: PGBouncer | Create group - {{ pgbouncer_group }}
+        group:
+          name: "{{ pgbouncer_group }}"
+          state: present
+          system: true
+
+      - name: PGBouncer | Create user - {{ pgbouncer_user }}
+        user:
+          name: "{{ pgbouncer_user }}"
+          state: present
+          system: true
+
+      - name: PGBouncer | Create TLS directory.
+        file:
+          dest: "{{ pgbouncer_client_tls_dir }}"
+          state: directory
+          owner: "{{ pgbouncer_user }}"
+          group: "{{ pgbouncer_group }}"
+
+      - name: PGBouncer | Place CA certificate, server certificate and private key on host.
+        copy:
+          src: "{{ item.src }}"
+          dest: "{{ item.dest }}"
+          owner: "{{ pgbouncer_user }}"
+          group: "{{ pgbouncer_group }}"
+          mode: 0600
+        loop:
+          - { src: "{{ pgbouncer_key_file_src }}", dest: "{{ pgbouncer_client_tls_key_file }}" }
+          - { src: "{{ pgbouncer_cert_file_src }}", dest: "{{ pgbouncer_client_tls_cert_file }}" }
+          - { src: "{{ ca_file_src }}", dest: "{{ pgbouncer_client_tls_ca_file }}" }
+        register: _pgbouncer_tls_files
+
+      when: pgbouncer_client_tls|default(False)|bool
+
     - set_fact:
         pgbouncer_hba_custom:
           - comment: 'IPv4 local connections:'
@@ -138,7 +276,7 @@
     - set_fact:
         tmp_rule:
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
-          address: "{{ hostvars[item].private_ip_address }}/32" 
+          address: "{{ hostvars[item].private_ip_address }}/32"
           user: "{{ miarec_db_user }}"
           type: host
           database: "{{ miarec_db_name }},pgbouncer"
@@ -163,6 +301,17 @@
     - debug: var=pgbouncer_hba_custom
       when: install_pgbouncer|default(False)|bool
 
+  post_tasks:
+    - set_fact:
+        _pgbouncer_restart_state: "{{ 'restarted' if ansible_facts['os_family'] == 'RedHat' else 'reloaded' }}"
+
+    - name: pgbouncer | reload service when TLS certs have changed.
+      service:
+        name: "pgbouncer"
+        state: "{{ _pgbouncer_restart_state }}"
+      become: yes
+      when: _pgbouncer_tls_files.changed
+
   roles:
     - role: 'pgbouncer'
       when: install_pgbouncer|default(False)|bool
@@ -180,23 +329,67 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
-      
+
+    - name: Redis | Move Certificate and Private Key when TLS is enabled.
+      block:
+      - name: Redis | Create group - {{ redis_group }}
+        group:
+          name: "{{ redis_group }}"
+          state: present
+
+      - name: Redis | Create user - {{ redis_user }}
+        user:
+          name: "{{ redis_user }}"
+          state: present
+
+      - name: Redis | Create TLS directory.
+        file:
+          dest: "{{ redis_tls_dir }}"
+          state: directory
+          owner: "{{ redis_user }}"
+          group: "{{ redis_group }}"
+
+      - name: Redis | Place CA certificate, server certificate and private key on host.
+        copy:
+          src: "{{ item.src }}"
+          dest: "{{ item.dest }}"
+          owner: "{{ redis_user }}"
+          group: "{{ redis_group }}"
+          mode: 0600
+        loop:
+          - { src: "{{ redis_key_file_src }}", dest: "{{ redis_tls_key }}" }
+          - { src: "{{ redis_cert_file_src }}", dest: "{{ redis_tls_cert }}" }
+          - { src: "{{ ca_file_src }}", dest: "{{ redis_tls_ca_cert }}" }
+        register: _redis_tls_files
+
+      when: redis_make_tls|default(false)|bool
+
     - set_fact:
-        ip_address: "{{ hostvars[item].private_ip_address }}" 
+        ip_address: "{{ hostvars[item].private_ip_address }}"
       with_items: "{{ groups.recorder + groups.web }}"
       when: hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
       register: tmp_ip_addresses
 
     - set_fact:
         all_ip_addresses: "{{ tmp_ip_addresses.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.ip_address') | list }}"
+        redis_install_from_source: "{{ redis_install_from_source|default(true)|bool }}"
 
     - set_fact:
         # Bind to all interfaces if other components are connecting to it remotely
-        redis_bind: 0.0.0.0 
+        redis_bind: 0.0.0.0
       when: all_ip_addresses | length > 0
 
     - debug: var=all_ip_addresses
     - debug: var=redis_bind
+
+  post_tasks:
+    - name: Redis | restart service when TLS certs have changed.
+      service:
+        name: "{{ redis_service_name }}"
+        state: restarted  # Redis doesnt support reload
+      become: yes
+      when: _redis_tls_files.changed
+
   roles:
     - role: 'redis'
   tags: 'redis'
@@ -222,7 +415,7 @@
 # Install Python (web, celery, celerybeat)
 # ------------------------------------------------
 - name: Install Python
-  hosts: 
+  hosts:
     - web
     - celery
     - celerybeat
@@ -232,6 +425,9 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
+
+    - set_fact:
+        python_install_from_source: "{{ python_install_from_source|default(true)|bool }}"
   roles:
     - role: 'python'
   tags: 'python'
@@ -240,7 +436,7 @@
 # Install Sox (celery)
 # ------------------------------------------------
 - name: Install Sox
-  hosts: 
+  hosts:
     - celery
   vars_files:
     - vars/web.yml
@@ -250,14 +446,14 @@
   become: yes
   roles:
     - role: 'sox'
-  tags: 'sox'  
-  
+  tags: 'sox'
+
 
 # ------------------------------------------------
 # Install HAProxy (lb)
 # ------------------------------------------------
 - name: Install HAProxy
-  hosts: 
+  hosts:
     - lb
   vars_files:
     - vars/web.yml
@@ -307,4 +503,4 @@
 
   roles:
     - role: 'miarecweb-lb'
-  tags: 'lb'  
+  tags: 'lb'

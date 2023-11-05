@@ -130,3 +130,19 @@ postgresql_autovacuum_vacuum_cost_limit: 3000
 
 # The default value (8MB) is low
 postgresql_temp_buffers: 64MB
+
+
+
+# --------------------------------------
+# TLS
+# --------------------------------------
+postgresql_ssl_dir: "/etc/pki/tls/postgresql"
+postgresql_ssl_cert_file: "{{ postgresql_ssl_dir }}/postgresql.crt"
+postgresql_ssl_key_file: "{{ postgresql_ssl_dir }}/postgresql.key"
+postgresql_ssl_ca_file: "{{ postgresql_ssl_dir }}/postgresql-CA.pem"
+
+
+pgbouncer_client_tls_dir: /etc/pki/tls/pgbouncer
+pgbouncer_client_tls_ca_file: "{{ pgbouncer_client_tls_dir }}/pgbouncer-CA.pem"
+pgbouncer_client_tls_key_file: "{{ pgbouncer_client_tls_dir }}/pgbouncer.key"
+pgbouncer_client_tls_cert_file: "{{ pgbouncer_client_tls_dir }}/pgbouncer.crt"
