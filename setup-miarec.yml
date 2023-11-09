@@ -36,11 +36,24 @@
           python_version: "{{ _installed_python_version.stdout | split(' ') | last }}"
           python_install_dir: "{{ _installed_python_install_dir.stdout | split('/bin') | first }}"
 
-      when: not python_install_from_source
+      when: not python_install_from_source|bool
+
+    - name: Discover Sox path when installed from package
+      block:
+      - name: Get package installed python3 version
+        shell: which sox
+        register: _installed_sox_path
+
+      - name: Set Python3 version and Install Directory
+        set_fact:
+          sox_path: "{{ _installed_sox_path.stdout }}"
+
+      when: not sox_install_from_source|bool
 
     - debug: var=miarecweb_db_host
     - debug: var=miarecweb_redis_host
     - debug: var=python_version
+    - debug: var=sox_path
 
   roles:
     - role: 'miarecweb'
