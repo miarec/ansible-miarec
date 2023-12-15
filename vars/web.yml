@@ -19,8 +19,23 @@ python_force_install: false
 
 # Download the required sox components from MiaRec web-site to avoid dependencies on sourceforge.net and other sites
 sox_download_url: "https://miarec-download.s3.amazonaws.com/sox-{{ sox_version }}.tar.gz"
-libmad_download_url: "https://miarec-download.s3.amazonaws.com/libmad-{{ libmad_version }}.tar.gz"
-libogg_download_url: "https://miarec-download.s3.amazonaws.com/libogg-{{ libogg_version }}.tar.gz"
-flac_download_url: "https://miarec-download.s3.amazonaws.com/flac-{{ flac_version }}.tar.xz"
-lame_download_url: "https://miarec-download.s3.amazonaws.com/lame-{{ lame_version }}.tar.gz"
 
+sox_compile_base_library_config:
+  lame:
+    version: 3.99.5
+    download_url: "https://miarec-download.s3.amazonaws.com/lame-3.99.5.tar.gz"
+    download_checksum: "sha1:03a0bfa85713adcc6b3383c12e2cc68a9cfbf4c4"
+    download_dir: "/tmp"
+    download_cleanup: "{{ sox_compile_default_library_download_cleanup }}"
+    configure_args: "--bindir=/usr/local/bin --enable-nasm"
+    install_dir: "/usr/local/bin"
+    library_file: "libmp3lame.a"
+  libmad:
+    version: 0.15.1b
+    download_url: "https://miarec-download.s3.amazonaws.com/libmad-0.15.1b.tar.gz"
+    download_dir: "/tmp"
+    download_checksum: "sha1:cac19cd00e1a907f3150cc040ccc077783496d76"
+    download_cleanup: "true"
+    configure_args:
+    install_dir: "/usr/local/lib"
+    library_file: "libmad.a"
