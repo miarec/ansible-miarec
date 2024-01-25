@@ -7,6 +7,17 @@
     - web
   vars_files:
     - vars/web.yml
+
+  pre_tasks:
+    - name: Discover python binary location
+      set_fact:
+        # Translate full python_version (3.10.5) to the MAJOR.MINOR value, like "3.10"
+        # Will set "certbot_python" to "/usr/local/bin/python3.10"
+        certbot_python: "/usr/local/bin/python{{ python_version|regex_replace('(\\d+\\.\\d+)\\..*$', '\\1') }}"
+      when: 
+        - python_version is defined
+        - python_install_from_source|default(true)|bool
+
   roles:
     - role: 'letsencrypt'
   tags: 'letsencrypt'  
