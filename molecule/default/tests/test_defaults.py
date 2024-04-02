@@ -34,13 +34,19 @@ def test_directories(host):
         assert d.exists
 
 def test_files(host):
+    if host.system_info.distribution == "ubuntu":
+        postgresql_conf_dir = "main"
+
+    else:
+        postgresql_conf_dir = "data"
+
     files = [
         "/opt/miarecweb/releases/{}/production.ini".format(miarecweb_version),
         "/opt/miarec/releases/{}/miarec.ini".format(miarec_version),
         "/opt/miarec_screen/releases/{}/miarec_screen.ini".format(miarec_screen_version),
         "/opt/miarec_livemon/releases/{}/miarec_livemon.ini".format(miarec_livemon_version),
         "/opt/redis/redis.conf",
-        "/etc/postgresql/{}/data/postgresql.conf".format(postgresql_version)
+        "/etc/postgresql/{}/{}/postgresql.conf".format(postgresql_version,postgresql_conf_dir)
     ]
 
     for file in files:
@@ -51,10 +57,12 @@ def test_files(host):
 
 def test_service(host):
     if host.system_info.distribution == "ubuntu":
-        apache_service = "apache2"
+        apache_service = "apache2",
+        postgresql_service = "postgresql"
 
     else:
-        apache_service = "httpd"
+        apache_service = "httpd",
+        postgresql_service = "postgresql-{)".format(postgresql_version)
 
     services = [
         "miarec",
@@ -64,7 +72,7 @@ def test_service(host):
         "celeryd",
         "celerybeat",
         "redis_6379",
-        "postgresql-{}".format(postgresql_version),
+        postgresql_service,
         "pgbouncer"
     ]
 

@@ -2,7 +2,7 @@
 # Deploy MiaRec Web UI and celery task manager
 # ------------------------------------------------
 - name: Deploy MiaRec Web application
-  hosts: 
+  hosts:
     - web
     - celery
     - celerybeat
@@ -12,7 +12,7 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
-      
+
     - set_fact:
         miarecweb_db_host: "{{ hostvars[groups.db.0].private_ip_address }}"
         miarecweb_redis_host: "{{ hostvars[groups.redis.0].private_ip_address }}"
@@ -25,7 +25,7 @@
     - role: 'miarecweb'
   tags: 'miarecweb'
 
-    
+
 # ------------------------------------------------
 # Deploy MiaRec recorder
 # ------------------------------------------------
@@ -36,7 +36,7 @@
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false
-      
+
     - set_fact:
         miarec_db_host: "{{ hostvars[groups.db.0].private_ip_address }}"
         miarec_redis_host: "{{ hostvars[groups.redis.0].private_ip_address }}"
