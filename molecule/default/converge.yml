@@ -1,0 +1,47 @@
+---
+- name: Converge
+  hosts: all
+  # become: true
+
+  pre_tasks:
+  # required for miarecweb.yml - Install dependencies (requirements.txt)
+  # I want to re test this, I dont ubderstand why we need system python pip
+  - name: Install python-pip | CentOS
+    when: ansible_distribution == "CentOS"
+    block:
+      - name: Install EPEL
+        package:
+          name: epel-release
+          state: present
+
+      - name: Install pip
+        package:
+          name: python-pip
+          state: present
+    when: ansible_distribution == "CentOS"
+
+  - set_fact:
+      private_ip_address: 127.0.0.1
+      miarecweb_secret: "{{ lookup('env', 'MIARECWEB_SECRET') }}"
+
+# These need to be variables that can be supplied
+      miarecweb_version: "{{ lookup('env', 'MIARECWEB_VERSION') }}"
+      miarec_version: "{{ lookup('env', 'MIAREC_VERSION') }}"
+      miarec_screen_version: "{{ lookup('env', 'MIAREC_SCREEN_VERSION') }}"
+      miarec_livemon_version: "{{ lookup('env', 'MIAREC_LIVEMON_VERSION') }}"
+      postgresql_version: "{{ lookup('env', 'POSTGRESQL_VERSION') }}"
+      install_pgbouncer: "{{ lookup('env', 'PGBOUNCER_INSTALL') }}"
+      python_version: "{{ lookup('env', 'PYTHON_VERSION') }}"
+      redis_version: "{{ lookup('env', 'REDIS_VERSION') }}"
+
+  #   - name: Install prerequisites
+  #     block:
+  #       - name: Update apt cache
+  #         apt:
+  #           update_cache: true
+  #           cache_valid_time: 600
+  #         changed_when: false
+  #         when: ansible_os_family == "Debian"
+
+- import_playbook: ../../prepare-hosts.yml
+- import_playbook: ../../setup-miarec.yml
