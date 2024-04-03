@@ -1,0 +1,14 @@
+---
+exclude_paths:
+  - molecule/
+
+skip_list:
+  - fqcn
+  - yaml[line-length]
+  - yaml[empty-lines]
+  - yaml[trailing-spaces]
+  - yaml[truthy]
+  - jinja[spacing]
+  - name[template]
+  - name[casing]
+  - name[missing]
