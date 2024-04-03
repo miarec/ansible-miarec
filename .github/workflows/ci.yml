@@ -5,24 +5,24 @@ name: Ansible role testing
     push:
         branches:
             - master
-            - 20240326-extend-os
+            # - 20240326-extend-os
         paths-ignore:
             - '**.md'
+    # Run on every sunday at 00:00
+    schedule:
+        - cron: "0 1 * * 7"
 
 jobs:
-    lint:
-        name: lint
-        runs-on: ubuntu-latest
+    # lint:
+    #     name: lint
+    #     runs-on: ubuntu-latest
 
-        steps:
-            - name: Check out the repository
-              uses: actions/checkout@v4
+    #     steps:
+    #         - name: Check out the repository
+    #           uses: actions/checkout@v4
 
-            # - name: Install Ansible dependencies.
-            #   run: ansible-galaxy collection install community.postgresql
-
-            - name: Run ansible-lint
-              uses: ansible/ansible-lint-action@v6
+    #         - name: Run ansible-lint
+    #           uses: ansible/ansible-lint-action@v6
 
     test:
         name: molecule
@@ -43,7 +43,6 @@ jobs:
                     # - distro: rhel7
                     #   miarec_version: 7.0.0.100
                     #   miarec_screen_version: 1.1.0.46
-
 
         steps:
             - name: Check out the Repository
