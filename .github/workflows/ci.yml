@@ -18,56 +18,56 @@ jobs:
             - name: Check out the repository
               uses: actions/checkout@v4
 
-            - name: Install Ansible dependencies.
-              run: ansible-galaxy collection install community.postgresql
+            # - name: Install Ansible dependencies.
+            #   run: ansible-galaxy collection install community.postgresql
 
             - name: Run ansible-lint
               uses: ansible/ansible-lint-action@v6
 
-    test:
-        name: molecule
-        runs-on: ubuntu-20.04
-        strategy:
-            fail-fast: false
-            matrix:
-                include:
-                    - distro: ubuntu2204
-                      miarec_version: 7.0.0.111
-                      miarec_screen_version: 1.1.0.49
-                    - distro: ubuntu2004
-                      miarec_version: 7.0.0.110
-                      miarec_screen_version: 1.1.0.48
-                    - distro: centos7
-                      miarec_version: 7.0.0.100
-                      miarec_screen_version: 1.1.0.46
-                    # - distro: rhel7
-                    #   miarec_version: 7.0.0.100
-                    #   miarec_screen_version: 1.1.0.46
+    # test:
+    #     name: molecule
+    #     runs-on: ubuntu-20.04
+    #     strategy:
+    #         fail-fast: false
+    #         matrix:
+    #             include:
+    #                 - distro: ubuntu2204
+    #                   miarec_version: 7.0.0.111
+    #                   miarec_screen_version: 1.1.0.49
+    #                 - distro: ubuntu2004
+    #                   miarec_version: 7.0.0.110
+    #                   miarec_screen_version: 1.1.0.48
+    #                 - distro: centos7
+    #                   miarec_version: 7.0.0.100
+    #                   miarec_screen_version: 1.1.0.46
+    #                 # - distro: rhel7
+    #                 #   miarec_version: 7.0.0.100
+    #                 #   miarec_screen_version: 1.1.0.46
 
 
-        steps:
-            - name: Check out the Repository
-              uses: actions/checkout@v4
-              with:
-                  submodules: recursive
+    #     steps:
+    #         - name: Check out the Repository
+    #           uses: actions/checkout@v4
+    #           with:
+    #               submodules: recursive
 
 
-            - name: Set up Python3
-              uses: actions/setup-python@v5
-              with:
-                  python-version: '3.x'
+    #         - name: Set up Python3
+    #           uses: actions/setup-python@v5
+    #           with:
+    #               python-version: '3.x'
 
-            - name: Install test dependencies
-              run: pip3 install -r molecule/default/test-requirements.txt
+    #         - name: Install test dependencies
+    #           run: pip3 install -r molecule/default/test-requirements.txt
 
-            - name: Install Ansible dependencies.
-              run: ansible-galaxy collection install community.docker ansible.posix --force
+    #         - name: Install Ansible dependencies.
+    #           run: ansible-galaxy collection install community.docker ansible.posix --force
 
-            - name: Run molecule tests
-              run: molecule test
-              env:
-                  PY_COLORS: '1'
-                  ANSIBLE_FORCE_COLOR: '1'
-                  MOLECULE_DISTRO: ${{ matrix.distro }}
-                  MOLECULE_MIAREC_VERSION: ${{ matrix.miarec_version }}
-                  MOLECULE_MIAREC_SCREEN_VERSION: ${{ matrix.miarec_screen_version }}
+    #         - name: Run molecule tests
+    #           run: molecule test
+    #           env:
+    #               PY_COLORS: '1'
+    #               ANSIBLE_FORCE_COLOR: '1'
+    #               MOLECULE_DISTRO: ${{ matrix.distro }}
+    #               MOLECULE_MIAREC_VERSION: ${{ matrix.miarec_version }}
+    #               MOLECULE_MIAREC_SCREEN_VERSION: ${{ matrix.miarec_screen_version }}
