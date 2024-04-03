@@ -36,7 +36,7 @@
                           miarec_screen_version: 1.1.0.48
                         - distro: centos7
                           miarec_version: 7.0.0.100
-                        #   miarec_screen_version: 1.1.0.46
+                          miarec_screen_version: 1.1.0.46
                         # - distro: rhel7
                         #   miarec_version: 7.0.0.100
                         #   miarec_screen_version: 1.1.0.46
