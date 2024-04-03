@@ -18,6 +18,9 @@ jobs:
             - name: Check out the repository
               uses: actions/checkout@v4
 
+            - name: Install Ansible dependencies.
+              run: ansible-galaxy collection install community.postgresql
+
             - name: Run ansible-lint
               uses: ansible/ansible-lint-action@v6
 
@@ -58,7 +61,7 @@ jobs:
               run: pip3 install -r molecule/default/test-requirements.txt
 
             - name: Install Ansible dependencies.
-              run: ansible-galaxy collection install community.docker ansible.posix --force community.postgresql
+              run: ansible-galaxy collection install community.docker ansible.posix --force
 
             - name: Run molecule tests
               run: molecule test

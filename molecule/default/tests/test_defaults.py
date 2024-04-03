@@ -62,7 +62,7 @@ def test_service(host):
 
     else:
         apache_service = "httpd"
-        postgresql_service = "postgresql-{)".format(postgresql_version)
+        postgresql_service = "postgresql-{}".format(postgresql_version)
 
     services = [
         "miarec",
