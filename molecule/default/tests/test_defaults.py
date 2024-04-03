@@ -57,11 +57,11 @@ def test_files(host):
 
 def test_service(host):
     if host.system_info.distribution == "ubuntu":
-        apache_service = "apache2",
+        apache_service = "apache2"
         postgresql_service = "postgresql"
 
     else:
-        apache_service = "httpd",
+        apache_service = "httpd"
         postgresql_service = "postgresql-{)".format(postgresql_version)
 
     services = [
