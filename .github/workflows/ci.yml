@@ -8,9 +8,9 @@ name: Ansible role testing
             # - 20240326-extend-os
         paths-ignore:
             - '**.md'
-    # Run on every sunday at 00:00
+
     schedule:
-        - cron: "0 1 * * 7"
+        - cron: '0 1 * * 6'
 
 jobs:
     # lint:
