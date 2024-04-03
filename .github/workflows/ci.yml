@@ -67,4 +67,4 @@ jobs:
                   ANSIBLE_FORCE_COLOR: '1'
                   MOLECULE_DISTRO: ${{ matrix.distro }}
                   MOLECULE_MIAREC_VERSION: ${{ matrix.miarec_version }}
-                  MOLECULE_MIAREC_SCREEN_VERSION: ${{ matrix.miarec_version }}
+                  MOLECULE_MIAREC_SCREEN_VERSION: ${{ matrix.miarec_screen_version }}
