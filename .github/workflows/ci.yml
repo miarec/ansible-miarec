@@ -58,7 +58,7 @@ jobs:
               run: pip3 install -r molecule/default/test-requirements.txt
 
             - name: Install Ansible dependencies.
-              run: ansible-galaxy collection install community.docker ansible.posix --force
+              run: ansible-galaxy collection install community.docker ansible.posix --force community.postgresql
 
             - name: Run molecule tests
               run: molecule test
