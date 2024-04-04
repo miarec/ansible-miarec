@@ -20,11 +20,65 @@
           state: present
     when: ansible_distribution == "CentOS"
 
-  - set_fact:
+  # UBI 7 repos do not include llvm-toolset, llvm5.0-devel and perl-IPC-Run
+  # RHEL 7, this would be in rhel-server-rhscl-7-rpms.
+
+  # UBI 8/9 repositories are missing `perl-IPC-Run` package,
+  # RHEL 8/9. This would be in repo `codeready-builder-for-rhel-X-x86_64-rpms`
+
+  # For testing I install CentOS repositories and install missing pacakages,
+  # repos are disabled to not effect the role run
+  # these pacakages are required for postgresqlXX-devel
+
+  - name: Install dependencies from CentOS Repositories | RHEL 7+
+    when: ansible_distribution == "RedHat"
+    block:
+
+    - name: Define Missing Repo/Package | RHEL7
+      set_fact:
+        _tmp_repos:
+          - name: scl
+            url: http://mirror.centos.org/centos/7/sclo/x86_64/rh/
+          - name: base
+            url: http://mirror.centos.org/centos/7/os/x86_64/
+          - name: epel
+            url: https://dl.fedoraproject.org/pub/epel/7/x86_64/
+        _tmp_packages:
+          - name: llvm-toolset-7-clang
+            repo: scl
+          - name: libedit-devel
+            repo: base
+          - name: perl-IPC-Run
+            repo: base
+          - name: llvm5.0-devel
+            repo: epel
+      when: ansible_distribution_major_version == "7"
+
+    - name: Add Temporary Repositories | RHEL
+      yum_repository:
+          name: "{{ item.name }}"
+          description: "Centos {{ ansible_distribution_major_version }} - {{ item.name }}"
+          baseurl: "{{ item.url }}"
+          enabled: false
+      with_items: "{{ _tmp_repos }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+
+    - name: Install missing packages | RHEL
+      yum:
+        name: "{{ item.name }}"
+        state: present
+        enablerepo: "{{ item.repo }}"
+        disable_gpg_check: true
+      with_items: "{{ _tmp_packages }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+  - name: Set Install Variables
+    set_fact:
       private_ip_address: 127.0.0.1
       miarecweb_secret: "{{ lookup('env', 'MIARECWEB_SECRET') }}"
-
-# These need to be variables that can be supplied
       miarecweb_version: "{{ lookup('env', 'MIARECWEB_VERSION') }}"
       miarec_version: "{{ lookup('env', 'MIAREC_VERSION') }}"
       miarec_screen_version: "{{ lookup('env', 'MIAREC_SCREEN_VERSION') }}"
