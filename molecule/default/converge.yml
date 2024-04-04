@@ -7,7 +7,6 @@
   # required for miarecweb.yml - Install dependencies (requirements.txt)
   # I want to re test this, I dont ubderstand why we need system python pip
   - name: Install python-pip | CentOS
-    when: ansible_distribution == "CentOS"
     block:
       - name: Install EPEL
         package:
@@ -21,8 +20,11 @@
     when: ansible_distribution == "CentOS"
 
 
-  # UBI 7 repos do not include llvm-toolset, llvm5.0-devel and perl-IPC-Run
-  # RHEL 7, this would be in rhel-server-rhscl-7-rpms.
+  # RHEL7 provides `llvm-toolset`, `llvm5.0-devel` and `perl-IPC-Run` in `rhel-server-rhscl-7-rpms` for postgresql install
+  # RHEL7 provides `python3` in `rhel-7-server-rpms` for pgbouncer install
+  # RHEL7 provides `bzip2-devel` and `devtoolset-11` in `rhel-7-server-rpms` and `rhel-7-seerver-rhscl` for python install
+
+
 
   # UBI 8/9 repositories are missing `perl-IPC-Run` package,
   # RHEL 8/9. This would be in repo `codeready-builder-for-rhel-X-x86_64-rpms`
@@ -45,17 +47,24 @@
           - name: epel-centos
             url: https://dl.fedoraproject.org/pub/epel/7/x86_64/
         _tmp_packages:
-          - name: llvm-toolset-7-clang
+          - name: llvm-toolset-7-clang   # required for postgresql install
             repo: scl-centos
-          - name: libedit-devel
+          - name: libedit-devel          # required for postgresql install
             repo: base-centos
-          - name: perl-IPC-Run
+          - name: perl-IPC-Run           # required for postgresql install
             repo: base-centos
-          - name: llvm5.0-devel
+          - name: llvm5.0-devel          # required for postgresql install
             repo: epel-centos
-          - name: python3
+          - name: python3                # required for pgbouncer install
             repo: base-centos
+          - name: bzip2-devel            # required for python install
+            repo: base-centos
+          - name: devtoolset-11          # required for python install
+            repo: scl-centos, base-centos
       when: ansible_distribution_major_version == "7"
+
+
+
 
     - name: Add Temporary Repositories | RHEL
       yum_repository:
@@ -67,7 +76,6 @@
       loop_control:
         label: "{{ item.name }}"
 
-
     - name: Install missing packages | RHEL
       yum:
         name: "{{ item.name }}"
@@ -77,6 +85,8 @@
       with_items: "{{ _tmp_packages }}"
       loop_control:
         label: "{{ item.name }}"
+
+
 
   - name: Set Install Variables
     set_fact:
