@@ -20,6 +20,7 @@
           state: present
     when: ansible_distribution == "CentOS"
 
+
   # UBI 7 repos do not include llvm-toolset, llvm5.0-devel and perl-IPC-Run
   # RHEL 7, this would be in rhel-server-rhscl-7-rpms.
 
@@ -37,21 +38,23 @@
     - name: Define Missing Repo/Package | RHEL7
       set_fact:
         _tmp_repos:
-          - name: scl
+          - name: scl-centos
             url: http://mirror.centos.org/centos/7/sclo/x86_64/rh/
-          - name: base
+          - name: base-centos
             url: http://mirror.centos.org/centos/7/os/x86_64/
-          - name: epel
+          - name: epel-centos
             url: https://dl.fedoraproject.org/pub/epel/7/x86_64/
         _tmp_packages:
           - name: llvm-toolset-7-clang
-            repo: scl
+            repo: scl-centos
           - name: libedit-devel
-            repo: base
+            repo: base-centos
           - name: perl-IPC-Run
-            repo: base
+            repo: base-centos
           - name: llvm5.0-devel
-            repo: epel
+            repo: epel-centos
+          - name: python3
+            repo: base-centos
       when: ansible_distribution_major_version == "7"
 
     - name: Add Temporary Repositories | RHEL
