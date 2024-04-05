@@ -4,7 +4,7 @@
 - name: Disable SELinux
   hosts: all
   pre_tasks:
-    - name: Include vars
+    - name: Include custom vars
       include_vars: vars/custom.yml
       failed_when: false
   roles:
@@ -22,7 +22,7 @@
   become: true
 
   pre_tasks:
-    - name: Include vars
+    - name: Include custom vars
       include_vars: vars/custom.yml
       failed_when: false
 
@@ -129,7 +129,7 @@
   become: true
 
   pre_tasks:
-    - name: Include vars
+    - name: Include custom vars
       include_vars: vars/custom.yml
       failed_when: false
 
@@ -201,25 +201,33 @@
     - vars/redis.yml
   become: true
   pre_tasks:
-    - include_vars: vars/custom.yml
+    - name: Include custom vars
+      include_vars: vars/custom.yml
       failed_when: false
 
-    - set_fact:
+    - name: Define ip_address recorder and web hosts
+      set_fact:
         ip_address: "{{ hostvars[item].private_ip_address }}"
       with_items: "{{ groups.recorder + groups.web }}"
       when: hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
       register: tmp_ip_addresses
 
-    - set_fact:
+    - name: Render all_ip_addresses
+      set_fact:
         all_ip_addresses: "{{ tmp_ip_addresses.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.ip_address') | list }}"
 
-    - set_fact:
+    - name: Define redis_bind
+      set_fact:
         # Bind to all interfaces if other components are connecting to it remotely
         redis_bind: 0.0.0.0
       when: all_ip_addresses | length > 0
 
-    - debug: var=all_ip_addresses
-    - debug: var=redis_bind
+    - name: Pring all_ip_addresses
+      debug:
+        var: all_ip_addresses
+    - name: Print redis_bind
+      debug:
+        var: redis_bind
   roles:
     - role: 'redis'
   tags: 'redis'
@@ -232,9 +240,10 @@
   hosts: web
   vars_files:
     - vars/web.yml
-  become: yes
+  become: true
   pre_tasks:
-    - include_vars: vars/custom.yml
+    - name: Include custom vars
+      include_vars: vars/custom.yml
       failed_when: false
   roles:
     - role: 'apache'
@@ -249,11 +258,12 @@
     - web
     - celery
     - celerybeat
-  become: yes
+  become: true
   vars_files:
     - vars/web.yml
   pre_tasks:
-    - include_vars: vars/custom.yml
+    - name: Include custom vars
+      include_vars: vars/custom.yml
       failed_when: false
   roles:
     - role: 'python'
@@ -268,9 +278,10 @@
   vars_files:
     - vars/web.yml
   pre_tasks:
-    - include_vars: vars/custom.yml
+    - name: Include custom vars
+      include_vars: vars/custom.yml
       failed_when: false
-  become: yes
+  become: true
   roles:
     - role: 'sox'
   tags: 'sox'
@@ -284,49 +295,64 @@
     - lb
   vars_files:
     - vars/web.yml
-  become: yes
+  become: true
   pre_tasks:
-    - include_vars: vars/custom.yml
+    - name: Include custom vars
+      include_vars: vars/custom.yml
       failed_when: false
 
-    - set_fact:
+    - name: Define tmp_web_primary_servers
+      set_fact:
         tmp_server:
           name: "web_primary_{{ item }}"
           address: "{{ item }}:443"
-          backup: False
+          backup: false
       with_items: "{{ web_primary_servers }}"
       register: tmp_web_primary_servers
 
-    - debug: var=tmp_web_primary_servers
+    - name: Print tmp_web_primary_servers
+      debug:
+        var: tmp_web_primary_servers
 
-    - set_fact:
+    - name: Define tmp_web_secondary_servers
+      set_fact:
         tmp_server:
           name: "web_backup_{{ item }}"
           address: "{{ item }}:443"
-          backup: True
+          backup: true
       with_items: "{{ web_secondary_servers }}"
       register: tmp_web_secondary_servers
 
-    - debug: var=tmp_web_secondary_servers
+    - name: Print tmp_web_secondary_servers
+      debug:
+        var: tmp_web_secondary_servers
 
-    - set_fact:
+    - name: Rener haproxy_web_backend_servers
+      set_fact:
         haproxy_web_backend_servers: "{{ tmp_web_primary_servers.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_server') | list + tmp_web_secondary_servers.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_server') | list }}"
 
-    - debug: var=haproxy_web_backend_servers
+    - name: Pring haproxy_web_backend_servers
+      debug:
+        var: haproxy_web_backend_servers
 
-    - set_fact:
+    - name: Define tmp_screen_servers
+      set_fact:
         tmp_server:
           name: "{{ item }}"
           address: "{{ hostvars[item].private_ip_address }}:6092"
       with_items: "{{ groups.screen }}"
       register: tmp_screen_servers
 
-    - debug: var=tmp_screen_servers
+    - name: Pring tmp_screen_servers
+      debug:
+        var: tmp_screen_servers
 
-    - set_fact:
+    - name: Render haproxy_screen_backend_servers
+      set_fact:
         haproxy_screen_backend_servers: "{{ tmp_screen_servers.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_server') | list }}"
 
-    - debug: var=haproxy_screen_backend_servers
+    - name: Print haproxy_screen_backend_servers
+      debug: var=haproxy_screen_backend_servers
 
   roles:
     - role: 'miarecweb-lb'
