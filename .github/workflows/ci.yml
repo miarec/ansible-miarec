@@ -5,7 +5,7 @@ name: Ansible role testing
     push:
         branches:
             - master
-            # - 20240326-extend-os
+            - 20240326-extend-os
         paths-ignore:
             - '**.md'
 
@@ -30,19 +30,38 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                include:
-                    - distro: ubuntu2204
-                      miarec_version: 7.0.0.111
-                      miarec_screen_version: 1.1.0.49
-                    - distro: ubuntu2004
-                      miarec_version: 7.0.0.110
-                      miarec_screen_version: 1.1.0.48
-                    - distro: centos7
-                      miarec_version: 7.0.0.100
-                      miarec_screen_version: 1.1.0.46
-                    # - distro: rhel7
-                    #   miarec_version: 7.0.0.100
-                    #   miarec_screen_version: 1.1.0.46
+                distro:
+                    - ubuntu2204
+                    - ubuntu2004
+                    - centos7
+                    - rockylinux9
+                    - rockylinux8
+                    # - rhel9
+                    # - rhel8
+                    # - rhel7
+                # miarecweb_version: ${{ vars.MIARECMEB_VERSION }}
+                # miarec_version: ${{ vars.MIAREC_VERSION }}
+                # miarec_screen_version: ${{ vars.MIAREC_SCREEN_VERSION }}
+                # miarec_livemon_version: ${{ vars.MIAREC_LIVEMON_VERSION }}
+                # miarec_python_version: ${{ vars.MIAREC_PYTHON_VERSION }}
+                # miarec_postgresql_version: ${{ vars.MIAREC_POSTGRESQL_VERSION }}
+                # miarec_redis_version: ${{ vars.MIAREC_REDIS_VERSION }}
+
+
+
+                # include:
+                #     - distro: ubuntu2204
+                #       miarec_version: 7.0.0.111
+                #       miarec_screen_version: 1.1.0.49
+                #     - distro: ubuntu2004
+                #       miarec_version: 7.0.0.110
+                #       miarec_screen_version: 1.1.0.48
+                #     - distro: centos7
+                #       miarec_version: 7.0.0.100
+                #       miarec_screen_version: 1.1.0.46
+                #     # - distro: rhel7
+                #     #   miarec_version: 7.0.0.100
+                #     #   miarec_screen_version: 1.1.0.46
 
         steps:
             - name: Check out the Repository
@@ -68,5 +87,10 @@ jobs:
                   PY_COLORS: '1'
                   ANSIBLE_FORCE_COLOR: '1'
                   MOLECULE_DISTRO: ${{ matrix.distro }}
-                  MOLECULE_MIAREC_VERSION: ${{ matrix.miarec_version }}
-                  MOLECULE_MIAREC_SCREEN_VERSION: ${{ matrix.miarec_screen_version }}
+                  # MOLECULE_MIARECWEB_VERSION: ${{ matrix.miarecweb_version }}
+                  # MOLECULE_MIAREC_VERSION: ${{ matrix.miarec_version }}
+                  # MOLECULE_MIAREC_SCREEN_VERSION: ${{ matrix.miarec_screen_version }}
+                  # MOLECULE_MIAREC_LIVEMON_VERSION: ${{ matrix.miarec_livemon_version }}
+                  # MOLECULE_PYTHON_VERSION: ${{ matrix.miarec_python_version }}
+                  # MOLECULE_POSTGRESQL_VERSION: ${{ matrix.miarec_postgresql_version }}
+                  # MOLECULE_REDIS_VERSION: ${{ matrix.miarec_redis_version }}

@@ -4,7 +4,8 @@
 - name: Disable SELinux
   hosts: all
   pre_tasks:
-    - include_vars: vars/custom.yml
+    - name: Include vars
+      include_vars: vars/custom.yml
       failed_when: false
   roles:
     - role: 'disable-selinux'
@@ -18,32 +19,34 @@
   hosts: db
   vars_files:
     - vars/db.yml
-  become: yes
+  become: true
 
   pre_tasks:
-    - include_vars: vars/custom.yml
+    - name: Include vars
+      include_vars: vars/custom.yml
       failed_when: false
 
     # SCL are required for PostgreSQL 11+ because llvm-toolset-7-clang package
     # For RedHat Enterprise, you may need to manually add it with:
     #    yum-config-manager --enable rhel-server-rhscl-7-rpms
-    - name: Install Software Collections (SCL) | CentOS & PostgreSQL 11+
-      package:
-        name: centos-release-scl
-        state: present
-      when:
-        - ansible_distribution == "CentOS"
-        - postgresql_version is version('11', '>=')
+    # - name: Install Software Collections (SCL) | CentOS & PostgreSQL 11+
+    #   package:
+    #     name: centos-release-scl
+    #     state: present
+    #   when:
+    #     - ansible_distribution == "CentOS"
+    #     - postgresql_version is version('11', '>=')
 
-    - name: Install llvm-toolset-7-lang | RedHat/CentOS & PostgreSQL 11+
-      package:
-        name: llvm-toolset-7-clang
-        state: present
-      when:
-        - ansible_os_family == "RedHat"
-        - postgresql_version is version('11', '>=')
+    # - name: Install llvm-toolset-7-lang | RedHat/CentOS & PostgreSQL 11+
+    #   package:
+    #     name: llvm-toolset-7-clang
+    #     state: present
+    #   when:
+    #     - ansible_os_family == "RedHat"
+    #     - postgresql_version is version('11', '>=')
 
-    - set_fact:
+    - name: Define connection values
+      set_fact:
         postgresql_pg_hba_custom:
           - comment: 'IPv4 local connections:'
             address: '127.0.0.1/32'
@@ -59,9 +62,10 @@
             user: "{{ miarec_db_user }}"
             method: 'md5'
 
-      when: not install_pgbouncer|default(False)|bool
+      when: not install_pgbouncer | default(False) | bool
 
-    - set_fact:
+    - name: Define connection rule for Recorder and Web servers
+      set_fact:
         tmp_rule:
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
           address: "{{ hostvars[item].private_ip_address }}/32"
@@ -70,33 +74,43 @@
           database: "{{ miarec_db_name }}"
           method: 'md5'
       with_items: "{{ groups.recorder + groups.web }}"
-      when: not install_pgbouncer|default(False)|bool and hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
+      when: not install_pgbouncer | default(False) | bool and hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
       register: tmp_pg_hba_rules
 
-    - debug: var=tmp_pg_hba_rules
-      when: not install_pgbouncer|default(False)|bool
+    - name: Print tmp_pg_hba_rules
+      debug:
+        var: tmp_pg_hba_rules
+      when: not install_pgbouncer | default(False) | bool
 
-    - set_fact:
+    - name: Define pg_hba_rules
+      set_fact:
         pg_hba_rules: "{{ tmp_pg_hba_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
-      when: not install_pgbouncer|default(False)|bool
+      when: not install_pgbouncer | default(False) | bool
 
-    - set_fact:
+    - name: Render postgresql_pg_hba_custom
+      set_fact:
         postgresql_pg_hba_custom: "{{ postgresql_pg_hba_custom }}  + {{ pg_hba_rules }}"
         # Listen on all interfaces. By default, it listens on localhost only
         postgresql_listen_addresses: "*"
-      when: not install_pgbouncer|default(False)|bool and pg_hba_rules|length > 0
+      when: not install_pgbouncer | default(False) | bool and pg_hba_rules | length > 0
 
-    - debug: var=postgresql_pg_hba_custom
-      when: not install_pgbouncer|default(False)|bool
+    - name: Print postgresql_pg_hba_custom
+      debug:
+        var: postgresql_pg_hba_custom
+      when: not install_pgbouncer | default(False) | bool
 
     - name: Install pip3
-      become: yes
-      apt: name=python3-pip state=present update_cache=true
+      become: true
+      apt:
+        name: python3-pip
+        state: present
+        update_cache: true
       when: ansible_os_family == "Debian"
 
     - name: Install psycopg2 for ansible to be able to create postgresql users
-      become: yes
-      pip: name=psycopg2-binary
+      become: true
+      pip:
+        name: psycopg2-binary
       when: ansible_os_family == "Debian"
 
   roles:
@@ -112,13 +126,15 @@
   hosts: db
   vars_files:
     - vars/db.yml
-  become: yes
+  become: true
 
   pre_tasks:
-    - include_vars: vars/custom.yml
+    - name: Include vars
+      include_vars: vars/custom.yml
       failed_when: false
 
-    - set_fact:
+    - name: Set pgbouncer_hba_custom
+      set_fact:
         pgbouncer_hba_custom:
           - comment: 'IPv4 local connections:'
             address: '127.0.0.1/32'
@@ -133,9 +149,10 @@
             database: all
             user: "{{ miarec_db_user }}"
             method: 'md5'
-      when: install_pgbouncer|default(False)|bool
+      when: install_pgbouncer | default(False) | bool
 
-    - set_fact:
+    - name: Define tmp_rule
+      set_fact:
         tmp_rule:
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
           address: "{{ hostvars[item].private_ip_address }}/32"
@@ -144,28 +161,34 @@
           database: "{{ miarec_db_name }},pgbouncer"
           method: 'md5'
       with_items: "{{ groups.recorder + groups.web }}"
-      when: install_pgbouncer|default(False)|bool and hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
+      when: install_pgbouncer | default(False) | bool and hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
       register: tmp_pg_hba_rules
 
-    - debug: var=tmp_pg_hba_rules
-      when: install_pgbouncer|default(False)|bool
+    - name: Print tmp_pg_hba_rules
+      debug:
+        var: tmp_pg_hba_rules
+      when: install_pgbouncer | default(False) | bool
 
-    - set_fact:
+    - name: Define pg_hba_rules
+      set_fact:
         pg_hba_rules: "{{ tmp_pg_hba_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
-      when: install_pgbouncer|default(False)|bool
+      when: install_pgbouncer | default(False) | bool
 
-    - set_fact:
+    - name: Render pgbouncer_hba_custom
+      set_fact:
         pgbouncer_hba_custom: "{{ pgbouncer_hba_custom }}  + {{ pg_hba_rules }}"
         # Listen on all interfaces. By default, it listens on localhost only
         pgbouncer_listen_addr: "*"
-      when: install_pgbouncer|default(False)|bool and pg_hba_rules | length > 0
+      when: install_pgbouncer | default(False) | bool and pg_hba_rules | length > 0
 
-    - debug: var=pgbouncer_hba_custom
-      when: install_pgbouncer|default(False)|bool
+    - name: Print pgbouncer_hba_custom
+      debug:
+        var: pgbouncer_hba_custom
+      when: install_pgbouncer | default(False) | bool
 
   roles:
     - role: 'pgbouncer'
-      when: install_pgbouncer|default(False)|bool
+      when: install_pgbouncer | default(False) | bool
 
   tags: 'pgbouncer'
 
@@ -176,7 +199,7 @@
   hosts: redis
   vars_files:
     - vars/redis.yml
-  become: yes
+  become: true
   pre_tasks:
     - include_vars: vars/custom.yml
       failed_when: false

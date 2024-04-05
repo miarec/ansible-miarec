@@ -23,7 +23,7 @@
             state: present
 
 
-    - name: Install dependencies from CentOS Repositories | RHEL 7+
+    - name: Install dependencies from CentOS Repositories | RHEL 7
       when: ansible_distribution == "RedHat"
       block:
 
@@ -64,25 +64,34 @@
 
           when: ansible_distribution_major_version == "7"
 
-        # RHEL7 provides `httpd-devel` in `rhel-server-rhscl-7-rpms`
-        # This is not available on UBI, install from Centos repo
-        # There is a version mismatch between `httpd-devel` and `httpd/mod_ssl`,
-        # So I install those from centos repo also
-        - name: Install apache packages | RHEL7
-          yum:
-            name: "{{ item }}"
-            state: present
-            enablerepo:
-              - base-centos
-              - updates-centos
-            disable_gpg_check: true
-            disablerepo: ubi-7
-          with_items:
-            - httpd
-            - httpd-devel
-            - mod_ssl
-          when: ansible_distribution_major_version == "7"
 
+        # # RHEL8 provides `perl-IPC-Run` in `codeready-builder-for-rhel-8-x86_64-rpms` for postgresql install
+        # # RHEL8 provides `c-ares` in `rhel-8-for-x86_64-baseos-rpms` for pgbouncer install
+        # - name: Define Missing Repo/Package | RHEL8
+        #   set_fact:
+        #     _tmp_repos:
+        #       - name: powertools
+        #         url: http://mirror.centos.org/centos/8-stream/PowerTools/x86_64/os/
+        #       - name: base
+        #         url: http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/
+        #         # gpg: http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-Official
+        #     _tmp_packages:
+        #       - name: perl-IPC-Run   # required for postgresql install
+        #         repo: powertools
+        #       - name: c-ares         # required for pgbouncer install
+        #         repo: base
+        #   when: ansible_distribution_major_version == "8"
+
+        # # RHEL9 provides `perl-IPC-Run` in `codeready-builder-for-rhel-9-x86_64-rpms` for postgresql install
+        # - name: Define Missing Repo/Package | RHEL9
+        #   set_fact:
+        #     _tmp_repos:
+        #       - name: crb
+        #         url: https://mirror.stream.centos.org/9-stream/CRB/x86_64/os/
+        #     _tmp_packages:
+        #       - name: perl-IPC-Run    # required for postgresql install
+        #         repo: crb
+        #   when: ansible_distribution_major_version == "9"
 
         - name: Add Temporary Repositories | RHEL
           yum_repository:
@@ -103,6 +112,25 @@
           with_items: "{{ _tmp_packages }}"
           loop_control:
             label: "{{ item.name }}"
+
+        # RHEL7 provides `httpd-devel` in `rhel-server-rhscl-7-rpms`
+        # This is not available on UBI, install from Centos repo
+        # There is a version mismatch between `httpd-devel` and `httpd/mod_ssl`,
+        # So I install those from centos repo also
+        - name: Install apache packages | RHEL7
+          yum:
+            name: "{{ item }}"
+            state: present
+            enablerepo:
+              - base-centos
+              - updates-centos
+            disable_gpg_check: true
+            disablerepo: ubi-7
+          with_items:
+            - httpd
+            - httpd-devel
+            - mod_ssl
+          when: ansible_distribution_major_version == "7"
 
 
     - name: Set Install Variables
