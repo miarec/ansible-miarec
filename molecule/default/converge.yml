@@ -6,9 +6,11 @@
   pre_tasks:
 
 
-    # required for miarecweb.yml - Install dependencies (requirements.txt)
-    # I want to re test this, I dont ubderstand why we need system python pip
+    # required for miarecweb.yml - `Install dependencies (requirements.txt)`
+    # I want to re test this, I dont ubderstand why we need pip for system python
+    # If this is required, likely needs to be in the role
     - name: Install python-pip | CentOS
+      when: ansible_distribution == "CentOS"
       block:
         - name: Install EPEL
           package:
@@ -19,9 +21,6 @@
           package:
             name: python-pip
             state: present
-      when: ansible_distribution == "CentOS"
-
-
 
 
     - name: Install dependencies from CentOS Repositories | RHEL 7+
@@ -33,8 +32,6 @@
         # RHEL7 provides `llvm-toolset`, `llvm5.0-devel` and `perl-IPC-Run` in `rhel-server-rhscl-7-rpms` for postgresql install
         # RHEL7 provides `python3` in `rhel-7-server-rpms` for pgbouncer install
         # RHEL7 provides `bzip2-devel` and `devtoolset-11` in `rhel-7-server-rpms` and `rhel-7-seerver-rhscl` for python install
-
-
         - name: Define Missing Repo/Package | RHEL7
           set_fact:
             _tmp_repos:
@@ -67,7 +64,24 @@
 
           when: ansible_distribution_major_version == "7"
 
-
+        # RHEL7 provides `httpd-devel` in `rhel-server-rhscl-7-rpms`
+        # This is not available on UBI, install from Centos repo
+        # There is a version mismatch between `httpd-devel` and `httpd/mod_ssl`,
+        # So I install those from centos repo also
+        - name: Install apache packages | RHEL7
+          yum:
+            name: "{{ item }}"
+            state: present
+            enablerepo:
+              - base-centos
+              - updates-centos
+            disable_gpg_check: true
+            disablerepo: ubi-7
+          with_items:
+            - httpd
+            - httpd-devel
+            - mod_ssl
+          when: ansible_distribution_major_version == "7"
 
 
         - name: Add Temporary Repositories | RHEL
@@ -89,24 +103,6 @@
           with_items: "{{ _tmp_packages }}"
           loop_control:
             label: "{{ item.name }}"
-
-        # RHEL7 provides `httpd-devel` in `rhel-server-rhscl-7-rpms`
-        # This is not available on UBI, install from Centos repo
-        # There is a version mismatch between `httpd-devel` and `httpd/mod_ssl`,
-        # So I install those from centos repo also
-        - name: Install apache packages | RHEL
-          yum:
-            name: "{{ item }}"
-            state: present
-            enablerepo:
-              - base-centos
-              - updates-centos
-            disable_gpg_check: true
-            disablerepo: ubi-7
-          with_items:
-            - httpd
-            - httpd-devel
-            - mod_ssl
 
 
     - name: Set Install Variables
