@@ -93,10 +93,12 @@
                 url: http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/
                 # gpg: http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-Official
             _tmp_packages:
-              - name: perl-IPC-Run    # required for postgresql install
+              - name: perl-IPC-Run        # required for postgresql install
                 repo: crb-centos
-              - name: c-ares
-                repo: base-centos     # required for pgbouncer install
+              - name: c-ares              # required for pgbouncer install
+                repo: base-centos
+              - name: unixODBC-devel      # required for miarecweb install
+                repo: crb-centos
           when: ansible_distribution_major_version == "9"
 
         - name: Add Temporary Repositories | RHEL
