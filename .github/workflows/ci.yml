@@ -5,7 +5,7 @@ name: Ansible role testing
     push:
         branches:
             - master
-            # - 20240326-extend-os
+            - 20240326-extend-os
         paths-ignore:
             - '**.md'
 
@@ -36,9 +36,9 @@ jobs:
                     - centos7
                     - rockylinux9
                     - rockylinux8
-                    # - rhel9
-                    # - rhel8
-                    # - rhel7
+                    - rhel9
+                    - rhel8
+                    - rhel7
                 # miarecweb_version: ${{ vars.MIARECMEB_VERSION }}
                 # miarec_version: ${{ vars.MIAREC_VERSION }}
                 # miarec_screen_version: ${{ vars.MIAREC_SCREEN_VERSION }}
