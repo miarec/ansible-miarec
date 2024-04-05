@@ -5,7 +5,7 @@ name: Ansible role testing
     push:
         branches:
             - master
-            - 20240326-extend-os
+            # - 20240326-extend-os
         paths-ignore:
             - '**.md'
 

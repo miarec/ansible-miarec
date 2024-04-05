@@ -82,16 +82,22 @@
         #         repo: base
         #   when: ansible_distribution_major_version == "8"
 
-        # # RHEL9 provides `perl-IPC-Run` in `codeready-builder-for-rhel-9-x86_64-rpms` for postgresql install
-        # - name: Define Missing Repo/Package | RHEL9
-        #   set_fact:
-        #     _tmp_repos:
-        #       - name: crb
-        #         url: https://mirror.stream.centos.org/9-stream/CRB/x86_64/os/
-        #     _tmp_packages:
-        #       - name: perl-IPC-Run    # required for postgresql install
-        #         repo: crb
-        #   when: ansible_distribution_major_version == "9"
+        # RHEL9 provides `perl-IPC-Run` in `codeready-builder-for-rhel-9-x86_64-rpms` for postgresql install
+        # RHEL9 provides `c-ares` in `rhel-9-for-x86_64-baseos-rpms` for pgbouncer install
+        - name: Define Missing Repo/Package | RHEL9
+          set_fact:
+            _tmp_repos:
+              - name: crb-centos
+                url: https://mirror.stream.centos.org/9-stream/CRB/x86_64/os/
+              - name: base-centos
+                url: http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/
+                # gpg: http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-Official
+            _tmp_packages:
+              - name: perl-IPC-Run    # required for postgresql install
+                repo: crb-centos
+              - name: c-ares
+                repo: base-centos     # required for pgbouncer install
+          when: ansible_distribution_major_version == "9"
 
         - name: Add Temporary Repositories | RHEL
           yum_repository:
