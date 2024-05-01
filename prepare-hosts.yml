@@ -229,7 +229,7 @@
       debug:
         var: redis_bind
   roles:
-    - role: 'redis'
+    - role: 'redis-new'
   tags: 'redis'
 
 
