@@ -7,7 +7,7 @@ postgresql_ext_install_dev_headers: true
 miarec_db_name: "miarecdb"
 miarec_db_user: "miarec"
 miarec_db_password: "{{ secret_db_password | default('password') }}"
-miarec_db_port: "{{ install_pgbouncer|default(False) | ternary(6432, 5432) }}"
+miarec_db_port: "{{ install_pgbouncer | default(False) | bool | ternary(6432, 5432) }}"
 
 # Define similar variables for MiaRecWeb role
 miarecweb_db_name: "{{ miarec_db_name }}"
