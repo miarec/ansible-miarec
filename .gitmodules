@@ -16,9 +16,9 @@
 [submodule "roles/postgresql"]
 	path = roles/postgresql
 	url = https://github.com/miarec/ansible-postgresql
-[submodule "roles/redis"]
-	path = roles/redis
-	url = https://github.com/miarec/ansible-redis
+[submodule "roles/redis-new"]
+	path = roles/redis-new
+	url = https://github.com/miarec/ansible-role-redis	
 [submodule "roles/disable-selinux"]
 	path = roles/disable-selinux
 	url = https://github.com/miarec/ansible-role-disable-selinux
@@ -40,3 +40,4 @@
 [submodule "roles/miarec_livemon"]
 	path = roles/miarec_livemon
 	url = https://github.com/miarec/ansible-role-miarec_livemon
+
