@@ -9,7 +9,7 @@ name: Ansible role testing
             - '**.md'
 
     schedule:
-        - cron: '0 1 * * 6'
+        - cron: "30 7 1 * *"
 
 jobs:
     # lint:

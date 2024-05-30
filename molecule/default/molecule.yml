@@ -5,7 +5,7 @@ driver:
   name: docker
 platforms:
   - name: instance
-    image: miarecdevops/docker-${MOLECULE_DISTRO:-ubuntu2204}-init:latest
+    image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2204}-systemd:latest
     groups:
       - recorder
       - livemon
@@ -27,7 +27,7 @@ provisioner:
     converge: ${MOLECULE_PLAYBOOK:-converge.yml}
   env:
     ANSIBLE_VERBOSITY: ${MOLECULE_ANSIBLE_VERBOSITY:-0}
-    MIARECWEB_VERSION: ${MOLECULE_MIARECWEB_VERSION:-"2024.1.0.0"}
+    MIARECWEB_VERSION: ${MOLECULE_MIARECWEB_VERSION:-"2024.4.30.0"}
     MIARECWEB_SECRET: ${MOLECULE_MIARECWEB_SECRET:-"secret"}
     MIAREC_VERSION: ${MOLECULE_MIAREC_VERSION:-"2024.4.5.0"}
     MIAREC_SCREEN_VERSION: ${MOLECULE_MIAREC_SCREEN_VERSION:-"2024.4.5.0"}
