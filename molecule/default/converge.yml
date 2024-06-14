@@ -5,11 +5,8 @@
 
   pre_tasks:
 
-
     # required for miarecweb.yml - `Install dependencies (requirements.txt)`
-    # I want to re test this, I dont ubderstand why we need pip for system python
-    # If this is required, likely needs to be in the role
-    - name: Install python-pip | CentOS
+    - name: Prepare Host | CentOS
       when: ansible_distribution == "CentOS"
       block:
         - name: Install EPEL
@@ -23,122 +20,30 @@
             state: present
 
 
-    - name: Install dependencies from CentOS Repositories | RHEL 7
-      when: ansible_distribution == "RedHat"
+    - name: Prepare Host | RHEL 7
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version == "7"
       block:
 
-# ToDo GPG keys for temp repos
-
-        # RHEL7 provides `llvm-toolset`, `llvm5.0-devel` and `perl-IPC-Run` in `rhel-server-rhscl-7-rpms` for postgresql install
-        # RHEL7 provides `python3` in `rhel-7-server-rpms` for pgbouncer install
-        # RHEL7 provides `bzip2-devel` and `devtoolset-11` in `rhel-7-server-rpms` and `rhel-7-seerver-rhscl` for python install
-        - name: Define Missing Repo/Package | RHEL7
-          set_fact:
-            _tmp_repos:
-              - name: scl-centos
-                url: http://mirror.centos.org/centos/7/sclo/x86_64/rh/
-              - name: base-centos
-                url: http://mirror.centos.org/centos/7/os/x86_64/
-              - name: epel-centos
-                url: https://dl.fedoraproject.org/pub/epel/7/x86_64/
-              - name: updates-centos
-                url: http://mirror.centos.org/centos/7/updates/x86_64/
-                # gpg: http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-7
-            _tmp_packages:
-              - name: llvm-toolset-7-clang   # required for postgresql install
-                repo: scl-centos
-              - name: libedit-devel          # required for postgresql install
-                repo: base-centos
-              - name: perl-IPC-Run           # required for postgresql install
-                repo: base-centos
-              - name: llvm5.0-devel          # required for postgresql install
-                repo: epel-centos
-              - name: python3                # required for pgbouncer install
-                repo: base-centos
-              - name: bzip2-devel            # required for python install
-                repo: base-centos
-              - name: devtoolset-11          # required for python install
-                repo:
-                  - scl-centos
-                  - base-centos
-
-          when: ansible_distribution_major_version == "7"
-
-
-        # RHEL8 provides `perl-IPC-Run` in `codeready-builder-for-rhel-8-x86_64-rpms` for postgresql,miarecweb install
-        # RHEL8 provides `c-ares` in `rhel-8-for-x86_64-baseos-rpms` for pgbouncer install
-        - name: Define Missing Repo/Package | RHEL8
-          set_fact:
-            _tmp_repos:
-              - name: powertools
-                url: http://mirror.centos.org/centos/8-stream/PowerTools/x86_64/os/
-              - name: base
-                url: http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/
-                # gpg: http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-Official
-            _tmp_packages:
-              - name: perl-IPC-Run   # required for postgresql,miarecweb install
-                repo: powertools
-              - name: c-ares         # required for pgbouncer install
-                repo: base
-          when: ansible_distribution_major_version == "8"
-
-        # RHEL9 provides `perl-IPC-Run` and `unixODBC-devel` in `codeready-builder-for-rhel-9-x86_64-rpms` for postgresql and miarecweb install
-        # RHEL9 provides `c-ares` in `rhel-9-for-x86_64-baseos-rpms` for pgbouncer install
-        - name: Define Missing Repo/Package | RHEL9
-          set_fact:
-            _tmp_repos:
-              - name: crb-centos
-                url: https://mirror.stream.centos.org/9-stream/CRB/x86_64/os/
-              - name: base-centos
-                url: http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/
-                # gpg: http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-Official
-            _tmp_packages:
-              - name: perl-IPC-Run        # required for postgresql and miarecweb install
-                repo: crb-centos
-              - name: c-ares              # required for pgbouncer install
-                repo: base-centos
-              - name: unixODBC-devel      # required for miarecweb install
-                repo: crb-centos
-          when: ansible_distribution_major_version == "9"
-
-        - name: Add Temporary Repositories | RHEL
-          yum_repository:
-            name: "{{ item.name }}"
-            description: "Centos {{ ansible_distribution_major_version }} - {{ item.name }}"
-            baseurl: "{{ item.url }}"
-            enabled: false
-          with_items: "{{ _tmp_repos }}"
-          loop_control:
-            label: "{{ item.name }}"
-
-        - name: Install missing packages | RHEL
-          yum:
-            name: "{{ item.name }}"
-            state: present
-            enablerepo: "{{ item.repo }}"
-            disable_gpg_check: true
-          with_items: "{{ _tmp_packages }}"
-          loop_control:
-            label: "{{ item.name }}"
-
-        # RHEL7 provides `httpd-devel` in `rhel-server-rhscl-7-rpms`
-        # This is not available on UBI, install from Centos repo
-        # There is a version mismatch between `httpd-devel` and `httpd/mod_ssl`,
-        # So I install those from centos repo also
-        - name: Install apache packages | RHEL7
+        # `llvm-toolset-7-clang` and 1`llvm5.0-devel` are a requirement for PostgreSQL on RHEL7
+        # these would be provided by repository `rhel-server-rhscl-7-rpms`,
+        # the UBI based docker image uses CentOS repositories,
+        # Those pacakages are available in `centos-release-scl` and `epel-release`
+        # in standard runs of this role, this step would not be required
+        - name: Install prerequisites | RHEL 7
           yum:
             name: "{{ item }}"
-            state: present
-            enablerepo:
-              - base-centos
-              - updates-centos
-            disable_gpg_check: true
-            disablerepo: ubi-7
           with_items:
-            - httpd
-            - httpd-devel
-            - mod_ssl
-          when: ansible_distribution_major_version == "7"
+            - centos-release-scl
+            - epel-release
+
+        # CentOS repository and UBI repository have mismatched versions of httpd
+        # this causes and issue with httpd-devel is installed from CentOS repository
+        # disabling UBI repository to force install from CentOS repository
+        - name: Disable ubi-7 repository | RHEL 7
+          command: yum-config-manager --disable ubi-7
+          changed_when: false
 
 
     - name: Set Install Variables
@@ -153,15 +58,6 @@
         install_pgbouncer: "{{ lookup('env', 'PGBOUNCER_INSTALL') }}"
         python_version: "{{ lookup('env', 'PYTHON_VERSION') }}"
         redis_version: "{{ lookup('env', 'REDIS_VERSION') }}"
-
-    # - name: Install prerequisites
-    #   block:
-    #     - name: Update apt cache
-    #       apt:
-    #         update_cache: true
-    #         cache_valid_time: 600
-    #       changed_when: false
-    #       when: ansible_os_family == "Debian"
 
 - name: Run prepare-hosts playbook
   import_playbook: ../../prepare-hosts.yml
