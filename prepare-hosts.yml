@@ -26,25 +26,6 @@
       include_vars: vars/custom.yml
       failed_when: false
 
-    # SCL are required for PostgreSQL 11+ because llvm-toolset-7-clang package
-    # For RedHat Enterprise, you may need to manually add it with:
-    #    yum-config-manager --enable rhel-server-rhscl-7-rpms
-    # - name: Install Software Collections (SCL) | CentOS & PostgreSQL 11+
-    #   package:
-    #     name: centos-release-scl
-    #     state: present
-    #   when:
-    #     - ansible_distribution == "CentOS"
-    #     - postgresql_version is version('11', '>=')
-
-    # - name: Install llvm-toolset-7-lang | RedHat/CentOS & PostgreSQL 11+
-    #   package:
-    #     name: llvm-toolset-7-clang
-    #     state: present
-    #   when:
-    #     - ansible_os_family == "RedHat"
-    #     - postgresql_version is version('11', '>=')
-
     - name: Define connection values
       set_fact:
         postgresql_pg_hba_custom:
@@ -98,20 +79,6 @@
       debug:
         var: postgresql_pg_hba_custom
       when: not install_pgbouncer | default(False) | bool
-
-    - name: Install pip3
-      become: true
-      apt:
-        name: python3-pip
-        state: present
-        update_cache: true
-      when: ansible_os_family == "Debian"
-
-    - name: Install psycopg2 for ansible to be able to create postgresql users
-      become: true
-      pip:
-        name: psycopg2-binary
-      when: ansible_os_family == "Debian"
 
   roles:
     - role: 'postgresql'
