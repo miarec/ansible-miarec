@@ -64,8 +64,8 @@ postgresql_users:
 # pgbouncer configuration
 # --------------------------------------
 pgbouncer_max_client_conn: 500
-pgbouncer_default_pool_size: 50
-pgbouncer_reserve_pool_size: 20
+pgbouncer_default_pool_size: 90
+pgbouncer_reserve_pool_size: 10
 pgbouncer_max_db_connections: 100
 pgbouncer_max_user_connections: 100
 
