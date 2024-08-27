@@ -22,7 +22,7 @@
 
     - name: Prepare Host | RHEL 7
       when:
-        - ansible_os_family == "RedHat"
+        - ansible_distribution == "RedHat"
         - ansible_distribution_major_version == "7"
       block:
         # `llvm-toolset-7-clang` and 1`llvm5.0-devel` are a requirement for PostgreSQL on RHEL7
@@ -74,7 +74,7 @@
 
     - name: Prepare Host | RHEL 9
       when:
-        - ansible_os_family == "RedHat"
+        - ansible_distribution == "RedHat"
         - ansible_distribution_major_version == "9"
       block:
         # Removing `openssl-fips-provider` from RHEL9
@@ -84,10 +84,23 @@
         # as a result there are some conflicting files, specifically /usr/lib64/ossl-modules/fips.so
         # Because we are using rocky repos for RHEL9 in molecule, we most remove the conficting package
         # https://forums.rockylinux.org/t/issue-with-openssl-fips-provider-during-migration-from-rhel-9/15290/3
-        - name: remove openssl-fips-provider | RHEL9
+        - name: remove `openssl-fips-provider` | RHEL9
           yum:
             name: openssl-fips-provider
             state: absent
+
+
+    - name: Prepare Host | Rocky 9
+      when:
+        - ansible_distribution == "Rocky"
+        - ansible_distribution_major_version == '9'
+      block:
+        # required for miarecweb.yml - Install dependencies (requirements.txt)
+        # This should probably be added to the role
+        - name: Install python3-packaging | Rockylinux 9
+          package:
+            name: python3-packaging
+            state: present
 
     - name: Set Install Variables
       set_fact:
