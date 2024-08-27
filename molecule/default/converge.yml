@@ -25,24 +25,16 @@
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version == "7"
       block:
-
         # `llvm-toolset-7-clang` and 1`llvm5.0-devel` are a requirement for PostgreSQL on RHEL7
         # these would be provided by repository `rhel-server-rhscl-7-rpms`,
         # the UBI based docker image uses CentOS repositories,
         # Those pacakages are available in `centos-release-scl` and `epel-release`
         # in standard runs of this role, this step would not be required
-        # - name: Install prerequisites | RHEL 7
-        #   yum:
-        #     name: "{{ item }}"
-        #   with_items:
-        #     - centos-release-scl
-        #     - epel-release
 
         - name: Install Software Collections (SCL)
           package:
             name: centos-release-scl
             state: present
-          # when: ansible_distribution == "CentOS"
 
         - name: Fix SCL Repos | Comment out mirrorlist lines
           replace:
@@ -62,12 +54,6 @@
             - "/etc/yum.repos.d/CentOS-SCLo-scl.repo"
             - "/etc/yum.repos.d/CentOS-SCLo-scl-rh.repo"
 
-        - name: Install EPEL | CentOS 7
-          package:
-            name: epel-release
-            state: present
-          when: ansible_distribution == "CentOS"
-
         - name: Install EPEL | RedHat 7
           yum_repository:
             name: epel
@@ -85,6 +71,23 @@
           command: yum-config-manager --disable ubi-7
           changed_when: false
 
+
+    - name: Prepare Host | RHEL 9
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version == "9"
+      block:
+        # Removing `openssl-fips-provider` from RHEL9
+        # This is needed to install `openssl-devel`
+        # RHEL 9 and Rocky 9 handle FIPS diferently in openssl,
+        # RHEL has a seperate package for the FIPS provider, in Rocky9 FIPS is included in openssl
+        # as a result there are some conflicting files, specifically /usr/lib64/ossl-modules/fips.so
+        # Because we are using rocky repos for RHEL9 in molecule, we most remove the conficting package
+        # https://forums.rockylinux.org/t/issue-with-openssl-fips-provider-during-migration-from-rhel-9/15290/3
+        - name: remove openssl-fips-provider | RHEL9
+          yum:
+            name: openssl-fips-provider
+            state: absent
 
     - name: Set Install Variables
       set_fact:
