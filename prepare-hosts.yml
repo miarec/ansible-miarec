@@ -70,7 +70,7 @@
 
     - name: Render postgresql_pg_hba_custom
       set_fact:
-        postgresql_pg_hba_custom: "{{ postgresql_pg_hba_custom }}  + {{ pg_hba_rules }}"
+        postgresql_pg_hba_custom: "{{ postgresql_pg_hba_custom + pg_hba_rules }}"
         # Listen on all interfaces. By default, it listens on localhost only
         postgresql_listen_addresses: "*"
       when: not install_pgbouncer | default(False) | bool and pg_hba_rules | length > 0
@@ -143,7 +143,7 @@
 
     - name: Render pgbouncer_hba_custom
       set_fact:
-        pgbouncer_hba_custom: "{{ pgbouncer_hba_custom }}  + {{ pg_hba_rules }}"
+        pgbouncer_hba_custom: "{{ pgbouncer_hba_custom + pg_hba_rules }}"
         # Listen on all interfaces. By default, it listens on localhost only
         pgbouncer_listen_addr: "*"
       when: install_pgbouncer | default(False) | bool and pg_hba_rules | length > 0
