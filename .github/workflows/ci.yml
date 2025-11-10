@@ -70,7 +70,7 @@ jobs:
             - name: Set up Python3
               uses: actions/setup-python@v5
               with:
-                  python-version: '3.x'
+                  python-version: '3.12'
 
             - name: Install test dependencies
               run: pip3 install -r molecule/default/test-requirements.txt
