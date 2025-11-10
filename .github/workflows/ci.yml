@@ -25,20 +25,17 @@ jobs:
 
     test:
         name: molecule
-        runs-on: ubuntu-20.04
+        runs-on: ubuntu-22.04
         strategy:
             fail-fast: false
             matrix:
                 distro:
-                    - ubuntu2004
-                    - ubuntu2204
                     - ubuntu2404
                     - centos7
                     - rockylinux9
                     - rockylinux8
                     - rhel9
                     - rhel8
-                    - rhel7
                 # miarecweb_version: ${{ vars.MIARECMEB_VERSION }}
                 # miarec_version: ${{ vars.MIAREC_VERSION }}
                 # miarec_screen_version: ${{ vars.MIAREC_SCREEN_VERSION }}
