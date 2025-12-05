@@ -2,3 +2,5 @@ ansible.log
 *.retry
 /hosts
 **/__pycache__/
+/.venv/
+/.ansible/

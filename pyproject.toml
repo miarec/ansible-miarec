@@ -1,0 +1,17 @@
+[project]
+name = "ansible-miarec"
+version = "0.1.0"
+description = "Ansible playbooks for MiaRec deployment"
+requires-python = ">=3.10"
+
+[dependency-groups]
+dev = [
+    "ansible>=9.0",
+    "ansible-lint>=24.0",
+    "molecule>=24.0",
+    "molecule-plugins[docker]>=23.5",
+    "pytest-testinfra>=10.0",
+]
+
+[tool.uv]
+default-groups = ["dev"]
