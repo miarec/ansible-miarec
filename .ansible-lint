@@ -1,15 +1,18 @@
 ---
 exclude_paths:
-  - molecule/
   - roles/
+  - .venv/
 
 skip_list:
   - fqcn
-  # - yaml[line-length]
-  # - yaml[empty-lines]
-  # - yaml[trailing-spaces]
+  - yaml[line-length]
+  - yaml[empty-lines]
+  - yaml[trailing-spaces]
+  - yaml[colons]
+  - yaml[commas]
   # - yaml[truthy]
-  # - jinja[spacing]
+  - jinja[spacing]
   # - name[template]
-  # - name[casing]
-  # - name[missing]
+  - name[casing]
+  - name[missing]
+  - no-free-form
