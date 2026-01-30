@@ -1,0 +1,34 @@
+---
+# Install version-specific Python on RedHat-based systems
+# The python role only installs generic 'python3', but Rocky/RHEL 9 ships
+# with Python 3.9 while we need Python 3.12 for testing.
+- name: Prepare
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Set python_version from environment
+      set_fact:
+        python_version: "{{ lookup('env', 'PYTHON_VERSION') }}"
+
+    # Only run on RedHat-based systems where we need version-specific Python
+    - name: Install version-specific Python | RedHat
+      when: ansible_facts['os_family'] == "RedHat"
+      block:
+        - name: Python | Parse version
+          set_fact:
+            _python_major_minor: "{{ '.'.join(python_version.split('.')[:2]) }}"
+
+        - name: Python | Install EPEL repository
+          yum:
+            name: epel-release
+            state: present
+          when: ansible_facts['distribution'] != "RedHat"
+
+        - name: Python | Install Python{{ _python_major_minor }} packages
+          package:
+            name:
+              - "python{{ _python_major_minor }}"
+              - "python{{ _python_major_minor }}-devel"
+              - "python{{ _python_major_minor }}-pip"
+            state: present
