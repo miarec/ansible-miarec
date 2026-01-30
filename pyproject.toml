@@ -2,11 +2,16 @@
 name = "ansible-miarec"
 version = "0.1.0"
 description = "Ansible playbooks for MiaRec deployment"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.14"
 
 [dependency-groups]
+# Pin ansible to 9.x (ansible-core 2.16) because:
+# - EL8 distros ship with Python 3.6 as system Python
+# - ansible-core 2.17+ requires Python 3.7+ on managed nodes
+# - The dnf module needs python3-dnf bindings (only available for system Python)
+# This allows testing all distros (including EL8) with the same command.
 dev = [
-    "ansible>=9.0",
+    "ansible>=9.0,<10.0",
     "ansible-lint>=24.0",
     "molecule>=24.0",
     "molecule-plugins[docker]>=23.5",
