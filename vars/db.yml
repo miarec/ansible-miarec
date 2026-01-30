@@ -57,7 +57,7 @@ postgresql_database_extensions:
 postgresql_users:
   - name: "{{ miarec_db_user }}"
     pass: "{{ miarec_db_password }}"
-    encrypted: yes       # denotes if the password is already encrypted.
+    encrypted: true       # denotes if the password is already encrypted.
 
 
 # --------------------------------------
@@ -101,7 +101,7 @@ postgresql_autovacuum_work_mem: 256MB
 postgresql_effective_io_concurrency: 200
 
 # Set this parameter to 'on' as most database servers are likely to be bottlenecked on I/O rather than CPU
-postgresql_wal_compression: on
+postgresql_wal_compression: "on"
 
 # The recommended value is a minimum of 15 minutes
 postgresql_checkpoint_timeout: 15min

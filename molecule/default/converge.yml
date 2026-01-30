@@ -5,103 +5,6 @@
 
   pre_tasks:
 
-    # required for miarecweb.yml - `Install dependencies (requirements.txt)`
-    - name: Prepare Host | CentOS
-      when: ansible_distribution == "CentOS"
-      block:
-        - name: Install EPEL
-          package:
-            name: epel-release
-            state: present
-
-        - name: Install pip
-          package:
-            name: python-pip
-            state: present
-
-
-    - name: Prepare Host | RHEL 7
-      when:
-        - ansible_distribution == "RedHat"
-        - ansible_distribution_major_version == "7"
-      block:
-        # `llvm-toolset-7-clang` and 1`llvm5.0-devel` are a requirement for PostgreSQL on RHEL7
-        # these would be provided by repository `rhel-server-rhscl-7-rpms`,
-        # the UBI based docker image uses CentOS repositories,
-        # Those pacakages are available in `centos-release-scl` and `epel-release`
-        # in standard runs of this role, this step would not be required
-
-        - name: Install Software Collections (SCL)
-          package:
-            name: centos-release-scl
-            state: present
-
-        - name: Fix SCL Repos | Comment out mirrorlist lines
-          replace:
-            path: "{{ item }}"
-            regexp: '^mirrorlist'
-            replace: '#mirrorlist'
-          with_items:
-            - "/etc/yum.repos.d/CentOS-SCLo-scl.repo"
-            - "/etc/yum.repos.d/CentOS-SCLo-scl-rh.repo"
-
-        - name: Fix SCL Repos | Replace baseurl with vault URL
-          replace:
-            path: "{{ item }}"
-            regexp: '^#\s*baseurl=http://mirror.centos.org'
-            replace: 'baseurl=http://vault.centos.org'
-          with_items:
-            - "/etc/yum.repos.d/CentOS-SCLo-scl.repo"
-            - "/etc/yum.repos.d/CentOS-SCLo-scl-rh.repo"
-
-        - name: Install EPEL | RedHat 7
-          yum_repository:
-            name: epel
-            description: EPEL
-            baseurl: "https://dl.fedoraproject.org/pub/archive/epel/7/x86_64/"
-            gpgkey: "http://download.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}"
-            enabled: true
-          when: ansible_distribution == "RedHat"
-
-
-        # CentOS repository and UBI repository have mismatched versions of httpd
-        # this causes and issue with httpd-devel is installed from CentOS repository
-        # disabling UBI repository to force install from CentOS repository
-        - name: Disable ubi-7 repository | RHEL 7
-          command: yum-config-manager --disable ubi-7
-          changed_when: false
-
-
-    - name: Prepare Host | RHEL 9
-      when:
-        - ansible_distribution == "RedHat"
-        - ansible_distribution_major_version == "9"
-      block:
-        # Removing `openssl-fips-provider` from RHEL9
-        # This is needed to install `openssl-devel`
-        # RHEL 9 and Rocky 9 handle FIPS diferently in openssl,
-        # RHEL has a seperate package for the FIPS provider, in Rocky9 FIPS is included in openssl
-        # as a result there are some conflicting files, specifically /usr/lib64/ossl-modules/fips.so
-        # Because we are using rocky repos for RHEL9 in molecule, we most remove the conficting package
-        # https://forums.rockylinux.org/t/issue-with-openssl-fips-provider-during-migration-from-rhel-9/15290/3
-        - name: remove `openssl-fips-provider` | RHEL9
-          yum:
-            name: openssl-fips-provider
-            state: absent
-
-
-    - name: Prepare Host | Rocky 9
-      when:
-        - ansible_distribution == "Rocky"
-        - ansible_distribution_major_version == '9'
-      block:
-        # required for miarecweb.yml - Install dependencies (requirements.txt)
-        # This should probably be added to the role
-        - name: Install python3-packaging | Rockylinux 9
-          package:
-            name: python3-packaging
-            state: present
-
     - name: Set Install Variables
       set_fact:
         private_ip_address: 127.0.0.1
@@ -113,7 +16,10 @@
         postgresql_version: "{{ lookup('env', 'POSTGRESQL_VERSION') }}"
         install_pgbouncer: "{{ lookup('env', 'PGBOUNCER_INSTALL') }}"
         python_version: "{{ lookup('env', 'PYTHON_VERSION') }}"
-        redis_version: "{{ lookup('env', 'REDIS_VERSION') }}"
+        # Use system packages instead of compiling from source
+        redis_install_from_source: false
+        python_install_from_source: false
+        sox_install_from_source: false
 
 - name: Run prepare-hosts playbook
   import_playbook: ../../prepare-hosts.yml

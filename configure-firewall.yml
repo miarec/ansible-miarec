@@ -5,7 +5,7 @@
 # ------------------------------------------------
 - name: Configure firewall on database host
   hosts: db
-  become: yes
+  become: true
   vars_files:
     - vars/firewall.yml
   pre_tasks:
@@ -19,7 +19,7 @@
       register: tmp_iptables_rules
 
     - set_fact:
-        iptables_keep_unmanaged: yes
+        iptables_keep_unmanaged: true
         iptables_custom_rules: "{{ tmp_iptables_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
   roles:
     - iptables
@@ -35,7 +35,7 @@
   vars_files:
     - vars/firewall.yml
     - vars/redis.yml
-  become: yes
+  become: true
   pre_tasks:
     - set_fact:
         tmp_rule:
@@ -47,7 +47,7 @@
       register: tmp_iptables_rules
 
     - set_fact:
-        iptables_keep_unmanaged: yes
+        iptables_keep_unmanaged: true
         iptables_custom_rules: "{{ tmp_iptables_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
   roles:
     - iptables
@@ -61,12 +61,12 @@
 # ------------------------------------------------
 - name: Configure firewall on Web hosts
   hosts: web
-  become: yes
+  become: true
   vars_files:
     - vars/firewall.yml
   pre_tasks:
     - set_fact:
-        iptables_keep_unmanaged: yes
+        iptables_keep_unmanaged: true
         iptables_custom_rules:
           - name: open_web_http_port
             rules: "-A INPUT -p tcp --dport 80 -j ACCEPT"
@@ -85,12 +85,12 @@
 # ------------------------------------------------
 - name: Configure firewall on Recorder host
   hosts: recorder
-  become: yes
+  become: true
   vars_files:
     - vars/firewall.yml
   pre_tasks:
     - set_fact:
-        iptables_keep_unmanaged: yes
+        iptables_keep_unmanaged: true
         iptables_custom_rules:
           - name: open_rest_api
             rules: '-A INPUT -p tcp --dport {{ miarec_rest_api_port }} -j ACCEPT'
@@ -139,12 +139,12 @@
 # ------------------------------------------------
 - name: Configure firewall on Screen Recorder host
   hosts: screen
-  become: yes
+  become: true
   vars_files:
     - vars/firewall.yml
   pre_tasks:
     - set_fact:
-        iptables_keep_unmanaged: yes
+        iptables_keep_unmanaged: true
         iptables_custom_rules:
 
           - name: open_screen_rest_api
@@ -169,7 +169,7 @@
 # ------------------------------------------------
 - name: Configure firewall on Live Monitoring host
   hosts: livemon
-  become: yes
+  become: true
   vars_files:
     - vars/firewall.yml
   pre_tasks:
@@ -183,7 +183,7 @@
       register: tmp_iptables_rules
 
     - set_fact:
-        iptables_keep_unmanaged: yes
+        iptables_keep_unmanaged: true
         iptables_custom_rules: "{{ tmp_iptables_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
 
   roles:

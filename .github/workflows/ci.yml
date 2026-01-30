@@ -12,33 +12,34 @@ name: Ansible role testing
         - cron: "30 7 1 * *"
 
 jobs:
-    # lint:
-    #     name: lint
-    #     runs-on: ubuntu-latest
+    lint:
+        name: lint
+        runs-on: ubuntu-latest
 
-    #     steps:
-    #         - name: Check out the repository
-    #           uses: actions/checkout@v4
+        steps:
+            - name: Check out the repository
+              uses: actions/checkout@v4
 
-    #         - name: Run ansible-lint
-    #           uses: ansible/ansible-lint-action@v6
+            - name: Set up uv
+              uses: astral-sh/setup-uv@v4
+
+            - name: Install Ansible collections
+              run: uv run ansible-galaxy collection install community.general
+
+            - name: Run ansible-lint
+              run: uv run ansible-lint
 
     test:
         name: molecule
-        runs-on: ubuntu-20.04
+        runs-on: ubuntu-22.04
         strategy:
             fail-fast: false
             matrix:
                 distro:
-                    - ubuntu2004
                     - ubuntu2204
                     - ubuntu2404
-                    - centos7
-                    - rockylinux9
                     - rockylinux8
                     - rhel9
-                    - rhel8
-                    - rhel7
                 # miarecweb_version: ${{ vars.MIARECMEB_VERSION }}
                 # miarec_version: ${{ vars.MIAREC_VERSION }}
                 # miarec_screen_version: ${{ vars.MIAREC_SCREEN_VERSION }}
@@ -69,20 +70,11 @@ jobs:
               with:
                   submodules: recursive
 
-
-            - name: Set up Python3
-              uses: actions/setup-python@v5
-              with:
-                  python-version: '3.x'
-
-            - name: Install test dependencies
-              run: pip3 install -r molecule/default/test-requirements.txt
-
-            - name: Install Ansible dependencies.
-              run: ansible-galaxy collection install community.docker ansible.posix --force
+            - name: Set up uv
+              uses: astral-sh/setup-uv@v4
 
             - name: Run molecule tests
-              run: molecule test
+              run: uv run molecule test
               env:
                   PY_COLORS: '1'
                   ANSIBLE_FORCE_COLOR: '1'
