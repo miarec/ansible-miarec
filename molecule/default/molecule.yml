@@ -4,7 +4,7 @@ dependency:
 driver:
   name: docker
 platforms:
-  - name: ansible-miarec
+  - name: ansible-miarec-${MOLECULE_DISTRO:-ubuntu2404}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - recorder
@@ -33,7 +33,7 @@ provisioner:
     MIAREC_SCREEN_VERSION: ${MOLECULE_MIAREC_SCREEN_VERSION:-"2024.6.2.0"}
     MIAREC_LIVEMON_VERSION: ${MOLECULE_MIAREC_LIVEMON_VERSION:-"0.1.0.183"}
     PYTHON_VERSION: ${MOLECULE_PYTHON_VERSION:-"3.12"}
-    POSTGRESQL_VERSION: ${MOLECULE_POSTGRESQL_VERSION:-"12"}
+    POSTGRESQL_VERSION: ${MOLECULE_POSTGRESQL_VERSION:-"15"}
     PGBOUNCER_INSTALL: ${MOLECULE_PGBOUNCER_INSTALL:-"true"}
 
 verifier:
