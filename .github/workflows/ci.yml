@@ -90,8 +90,8 @@ jobs:
     test_tls:
         name: molecule-tls
         runs-on: ubuntu-22.04
-        needs:
-            - lint
+        # needs:
+        #     - lint
         strategy:
             fail-fast: false
             matrix:
