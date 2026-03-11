@@ -12,24 +12,30 @@
         miarec_screen_version: "{{ lookup('env', 'MIAREC_SCREEN_VERSION') | default('2024.6.2.0', true) }}"
         miarec_livemon_version: "{{ lookup('env', 'MIAREC_LIVEMON_VERSION') | default('0.1.0.183', true) }}"
         postgresql_version: "{{ lookup('env', 'POSTGRESQL_VERSION') | default('15', true) }}"
+         # Use system packages instead of compiling from source
         install_pgbouncer: true
-        python_version: "{{ lookup('env', 'PYTHON_VERSION') | default('3.10', true) }}"
+        python_version: "{{ lookup('env', 'MOLECULE_PYTHON_VERSION') | default('3.10', true) }}"
         redis_install_from_source: false
         python_install_from_source: false
         sox_install_from_source: false
+        # TLS configuration variables
+        # postgresql_tls
         postgresql_tls: true
         postgresql_tls_cert_file: /etc/postgresql/tls/server.crt
         postgresql_tls_key_file: /etc/postgresql/tls/server.key
         postgresql_tls_ca_file: /etc/postgresql/tls/ca.crt
         postgresql_tls_require_clientcert: true
+        # pgbouncer_client_tls
         pgbouncer_client_tls: true
         pgbouncer_client_tls_cert_file: /etc/pgbouncer/tls/server.crt
         pgbouncer_client_tls_key_file: /etc/pgbouncer/tls/server.key
         pgbouncer_client_tls_ca_file: /etc/pgbouncer/tls/ca.crt
+        # pgbouncer_server_tls
         pgbouncer_server_tls: true
         pgbouncer_server_tls_cert_file: /etc/pgbouncer/tls/client.crt
         pgbouncer_server_tls_key_file: /etc/pgbouncer/tls/client.key
         pgbouncer_server_tls_ca_file: /etc/pgbouncer/tls/ca.crt
+        # redis_tls
         redis_tls: true
         redis_tls_cert_file: /etc/redis/tls/server.crt
         redis_tls_key_file: /etc/redis/tls/server.key
