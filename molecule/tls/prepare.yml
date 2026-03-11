@@ -175,6 +175,11 @@
   hosts: web:celery:celerybeat
   become: true
   tasks:
+    - name: Ensure miarec group exists
+      group:
+        name: miarec
+        system: true
+
     - name: Ensure MiaRecWeb base directory exists
       file:
         path: /etc/miarecweb
@@ -220,6 +225,11 @@
   hosts: recorder
   become: true
   tasks:
+    - name: Ensure miarec group exists
+      group:
+        name: miarec
+        system: true
+
     - name: Ensure MiaRec base directory exists
       file:
         path: /etc/miarec
