@@ -1,0 +1,262 @@
+---
+- name: Generate TLS artifacts locally
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Run Makefile TLS target
+      command: make tls-certs-all
+      args:
+        chdir: "{{ playbook_dir }}/../.."
+      environment:
+        CERTS_DIR: "{{ playbook_dir }}/../../certs"
+      run_once: true
+
+- name: Prepare TLS vars file
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Write TLS overrides
+      copy:
+        dest: "{{ playbook_dir }}/../vars_tls.yml"
+        content: |
+          postgresql_tls: true
+          postgresql_tls_cert_file: /etc/postgresql/tls/server.crt
+          postgresql_tls_key_file: /etc/postgresql/tls/server.key
+          postgresql_tls_ca_file: /etc/postgresql/tls/ca.crt
+          postgresql_tls_require_clientcert: true
+          pgbouncer_client_tls: true
+          pgbouncer_client_tls_cert_file: /etc/pgbouncer/tls/server.crt
+          pgbouncer_client_tls_key_file: /etc/pgbouncer/tls/server.key
+          pgbouncer_client_tls_ca_file: /etc/pgbouncer/tls/ca.crt
+          pgbouncer_server_tls: true
+          pgbouncer_server_tls_cert_file: /etc/pgbouncer/tls/client.crt
+          pgbouncer_server_tls_key_file: /etc/pgbouncer/tls/client.key
+          pgbouncer_server_tls_ca_file: /etc/pgbouncer/tls/ca.crt
+          redis_tls: true
+          redis_tls_cert_file: /etc/redis/tls/server.crt
+          redis_tls_key_file: /etc/redis/tls/server.key
+          redis_tls_ca_file: /etc/redis/tls/ca.crt
+          redis_tls_auth_clients: true
+      run_once: true
+
+- name: Distribute PostgreSQL/PGBouncer certificates
+  hosts: db
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Ensure base config directories exist
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop:
+        - /etc/postgresql
+        - /etc/pgbouncer
+
+    - name: Determine PostgreSQL and PGBouncer TLS owners
+      set_fact:
+        _pg_owner: postgres
+        _pgbouncer_owner: "{{ 'pgbouncer' if ansible_os_family == 'RedHat' else 'postgres' }}"
+
+    - name: Ensure postgres group exists
+      group:
+        name: postgres
+        system: true
+
+    - name: Ensure postgres user exists
+      user:
+        name: postgres
+        group: postgres
+        system: true
+
+    - name: Ensure pgbouncer group exists
+      group:
+        name: pgbouncer
+        system: true
+
+    - name: Ensure pgbouncer user exists
+      user:
+        name: "{{ _pgbouncer_owner }}"
+        group: "{{ _pgbouncer_owner }}"
+        system: true
+
+    - name: Ensure service TLS directories exist
+      file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: /etc/postgresql/tls, owner: "{{ _pg_owner }}", group: "{{ _pg_owner }}", mode: "0750" }
+        - { path: /etc/pgbouncer/tls, owner: "{{ _pgbouncer_owner }}", group: "{{ _pgbouncer_owner }}", mode: "0750" }
+      loop_control:
+        label: "{{ item.path }}"
+
+    - name: Copy PostgreSQL certificates
+      copy:
+        src: "{{ playbook_dir }}/../../certs/postgresql/{{ item }}"
+        dest: "/etc/postgresql/tls/{{ item }}"
+        owner: postgres
+        group: postgres
+        mode: "{{ '0600' if item.endswith('.key') else '0644' }}"
+      loop:
+        - server.crt
+        - server.key
+        - ca.crt
+        - client.crt
+        - client.key
+
+    - name: Copy PGBouncer certificates
+      copy:
+        src: "{{ playbook_dir }}/../../certs/pgbouncer/{{ item }}"
+        dest: "/etc/pgbouncer/tls/{{ item }}"
+        owner: "{{ _pgbouncer_owner }}"
+        group: "{{ _pgbouncer_owner }}"
+        mode: "{{ '0600' if item.endswith('.key') else '0644' }}"
+      loop:
+        - server.crt
+        - server.key
+        - client.crt
+        - client.key
+        - ca.crt
+
+- name: Distribute Redis certificates
+  hosts: redis
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Ensure Redis base directory exists
+      file:
+        path: /etc/redis
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Ensure redis group exists
+      group:
+        name: redis
+        system: true
+
+    - name: Ensure redis user exists
+      user:
+        name: redis
+        group: redis
+        system: true
+
+    - name: Ensure Redis TLS directory exists
+      file:
+        path: /etc/redis/tls
+        state: directory
+        owner: redis
+        group: redis
+        mode: "0750"
+
+    - name: Copy Redis certificates
+      copy:
+        src: "{{ playbook_dir }}/../../certs/redis/{{ item }}"
+        dest: "/etc/redis/tls/{{ item }}"
+        owner: redis
+        group: redis
+        mode: "{{ '0600' if item.endswith('.key') else '0644' }}"
+      loop:
+        - server.crt
+        - server.key
+        - ca.crt
+        - client.crt
+        - client.key
+
+- name: Distribute client certificates to MiaRec Web hosts
+  hosts: web:celery:celerybeat
+  become: true
+  tasks:
+    - name: Ensure MiaRecWeb base directory exists
+      file:
+        path: /etc/miarecweb
+        state: directory
+        owner: root
+        group: miarec
+        mode: "0750"
+
+    - name: Ensure MiaRecWeb TLS directory exists
+      file:
+        path: /etc/miarecweb/tls
+        state: directory
+        owner: root
+        group: miarec
+        mode: "0750"
+        recurse: true
+
+    - name: Copy PostgreSQL client certs for MiaRecWeb
+      copy:
+        src: "{{ playbook_dir }}/../../certs/postgresql/{{ item.src }}"
+        dest: "/etc/miarecweb/tls/{{ item.dest }}"
+        owner: root
+        group: miarec
+        mode: "{{ item.mode }}"
+      loop:
+        - { src: client.crt, dest: client.crt, mode: "0640" }
+        - { src: client.key, dest: client.key, mode: "0640" }
+        - { src: ca.crt, dest: ca.crt, mode: "0644" }
+
+    - name: Copy Redis client certs for MiaRecWeb
+      copy:
+        src: "{{ playbook_dir }}/../../certs/redis/{{ item.src }}"
+        dest: "/etc/miarecweb/tls/{{ item.dest }}"
+        owner: root
+        group: miarec
+        mode: "{{ item.mode }}"
+      loop:
+        - { src: client.crt, dest: redis-client.crt, mode: "0640" }
+        - { src: client.key, dest: redis-client.key, mode: "0640" }
+        - { src: ca.crt, dest: redis-ca.crt, mode: "0644" }
+
+- name: Distribute client certificates to MiaRec recorder hosts
+  hosts: recorder
+  become: true
+  tasks:
+    - name: Ensure MiaRec base directory exists
+      file:
+        path: /etc/miarec
+        state: directory
+        owner: root
+        group: miarec
+        mode: "0750"
+
+    - name: Ensure MiaRec TLS directory exists
+      file:
+        path: /etc/miarec/tls
+        state: directory
+        owner: root
+        group: miarec
+        mode: "0750"
+        recurse: true
+
+    - name: Copy PostgreSQL client certs for recorder
+      copy:
+        src: "{{ playbook_dir }}/../../certs/postgresql/{{ item.src }}"
+        dest: "/etc/miarec/tls/{{ item.dest }}"
+        owner: root
+        group: miarec
+        mode: "{{ item.mode }}"
+      loop:
+        - { src: client.crt, dest: client.crt, mode: "0640" }
+        - { src: client.key, dest: client.key, mode: "0640" }
+        - { src: ca.crt, dest: ca.crt, mode: "0644" }
+
+    - name: Copy Redis client certs for recorder
+      copy:
+        src: "{{ playbook_dir }}/../../certs/redis/{{ item.src }}"
+        dest: "/etc/miarec/tls/{{ item.dest }}"
+        owner: root
+        group: miarec
+        mode: "{{ item.mode }}"
+      loop:
+        - { src: client.crt, dest: redis-client.crt, mode: "0640" }
+        - { src: client.key, dest: redis-client.key, mode: "0640" }
+        - { src: ca.crt, dest: redis-ca.crt, mode: "0644" }

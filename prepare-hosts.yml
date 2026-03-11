@@ -26,24 +26,29 @@
       include_vars: vars/custom.yml
       failed_when: false
 
+    - name: Compute PostgreSQL TLS hba parameters
+      set_fact:
+        _postgresql_hba_type: "{{ 'hostssl' if postgresql_tls | bool else 'host' }}"
+        _postgresql_hba_method: "{{ 'md5' if not postgresql_tls | bool else 'md5' + (postgresql_tls_require_clientcert | bool | ternary(' clientcert=verify-ca', '')) }}"
+
     - name: Define connection values
       set_fact:
         postgresql_pg_hba_custom:
           - comment: 'IPv4 local connections:'
             address: '127.0.0.1/32'
-            type: host
+            type: "{{ _postgresql_hba_type }}"
             database: all
             user: "{{ miarec_db_user }}"
-            method: 'md5'
+            method: "{{ _postgresql_hba_method }}"
 
           - comment: 'IPv6 local connections:'
             address: '::1/128'
-            type: host
+            type: "{{ _postgresql_hba_type }}"
             database: all
             user: "{{ miarec_db_user }}"
-            method: 'md5'
+            method: "{{ _postgresql_hba_method }}"
 
-      when: not install_pgbouncer | default(False) | bool
+      when: postgresql_tls | bool
 
     - name: Define connection rule for Recorder and Web servers
       set_fact:
@@ -51,34 +56,42 @@
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
           address: "{{ hostvars[item].private_ip_address }}/32"
           user: "{{ miarec_db_user }}"
-          type: host
+          type: "{{ _postgresql_hba_type }}"
           database: "{{ miarec_db_name }}"
-          method: 'md5'
+          method: "{{ _postgresql_hba_method }}"
       with_items: "{{ groups.recorder + groups.web }}"
-      when: not install_pgbouncer | default(False) | bool and hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
+      when: postgresql_tls | bool and not install_pgbouncer | default(False) | bool and hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
       register: tmp_pg_hba_rules
 
     - name: Print tmp_pg_hba_rules
       debug:
         var: tmp_pg_hba_rules
-      when: not install_pgbouncer | default(False) | bool
+      when: postgresql_tls | bool and not install_pgbouncer | default(False) | bool
 
     - name: Define pg_hba_rules
       set_fact:
         pg_hba_rules: "{{ tmp_pg_hba_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
-      when: not install_pgbouncer | default(False) | bool
+      when: postgresql_tls | bool and not install_pgbouncer | default(False) | bool
 
     - name: Render postgresql_pg_hba_custom
       set_fact:
         postgresql_pg_hba_custom: "{{ postgresql_pg_hba_custom + pg_hba_rules }}"
         # Listen on all interfaces. By default, it listens on localhost only
         postgresql_listen_addresses: "*"
-      when: not install_pgbouncer | default(False) | bool and pg_hba_rules | length > 0
+      when: postgresql_tls | bool and not install_pgbouncer | default(False) | bool and pg_hba_rules | length > 0
 
     - name: Print postgresql_pg_hba_custom
       debug:
         var: postgresql_pg_hba_custom
-      when: not install_pgbouncer | default(False) | bool
+      when: postgresql_tls | bool and not install_pgbouncer | default(False) | bool
+
+    - name: Configure PostgreSQL TLS role variables
+      set_fact:
+        postgresql_ssl: true
+        postgresql_ssl_cert_file: "{{ postgresql_tls_cert_file }}"
+        postgresql_ssl_key_file: "{{ postgresql_tls_key_file }}"
+        postgresql_ssl_ca_file: "{{ postgresql_tls_ca_file }}"
+      when: postgresql_tls | bool
 
   roles:
     - role: 'postgresql'
@@ -100,19 +113,23 @@
       include_vars: vars/custom.yml
       failed_when: false
 
+    - name: Compute PGBouncer TLS hba parameters
+      set_fact:
+        _pgbouncer_hba_type: "{{ 'hostssl' if pgbouncer_client_tls | bool else 'host' }}"
+
     - name: Set pgbouncer_hba_custom
       set_fact:
         pgbouncer_hba_custom:
           - comment: 'IPv4 local connections:'
             address: '127.0.0.1/32'
-            type: host
+            type: "{{ _pgbouncer_hba_type }}"
             database: all
             user: "{{ miarec_db_user }}"
             method: 'md5'
 
           - comment: 'IPv6 local connections:'
             address: '::1/128'
-            type: host
+            type: "{{ _pgbouncer_hba_type }}"
             database: all
             user: "{{ miarec_db_user }}"
             method: 'md5'
@@ -124,7 +141,7 @@
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
           address: "{{ hostvars[item].private_ip_address }}/32"
           user: "{{ miarec_db_user }}"
-          type: host
+          type: "{{ _pgbouncer_hba_type }}"
           database: "{{ miarec_db_name }},pgbouncer"
           method: 'md5'
       with_items: "{{ groups.recorder + groups.web }}"
@@ -171,6 +188,15 @@
     - name: Include custom vars
       include_vars: vars/custom.yml
       failed_when: false
+
+    - name: Configure Redis TLS variables
+      set_fact:
+        redis_make_tls: true
+        redis_tls_cert: "{{ redis_tls_cert_file }}"
+        redis_tls_key: "{{ redis_tls_key_file }}"
+        redis_tls_ca_cert: "{{ redis_tls_ca_file }}"
+        redis_tls_auth_clients: "{{ redis_tls_auth_clients | bool }}"
+      when: redis_tls | bool
 
     - name: Define ip_address recorder and web hosts
       set_fact:

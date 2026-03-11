@@ -1,0 +1,50 @@
+---
+- name: Converge TLS scenario
+  hosts: all
+
+  pre_tasks:
+    - name: Set Install Variables
+      set_fact:
+        private_ip_address: 127.0.0.1
+        miarecweb_secret: "{{ lookup('env', 'MIARECWEB_SECRET') | default('secret', true) }}"
+        miarecweb_version: "{{ lookup('env', 'MIARECWEB_VERSION') | default('2026.1.11.236', true) }}"
+        miarec_version: "{{ lookup('env', 'MIAREC_VERSION') | default('2025.12.2.13', true) }}"
+        miarec_screen_version: "{{ lookup('env', 'MIAREC_SCREEN_VERSION') | default('2024.6.2.0', true) }}"
+        miarec_livemon_version: "{{ lookup('env', 'MIAREC_LIVEMON_VERSION') | default('0.1.0.183', true) }}"
+        postgresql_version: "{{ lookup('env', 'POSTGRESQL_VERSION') | default('15', true) }}"
+        install_pgbouncer: true
+        python_version: "{{ lookup('env', 'PYTHON_VERSION') | default('3.10', true) }}"
+        redis_install_from_source: false
+        python_install_from_source: false
+        sox_install_from_source: false
+        postgresql_tls: true
+        postgresql_tls_cert_file: /etc/postgresql/tls/server.crt
+        postgresql_tls_key_file: /etc/postgresql/tls/server.key
+        postgresql_tls_ca_file: /etc/postgresql/tls/ca.crt
+        postgresql_tls_require_clientcert: true
+        pgbouncer_client_tls: true
+        pgbouncer_client_tls_cert_file: /etc/pgbouncer/tls/server.crt
+        pgbouncer_client_tls_key_file: /etc/pgbouncer/tls/server.key
+        pgbouncer_client_tls_ca_file: /etc/pgbouncer/tls/ca.crt
+        pgbouncer_server_tls: true
+        pgbouncer_server_tls_cert_file: /etc/pgbouncer/tls/client.crt
+        pgbouncer_server_tls_key_file: /etc/pgbouncer/tls/client.key
+        pgbouncer_server_tls_ca_file: /etc/pgbouncer/tls/ca.crt
+        redis_tls: true
+        redis_tls_cert_file: /etc/redis/tls/server.crt
+        redis_tls_key_file: /etc/redis/tls/server.key
+        redis_tls_ca_file: /etc/redis/tls/ca.crt
+        redis_tls_auth_clients: true
+
+    - name: Install pkg_resources dependency
+      become: true
+      apt:
+        name: python3-pkg-resources
+        state: present
+        update_cache: true
+
+- name: Run prepare-hosts playbook
+  import_playbook: ../../prepare-hosts.yml
+
+- name: Run setup-miarec playbook
+  import_playbook: ../../setup-miarec.yml

@@ -21,6 +21,19 @@
         miarecweb_install_apache: "{{ 'web' in group_names }}"
         miarecweb_install_celeryd: "{{ 'celery' in group_names }}"
         miarecweb_install_celerybeat: "{{ 'celerybeat' in group_names }}"
+        miarecweb_celery_user: celery
+        miarec_bin_group: miarec
+        miarecweb_db_tls: "{{ postgresql_tls | default(false) | bool }}"
+        miarecweb_db_tls_sslmode: "{{ 'verify-ca' if postgresql_tls_require_clientcert | default(true) | bool else 'require' }}"
+        miarecweb_db_tls_ca_file: "{{ '/etc/miarecweb/tls/ca.crt' if postgresql_tls | default(false) | bool else '' }}"
+        miarecweb_db_tls_cert_file: "{{ '/etc/miarecweb/tls/client.crt' if postgresql_tls | default(false) | bool else '' }}"
+        miarecweb_db_tls_key_file: "{{ '/etc/miarecweb/tls/client.key' if postgresql_tls | default(false) | bool else '' }}"
+        miarecweb_redis_tls: "{{ redis_tls | default(false) | bool }}"
+        miarecweb_redis_tls_ca_file: "{{ '/etc/miarecweb/tls/redis-ca.crt' if redis_tls | default(false) | bool else '' }}"
+        miarecweb_redis_tls_cert_file: "{{ '/etc/miarecweb/tls/redis-client.crt' if redis_tls | default(false) | bool else '' }}"
+        miarecweb_redis_tls_key_file: "{{ '/etc/miarecweb/tls/redis-client.key' if redis_tls | default(false) | bool else '' }}"
+        miarecweb_redis_tls_cert_reqs: "{{ 'required' if (redis_tls | default(false) | bool) and (redis_tls_auth_clients | default(true) | bool) else 'optional' }}"
+
     - debug: var=miarecweb_db_host
     - debug: var=miarecweb_redis_host
   roles:
@@ -45,6 +58,20 @@
         miarec_redis_host: "{{ hostvars[groups.redis.0].private_ip_address }}"
         miarec_http_call_events_host: "{{ hostvars[groups.web.0].private_ip_address }}"
         miarec_rest_api_permitted_hosts: "{{ groups['web'] | map('extract', hostvars, ['private_ip_address']) | join(';') }}"
+        miarec_bin_group: miarec
+
+    - name: Configure MiaRec Recorder TLS settings
+      set_fact:
+        miarec_db_use_ssl: "{{ postgresql_tls | default(false) | bool }}"
+        miarec_db_tls_ca_file: "{{ '/etc/miarec/tls/ca.crt' if postgresql_tls | default(false) | bool else '' }}"
+        miarec_db_tls_cert_file: "{{ '/etc/miarec/tls/client.crt' if postgresql_tls | default(false) | bool else '' }}"
+        miarec_db_tls_key_file: "{{ '/etc/miarec/tls/client.key' if postgresql_tls | default(false) | bool else '' }}"
+        miarec_db_tls_check_hostname: false
+        miarec_redis_use_ssl: "{{ redis_tls | default(false) | bool }}"
+        miarec_redis_tls_ca_file: "{{ '/etc/miarec/tls/redis-ca.crt' if redis_tls | default(false) | bool else '' }}"
+        miarec_redis_tls_cert_file: "{{ '/etc/miarec/tls/redis-client.crt' if redis_tls | default(false) | bool else '' }}"
+        miarec_redis_tls_key_file: "{{ '/etc/miarec/tls/redis-client.key' if redis_tls | default(false) | bool else '' }}"
+        miarec_redis_tls_check_hostname: false
 
     - debug: var=miarec_db_host
     - debug: var=miarec_redis_host
