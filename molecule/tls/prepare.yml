@@ -1,4 +1,42 @@
 ---
+# Install version-specific Python on RedHat-based systems
+# The python role only installs generic 'python3', but Rocky/RHEL 9 ships
+# with Python 3.9 while we need Python 3.12 for testing.
+- name: Install version-specific Python on RedHat-based systems
+  hosts: all
+  become: true
+  vars:
+    molecule_python_version: "{{ lookup('env', 'MOLECULE_PYTHON_VERSION') | default('', true) }}"
+
+  tasks:
+    # Only run on RedHat-based systems where we need version-specific Python
+    - name: Install version-specific Python | RedHat
+      when: ansible_facts['os_family'] == "RedHat"
+      block:
+
+        - name: Set python_version when not already set | Rocky/RHEL only
+          set_fact:
+            python_version: "{{ molecule_python_version | default('3.12', true) }}"
+
+        - name: Python | Parse version
+          set_fact:
+            _python_major_minor: "{{ '.'.join(python_version.split('.')[:2]) }}"
+
+        - name: Python | Install EPEL repository
+          yum:
+            name: epel-release
+            state: present
+          when: ansible_facts['distribution'] != "RedHat"
+
+        - name: Python | Install Python{{ _python_major_minor }} packages
+          package:
+            name:
+              - "python{{ _python_major_minor }}"
+              - "python{{ _python_major_minor }}-devel"
+              - "python{{ _python_major_minor }}-pip"
+            state: present
+
+
 - name: Generate TLS artifacts locally
   hosts: localhost
   connection: local
@@ -270,3 +308,6 @@
         - { src: client.crt, dest: redis-client.crt, mode: "0640" }
         - { src: client.key, dest: redis-client.key, mode: "0640" }
         - { src: ca.crt, dest: redis-ca.crt, mode: "0644" }
+
+
+

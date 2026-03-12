@@ -47,13 +47,6 @@
       set_fact:
         python_version: "{{ molecule_python_version }}"
 
-    - name: Set python_version default for Debian hosts
-      when:
-        - ansible_facts['os_family'] == "Debian"
-        - molecule_python_version | length == 0
-      set_fact:
-        python_version: "3.10"
-
     - name: Set python_version default for Rocky/RHEL hosts
       when:
         - ansible_facts['os_family'] == "RedHat"
@@ -61,12 +54,6 @@
       set_fact:
         python_version: "3.12"
 
-    - name: Install pkg_resources dependency
-      become: true
-      apt:
-        name: python3-pkg-resources
-        state: present
-        update_cache: true
 
 - name: Run prepare-hosts playbook
   import_playbook: ../../prepare-hosts.yml
