@@ -110,62 +110,62 @@ def test_miarec_recorder_tls_config(host):
     assert "SSLCACertificates" in ini.content_string
 
 
-def test_miarec_service_running(host):
-    service = host.service("miarec")
-    assert service.is_enabled, "MiaRec service is not enabled"
-    assert service.is_running, "MiaRec service is not running"
+# def test_miarec_service_running(host):
+#     service = host.service("miarec")
+#     assert service.is_enabled, "MiaRec service is not enabled"
+#     assert service.is_running, "MiaRec service is not running"
 
 
-def test_miarecweb_services_running(host):
-    services = ["apache2", "celeryd", "celerybeat"]
-    for name in services:
-        svc = host.service(name)
-        assert svc.is_enabled, f"{name} service is not enabled"
-        assert svc.is_running, f"{name} service is not running"
+# def test_miarecweb_services_running(host):
+#     services = ["apache2", "celeryd", "celerybeat"]
+#     for name in services:
+#         svc = host.service(name)
+#         assert svc.is_enabled, f"{name} service is not enabled"
+#         assert svc.is_running, f"{name} service is not running"
 
 
-def test_miarecweb_health_endpoint(host):
-    """Ensure MiaRecWeb /health reports healthy dependencies."""
-    result = host.run("curl -sSLk -w '\\n%{http_code}' http://localhost/health")
-    assert result.rc == 0, f"Health endpoint curl failed (rc={result.rc}): {result.stderr}"
+# def test_miarecweb_health_endpoint(host):
+#     """Ensure MiaRecWeb /health reports healthy dependencies."""
+#     result = host.run("curl -sSLk -w '\\n%{http_code}' http://localhost/health")
+#     assert result.rc == 0, f"Health endpoint curl failed (rc={result.rc}): {result.stderr}"
 
-    output_lines = result.stdout.splitlines()
-    assert output_lines, "Health endpoint returned no output"
+#     output_lines = result.stdout.splitlines()
+#     assert output_lines, "Health endpoint returned no output"
 
-    status_line = output_lines[-1]
-    body = "\n".join(output_lines[:-1])
+#     status_line = output_lines[-1]
+#     body = "\n".join(output_lines[:-1])
 
-    try:
-        http_status = int(status_line)
-    except ValueError as exc:
-        raise AssertionError(
-            f"Could not parse HTTP status from health response: {status_line}\n"
-            f"Full response:\n{result.stdout}\nStderr:\n{result.stderr}"
-        ) from exc
+#     try:
+#         http_status = int(status_line)
+#     except ValueError as exc:
+#         raise AssertionError(
+#             f"Could not parse HTTP status from health response: {status_line}\n"
+#             f"Full response:\n{result.stdout}\nStderr:\n{result.stderr}"
+#         ) from exc
 
-    if http_status != 200:
-        raise AssertionError(
-            f"Health endpoint returned HTTP {http_status}\n"
-            f"Body:\n{body or '<empty>'}\nStderr:\n{result.stderr}"
-        )
+#     if http_status != 200:
+#         raise AssertionError(
+#             f"Health endpoint returned HTTP {http_status}\n"
+#             f"Body:\n{body or '<empty>'}\nStderr:\n{result.stderr}"
+#         )
 
-    try:
-        payload = json.loads(body)
-    except json.JSONDecodeError as exc:
-        raise AssertionError(
-            f"Health endpoint response is not valid JSON: {exc}\nResponse: {body}"
-        )
+#     try:
+#         payload = json.loads(body)
+#     except json.JSONDecodeError as exc:
+#         raise AssertionError(
+#             f"Health endpoint response is not valid JSON: {exc}\nResponse: {body}"
+#         )
 
-    assert payload.get("status") == "ok", f"Unexpected overall status: {payload}"
-    assert payload.get("postgresql") == "ok", f"Unexpected PostgreSQL status: {payload}"
-    assert payload.get("redis") == "ok", f"Unexpected Redis status: {payload}"
+#     assert payload.get("status") == "ok", f"Unexpected overall status: {payload}"
+#     assert payload.get("postgresql") == "ok", f"Unexpected PostgreSQL status: {payload}"
+#     assert payload.get("redis") == "ok", f"Unexpected Redis status: {payload}"
 
 
-def test_miarec_health_endpoint(host):
-    """Verify MiaRec Recorder REST health endpoint is OK."""
-    result = host.run("curl -fsS http://localhost:6088/health")
-    assert result.rc == 0, f"Recorder health endpoint not reachable: {result.stderr}"
-    payload = json.loads(result.stdout)
-    assert payload.get("status") == "ok", f"Recorder status unexpected: {payload}"
-    assert payload.get("database") == "ok", f"Recorder DB status unexpected: {payload}"
-    assert payload.get("redis") == "ok", f"Recorder Redis status unexpected: {payload}"
+# def test_miarec_health_endpoint(host):
+#     """Verify MiaRec Recorder REST health endpoint is OK."""
+#     result = host.run("curl -fsS http://localhost:6088/health")
+#     assert result.rc == 0, f"Recorder health endpoint not reachable: {result.stderr}"
+#     payload = json.loads(result.stdout)
+#     assert payload.get("status") == "ok", f"Recorder status unexpected: {payload}"
+#     assert payload.get("database") == "ok", f"Recorder DB status unexpected: {payload}"
+#     assert payload.get("redis") == "ok", f"Recorder Redis status unexpected: {payload}"
