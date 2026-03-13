@@ -50,34 +50,6 @@
         CERTS_DIR: "{{ playbook_dir }}/../../certs"
       run_once: true
 
-- name: Prepare TLS vars file
-  hosts: localhost
-  connection: local
-  gather_facts: false
-  tasks:
-    - name: Write TLS overrides
-      copy:
-        dest: "{{ playbook_dir }}/../vars_tls.yml"
-        content: |
-          postgresql_tls: true
-          postgresql_tls_cert_file: /etc/postgresql/tls/server.crt
-          postgresql_tls_key_file: /etc/postgresql/tls/server.key
-          postgresql_tls_ca_file: /etc/postgresql/tls/ca.crt
-          postgresql_tls_require_clientcert: true
-          pgbouncer_client_tls: true
-          pgbouncer_client_tls_cert_file: /etc/pgbouncer/tls/server.crt
-          pgbouncer_client_tls_key_file: /etc/pgbouncer/tls/server.key
-          pgbouncer_client_tls_ca_file: /etc/pgbouncer/tls/ca.crt
-          pgbouncer_server_tls: true
-          pgbouncer_server_tls_cert_file: /etc/pgbouncer/tls/client.crt
-          pgbouncer_server_tls_key_file: /etc/pgbouncer/tls/client.key
-          pgbouncer_server_tls_ca_file: /etc/pgbouncer/tls/ca.crt
-          redis_tls: true
-          redis_tls_cert_file: /etc/redis/tls/server.crt
-          redis_tls_key_file: /etc/redis/tls/server.key
-          redis_tls_ca_file: /etc/redis/tls/ca.crt
-          redis_tls_auth_clients: true
-      run_once: true
 
 - name: Distribute PostgreSQL/PGBouncer certificates
   hosts: db
