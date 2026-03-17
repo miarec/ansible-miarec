@@ -4,6 +4,8 @@ import testinfra.utils.ansible_runner
 testinfra_hosts = testinfra.utils.ansible_runner.AnsibleRunner(
     os.environ['MOLECULE_INVENTORY_FILE']).get_hosts('all')
 
+postgresql_version = os.environ.get('POSTGRESQL_VERSION')
+
 
 def test_pgbouncer_service_running(host):
     """Verify PGBouncer service is enabled and running."""
@@ -14,7 +16,11 @@ def test_pgbouncer_service_running(host):
 
 def test_postgresql_service_running(host):
     """Verify PostgreSQL service is enabled and running."""
-    s = host.service("postgresql")
+    if host.system_info.distribution == "ubuntu":
+        service_name = "postgresql"
+    else:
+        service_name = f"postgresql-{postgresql_version}"
+    s = host.service(service_name)
     assert s.is_enabled
     assert s.is_running
 
