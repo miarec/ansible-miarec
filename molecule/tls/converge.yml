@@ -25,7 +25,7 @@
         postgresql_ssl_cert_file: /etc/postgresql/tls/server.crt
         postgresql_ssl_key_file: /etc/postgresql/tls/server.key
         postgresql_ssl_ca_file: /etc/tls/ca/ca.crt
-        postgresql_ssl_require_clientcert: false
+        # postgresql_ssl_require_clientcert: false
         # pgbouncer_client_tls
         # TLS for client connections to pgbouncer
         pgbouncer_client_tls: true
@@ -36,10 +36,10 @@
         # pgbouncer_server_tls
         # TLS for pgbouncer connections to PostgreSQL
         pgbouncer_server_tls: true
-        pgbouncer_server_tls_sslmode: verify-ca
+        pgbouncer_server_tls_sslmode: require
         pgbouncer_server_tls_cert_file: /etc/pgbouncer/tls/client.crt
         pgbouncer_server_tls_key_file: /etc/pgbouncer/tls/client.key
-        pgbouncer_server_tls_ca_file: /etc/tls/ca/ca.crt
+        pgbouncer_server_tls_ca_file: /etc/pgbouncer/tls/ca.crt
         # redis_tls
         redis_tls: true
         redis_tls_cert: /etc/redis/tls/server.crt

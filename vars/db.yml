@@ -70,7 +70,7 @@ postgresql_ssl: false
 postgresql_ssl_cert_file: /etc/postgresql/tls/server.crt
 postgresql_ssl_key_file: /etc/postgresql/tls/server.key
 postgresql_ssl_ca_file: /etc/postgresql/tls/ca.crt
-postgresql_ssl_require_clientcert: true
+postgresql_ssl_require_clientcert: false
 postgresql_tls_extra_hba_users: []
 postgresql_tls_hba_users_default:
   - "{{ postgresql_admin_user }}"
@@ -84,7 +84,7 @@ pgbouncer_client_tls_key_file: /etc/pgbouncer/tls/server.key
 pgbouncer_client_tls_ca_file: /etc/pgbouncer/tls/ca.crt
 
 pgbouncer_server_tls: false
-pgbouncer_server_tls_sslmode: verify-ca
+pgbouncer_server_tls_sslmode: require
 pgbouncer_server_tls_cert_file: /etc/pgbouncer/tls/client.crt
 pgbouncer_server_tls_key_file: /etc/pgbouncer/tls/client.key
 pgbouncer_server_tls_ca_file: /etc/pgbouncer/tls/ca.crt

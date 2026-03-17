@@ -19,7 +19,7 @@ def test_postgresql_service_running(host):
 
 def test_postgresql_port_listening(host):
     """Verify PostgreSQL is listening on port 5432."""
-    s = host.socket("tcp://127.0.0.1:5432")   # This is not 0.0.0.0 because of pbbouncer
+    s = host.socket("tcp://127.0.0.1:5432")
     assert s.is_listening
 
 

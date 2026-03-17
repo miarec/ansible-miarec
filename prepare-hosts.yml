@@ -39,6 +39,14 @@
       when: postgresql_ssl | bool
 
     - name: Define connection values
+      vars:
+        _user_method: >-
+          {{
+            (
+              item == (postgresql_admin_user | default('postgres'))
+            )
+            | ternary('trust', _postgresql_hba_method)
+          }}
       set_fact:
         postgresql_pg_hba_custom: "{{ postgresql_pg_hba_custom + [
           {
@@ -47,7 +55,7 @@
             'type': _postgresql_hba_type,
             'database': 'all',
             'user': item,
-            'method': _postgresql_hba_method
+            'method': _user_method
           },
           {
             'comment': 'IPv6 TLS local connections for ' ~ item ~ ':',
@@ -55,7 +63,7 @@
             'type': _postgresql_hba_type,
             'database': 'all',
             'user': item,
-            'method': _postgresql_hba_method
+            'method': _user_method
           }
         ] }}"
       loop: "{{ _postgresql_tls_hba_users }}"
