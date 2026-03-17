@@ -14,9 +14,9 @@ When variables are not defined for the location of the Certificates, A `MakeFile
 Molecule scenarios should be created to test this installation method as well and added to the CI/CD flow.
 
 ## TLS Certificate Helper (Makefile)
-- Run `make tls-certs-all` from the repo root to generate self-signed CA/server/client bundles for PostgreSQL, PGBouncer, and Redis. Artifacts are written to `certs/<service>/`.
-- Generated files mirror the expectations from the roles (e.g., `/etc/postgresql/tls/server.crt`), so operators can copy them directly into place or reference them from Molecule scenarios.
-- Individual targets exist (`tls-certs-postgresql`, `tls-certs-pgbouncer`, `tls-certs-redis`) plus `tls-certs-clean` to remove the `certs/` directory.
+- Run `make tls-certs-all` from the repo root to generate self-signed CA/server/client bundles for PostgreSQL, PGBouncer, Redis, MiaRec, and MiaRec web. Artifacts are written to `certs/<service>/`.
+- Generated files mirror the expectations from the roles (e.g., `/etc/postgresql/tls/server.crt` or `/etc/miarec/tls/client.crt`), so operators can copy them directly into place or reference them from Molecule scenarios.
+- Individual targets exist (`tls-certs-postgresql`, `tls-certs-pgbouncer`, `tls-certs-redis`, `tls-certs-miarec`, `tls-certs-miarecweb`) plus `tls-certs-clean` to remove the `certs/` directory.
 - Certificates are intended for development/testing/CI only; production deployments should still provide PKI-issued assets.
 
 

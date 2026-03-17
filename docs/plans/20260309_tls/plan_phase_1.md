@@ -16,7 +16,8 @@ Introduce the per-service TLS configuration surface and Makefile-based certifica
   - `tls-certs-postgresql` (generate CA/server/client certs under `certs/postgresql/`)
   - `tls-certs-pgbouncer` (reuse PostgreSQL CA, emit server/client certs under `certs/pgbouncer/`)
   - `tls-certs-redis` (dedicated CA/server/client under `certs/redis/` with SANs for localhost + 127.0.0.1)
-  - `tls-certs-all` (depends on the three targets)
+  - `tls-certs-miarec` and `tls-certs-miarecweb` (client and Redis client bundles matching recorder/web expectations)
+  - `tls-certs-all` (depends on every per-service target)
   - Optional `tls-certs-clean` to remove generated artifacts
 - [x] **Document instructions** (e.g., `docs/prs/20260309_tls/idea.md` or README snippet) explaining how to run the Makefile targets and where to copy resulting files on hosts.
 
@@ -40,6 +41,6 @@ Completed on 2024-06-XX; TLS vars landed in inventory defaults, Makefile committ
 - ✅ `uv run ansible-lint` (CI `lint` job).
 
 ## Verification Steps
-- Run `make tls-certs-all`; inspect `certs/postgresql`, `certs/pgbouncer`, `certs/redis`.
+- Run `make tls-certs-all`; inspect `certs/postgresql`, `certs/pgbouncer`, `certs/redis`, `certs/miarec`, and `certs/miarecweb`.
 - Execute `find certs -type f -ls` (or similar) to confirm permissions.
 - Run `uv run ansible-lint`.

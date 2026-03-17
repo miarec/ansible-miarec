@@ -12,12 +12,13 @@ OPENSSL ?= openssl
 TLS_DAYS ?= 365
 SERIAL_OPT := -CAserial $(CA_SERIAL)
 
-.PHONY: help tls-certs-all tls-certs-root tls-certs-postgresql tls-certs-pgbouncer tls-certs-redis tls-certs-clean
+.PHONY: help tls-certs-all tls-certs-root tls-certs-postgresql tls-certs-pgbouncer \
+	tls-certs-redis tls-certs-miarec tls-certs-miarecweb tls-certs-clean
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z0-9_\-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-24s\033[0m %s\n", $$1, $$2}'
 
-tls-certs-all: tls-certs-postgresql tls-certs-pgbouncer tls-certs-redis ## Generate TLS bundles for all services
+tls-certs-all: tls-certs-postgresql tls-certs-pgbouncer tls-certs-redis tls-certs-miarec tls-certs-miarecweb ## Generate TLS bundles for all services
 	@echo "All TLS certificate bundles are ready under $(CERTS_DIR)/"
 
 tls-certs-root: ## Generate (or reuse) root CA shared by service certs
@@ -172,6 +173,148 @@ tls-certs-redis: tls-certs-root ## Generate Redis server/client TLS bundle
 		chmod 644 $(CERTS_DIR)/redis/client.crt; \
 	else \
 		echo "   $(CERTS_DIR)/redis/client.crt already exists"; \
+	fi
+
+tls-certs-miarec: tls-certs-root ## Generate MiaRec client/server TLS bundle
+	@echo ">> Generating MiaRec certificates"
+	@mkdir -p $(CERTS_DIR)/miarec
+	@install -m 0644 $(CA_CERT) $(CERTS_DIR)/miarec/ca.crt
+	@if [ ! -f $(CERTS_DIR)/miarec/redis-ca.crt ]; then \
+		install -m 0644 $(CA_CERT) $(CERTS_DIR)/miarec/redis-ca.crt; \
+	else \
+		echo "   $(CERTS_DIR)/miarec/redis-ca.crt already exists"; \
+	fi
+	@if [ ! -f $(CERTS_DIR)/miarec/server.key ]; then \
+		$(OPENSSL) genrsa -out $(CERTS_DIR)/miarec/server.key 2048; \
+		chmod 600 $(CERTS_DIR)/miarec/server.key; \
+	else \
+		echo "   $(CERTS_DIR)/miarec/server.key already exists"; \
+	fi
+	@if [ ! -f $(CERTS_DIR)/miarec/server.crt ]; then \
+		$(OPENSSL) req -new -key $(CERTS_DIR)/miarec/server.key \
+			-out $(CERTS_DIR)/miarec/server.csr \
+			-subj "/CN=miarec-server" \
+			-addext "subjectAltName = DNS:localhost,IP:127.0.0.1" \
+			-addext "extendedKeyUsage = serverAuth"; \
+		$(OPENSSL) x509 -req -in $(CERTS_DIR)/miarec/server.csr \
+			-CA $(CA_CERT) -CAkey $(CA_KEY) $(SERIAL_OPT) \
+			-out $(CERTS_DIR)/miarec/server.crt \
+			-days $(TLS_DAYS) -sha256; \
+		rm -f $(CERTS_DIR)/miarec/server.csr; \
+		chmod 644 $(CERTS_DIR)/miarec/server.crt; \
+	else \
+		echo "   $(CERTS_DIR)/miarec/server.crt already exists"; \
+	fi
+	@if [ ! -f $(CERTS_DIR)/miarec/client.key ]; then \
+		$(OPENSSL) genrsa -out $(CERTS_DIR)/miarec/client.key 2048; \
+		chmod 600 $(CERTS_DIR)/miarec/client.key; \
+	else \
+		echo "   $(CERTS_DIR)/miarec/client.key already exists"; \
+	fi
+	@if [ ! -f $(CERTS_DIR)/miarec/client.crt ]; then \
+		$(OPENSSL) req -new -key $(CERTS_DIR)/miarec/client.key \
+			-out $(CERTS_DIR)/miarec/client.csr \
+			-subj "/CN=miarec-client" \
+			-addext "extendedKeyUsage = clientAuth"; \
+		$(OPENSSL) x509 -req -in $(CERTS_DIR)/miarec/client.csr \
+			-CA $(CA_CERT) -CAkey $(CA_KEY) $(SERIAL_OPT) \
+			-out $(CERTS_DIR)/miarec/client.crt \
+			-days $(TLS_DAYS) -sha256; \
+		rm -f $(CERTS_DIR)/miarec/client.csr; \
+		chmod 644 $(CERTS_DIR)/miarec/client.crt; \
+	else \
+		echo "   $(CERTS_DIR)/miarec/client.crt already exists"; \
+	fi
+	@if [ ! -f $(CERTS_DIR)/miarec/redis-client.key ]; then \
+		$(OPENSSL) genrsa -out $(CERTS_DIR)/miarec/redis-client.key 2048; \
+		chmod 600 $(CERTS_DIR)/miarec/redis-client.key; \
+	else \
+		echo "   $(CERTS_DIR)/miarec/redis-client.key already exists"; \
+	fi
+	@if [ ! -f $(CERTS_DIR)/miarec/redis-client.crt ]; then \
+		$(OPENSSL) req -new -key $(CERTS_DIR)/miarec/redis-client.key \
+			-out $(CERTS_DIR)/miarec/redis-client.csr \
+			-subj "/CN=miarec-redis-client" \
+			-addext "extendedKeyUsage = clientAuth"; \
+		$(OPENSSL) x509 -req -in $(CERTS_DIR)/miarec/redis-client.csr \
+			-CA $(CA_CERT) -CAkey $(CA_KEY) $(SERIAL_OPT) \
+			-out $(CERTS_DIR)/miarec/redis-client.crt \
+			-days $(TLS_DAYS) -sha256; \
+		rm -f $(CERTS_DIR)/miarec/redis-client.csr; \
+		chmod 644 $(CERTS_DIR)/miarec/redis-client.crt; \
+	else \
+		echo "   $(CERTS_DIR)/miarec/redis-client.crt already exists"; \
+	fi
+
+tls-certs-miarecweb: tls-certs-root ## Generate MiaRec web client/server TLS bundle
+	@echo ">> Generating MiaRec Web certificates"
+	@mkdir -p $(CERTS_DIR)/miarecweb
+	@install -m 0644 $(CA_CERT) $(CERTS_DIR)/miarecweb/ca.crt
+	@if [ ! -f $(CERTS_DIR)/miarecweb/redis-ca.crt ]; then \
+		install -m 0644 $(CA_CERT) $(CERTS_DIR)/miarecweb/redis-ca.crt; \
+	else \
+		echo "   $(CERTS_DIR)/miarecweb/redis-ca.crt already exists"; \
+	fi
+	@if [ ! -f $(CERTS_DIR)/miarecweb/server.key ]; then \
+		$(OPENSSL) genrsa -out $(CERTS_DIR)/miarecweb/server.key 2048; \
+		chmod 600 $(CERTS_DIR)/miarecweb/server.key; \
+	else \
+		echo "   $(CERTS_DIR)/miarecweb/server.key already exists"; \
+	fi
+	@if [ ! -f $(CERTS_DIR)/miarecweb/server.crt ]; then \
+		$(OPENSSL) req -new -key $(CERTS_DIR)/miarecweb/server.key \
+			-out $(CERTS_DIR)/miarecweb/server.csr \
+			-subj "/CN=miarecweb-server" \
+			-addext "subjectAltName = DNS:localhost,IP:127.0.0.1" \
+			-addext "extendedKeyUsage = serverAuth"; \
+		$(OPENSSL) x509 -req -in $(CERTS_DIR)/miarecweb/server.csr \
+			-CA $(CA_CERT) -CAkey $(CA_KEY) $(SERIAL_OPT) \
+			-out $(CERTS_DIR)/miarecweb/server.crt \
+			-days $(TLS_DAYS) -sha256; \
+		rm -f $(CERTS_DIR)/miarecweb/server.csr; \
+		chmod 644 $(CERTS_DIR)/miarecweb/server.crt; \
+	else \
+		echo "   $(CERTS_DIR)/miarecweb/server.crt already exists"; \
+	fi
+	@if [ ! -f $(CERTS_DIR)/miarecweb/client.key ]; then \
+		$(OPENSSL) genrsa -out $(CERTS_DIR)/miarecweb/client.key 2048; \
+		chmod 600 $(CERTS_DIR)/miarecweb/client.key; \
+	else \
+		echo "   $(CERTS_DIR)/miarecweb/client.key already exists"; \
+	fi
+	@if [ ! -f $(CERTS_DIR)/miarecweb/client.crt ]; then \
+		$(OPENSSL) req -new -key $(CERTS_DIR)/miarecweb/client.key \
+			-out $(CERTS_DIR)/miarecweb/client.csr \
+			-subj "/CN=miarecweb-client" \
+			-addext "extendedKeyUsage = clientAuth"; \
+		$(OPENSSL) x509 -req -in $(CERTS_DIR)/miarecweb/client.csr \
+			-CA $(CA_CERT) -CAkey $(CA_KEY) $(SERIAL_OPT) \
+			-out $(CERTS_DIR)/miarecweb/client.crt \
+			-days $(TLS_DAYS) -sha256; \
+		rm -f $(CERTS_DIR)/miarecweb/client.csr; \
+		chmod 644 $(CERTS_DIR)/miarecweb/client.crt; \
+	else \
+		echo "   $(CERTS_DIR)/miarecweb/client.crt already exists"; \
+	fi
+	@if [ ! -f $(CERTS_DIR)/miarecweb/redis-client.key ]; then \
+		$(OPENSSL) genrsa -out $(CERTS_DIR)/miarecweb/redis-client.key 2048; \
+		chmod 600 $(CERTS_DIR)/miarecweb/redis-client.key; \
+	else \
+		echo "   $(CERTS_DIR)/miarecweb/redis-client.key already exists"; \
+	fi
+	@if [ ! -f $(CERTS_DIR)/miarecweb/redis-client.crt ]; then \
+		$(OPENSSL) req -new -key $(CERTS_DIR)/miarecweb/redis-client.key \
+			-out $(CERTS_DIR)/miarecweb/redis-client.csr \
+			-subj "/CN=miarecweb-redis-client" \
+			-addext "extendedKeyUsage = clientAuth"; \
+		$(OPENSSL) x509 -req -in $(CERTS_DIR)/miarecweb/redis-client.csr \
+			-CA $(CA_CERT) -CAkey $(CA_KEY) $(SERIAL_OPT) \
+			-out $(CERTS_DIR)/miarecweb/redis-client.crt \
+			-days $(TLS_DAYS) -sha256; \
+		rm -f $(CERTS_DIR)/miarecweb/redis-client.csr; \
+		chmod 644 $(CERTS_DIR)/miarecweb/redis-client.crt; \
+	else \
+		echo "   $(CERTS_DIR)/miarecweb/redis-client.crt already exists"; \
 	fi
 
 tls-certs-clean: ## Remove generated certificate artifacts
