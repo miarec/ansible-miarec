@@ -37,7 +37,7 @@ Deliverables span three phases. Phase 1 introduces the configuration contract (n
 - Molecule `tls` scenario imports root playbooks with TLS toggles enabled; Testinfra verifies TLS functionality.
 
 ### 1.3 Data Model & Types (Signatures, not full code)
-- YAML booleans: `postgresql_tls`, `pgbouncer_client_tls`, `pgbouncer_server_tls`, `redis_tls`, `miarec_db_tls`, `miarec_redis_tls`.
+- YAML booleans: `postgresql_ssl`, `pgbouncer_client_tls`, `pgbouncer_server_tls`, `redis_tls`, `miarec_db_tls`, `miarec_redis_tls`.
 - File path strings: `*_tls_cert_file`, `*_tls_key_file`, `*_tls_ca_file`.
 - Recorder INI entries: `sslmode`, `sslrootcert`, `sslcert`, `sslkey` fields appended when TLS on.
 - Makefile targets: standard GNU Make syntax, using shell commands to run `openssl`.
@@ -56,11 +56,11 @@ Deliverables span three phases. Phase 1 introduces the configuration contract (n
 ### 1.5 Interfaces & Contracts
 - **Ansible vars**: Document exact YAML usage, e.g.:
   ```yaml
-  postgresql_tls: true
-  postgresql_tls_cert_file: /etc/postgresql/tls/server.crt
-  postgresql_tls_key_file: /etc/postgresql/tls/server.key
-  postgresql_tls_ca_file: /etc/postgresql/tls/ca.crt
-  postgresql_tls_require_clientcert: true
+  postgresql_ssl: true
+  postgresql_ssl_cert_file: /etc/postgresql/tls/server.crt
+  postgresql_ssl_key_file: /etc/postgresql/tls/server.key
+  postgresql_ssl_ca_file: /etc/postgresql/tls/ca.crt
+  postgresql_ssl_require_clientcert: true
   ```
 - **Makefile**:
   ```make
@@ -75,15 +75,15 @@ Deliverables span three phases. Phase 1 introduces the configuration contract (n
 ### 1.6 Key Algorithms (Pseudo-code)
 ```
 # prepare-hosts.yml (PostgreSQL excerpt)
-when: postgresql_tls | bool
+when: postgresql_ssl | bool
   set_fact:
     postgresql_ssl: true
-    postgresql_ssl_cert_file: "{{ postgresql_tls_cert_file }}"
-    postgresql_ssl_key_file: "{{ postgresql_tls_key_file }}"
-    postgresql_ssl_ca_file: "{{ postgresql_tls_ca_file }}"
+    postgresql_ssl_cert_file: "{{ postgresql_ssl_cert_file }}"
+    postgresql_ssl_key_file: "{{ postgresql_ssl_key_file }}"
+    postgresql_ssl_ca_file: "{{ postgresql_ssl_ca_file }}"
     postgresql_pg_hba_custom: existing_rules + [
       { type: 'hostssl', database: miarec_db_name, user: miarec_db_user,
-        address: item_ip, method: 'md5 clientcert={{ postgresql_tls_require_clientcert | ternary(\"verify-ca\", \"\") }}' }
+        address: item_ip, method: 'md5 clientcert={{ postgresql_ssl_require_clientcert | ternary(\"verify-ca\", \"\") }}' }
     ]
 ```
 ```
@@ -98,11 +98,11 @@ certs/redis/server.crt: certs/redis/ca.crt
 ```
 # setup-miarec.yml (recorder facts)
 set_fact:
-  miarec_db_tls: "{{ postgresql_tls | default(false) }}"
-  miarec_db_tls_sslmode: "{{ postgresql_tls_sslmode | default('verify-ca') }}"
-  miarec_db_tls_ca_file: "{{ postgresql_tls_ca_file }}"
-  miarec_db_tls_cert_file: "{{ postgresql_tls_cert_file }}"
-  miarec_db_tls_key_file: "{{ postgresql_tls_key_file }}"
+  miarec_db_tls: "{{ postgresql_ssl | default(false) }}"
+  miarec_db_tls_sslmode: "{{ postgresql_ssl_sslmode | default('verify-ca') }}"
+  miarec_db_tls_ca_file: "{{ postgresql_ssl_ca_file }}"
+  miarec_db_tls_cert_file: "{{ postgresql_ssl_cert_file }}"
+  miarec_db_tls_key_file: "{{ postgresql_ssl_key_file }}"
 when: inventory_hostname in groups.recorder
 ```
 

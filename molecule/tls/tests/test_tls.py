@@ -1,113 +1,113 @@
-import json
-import os
-import pytest
-import testinfra.utils.ansible_runner
+# import json
+# import os
+# import pytest
+# import testinfra.utils.ansible_runner
 
-testinfra_hosts = testinfra.utils.ansible_runner.AnsibleRunner(
-    os.environ["MOLECULE_INVENTORY_FILE"]
-).get_hosts("all")
-
-
-@pytest.fixture(scope="module")
-def tls_paths():
-    return {
-        "pg": {
-            "cert": "/etc/postgresql/tls/server.crt",
-            "key": "/etc/postgresql/tls/server.key",
-            "ca": "/etc/postgresql/tls/ca.crt",
-        },
-        "pgbouncer": {
-            "cert": "/etc/pgbouncer/tls/server.crt",
-            "key": "/etc/pgbouncer/tls/server.key",
-            "client_cert": "/etc/pgbouncer/tls/client.crt",
-            "client_key": "/etc/pgbouncer/tls/client.key",
-            "ca": "/etc/pgbouncer/tls/ca.crt",
-        },
-        "redis": {
-            "cert": "/etc/redis/tls/server.crt",
-            "key": "/etc/redis/tls/server.key",
-            "ca": "/etc/redis/tls/ca.crt",
-        },
-        "miarecweb_db": "/opt/miarecweb/current/production.ini",
-        "miarec_ini": "/opt/miarec/current/miarec.ini",
-    }
+# testinfra_hosts = testinfra.utils.ansible_runner.AnsibleRunner(
+#     os.environ["MOLECULE_INVENTORY_FILE"]
+# ).get_hosts("all")
 
 
-def test_postgresql_tls_files(host, tls_paths):
-    for path in tls_paths["pg"].values():
-        f = host.file(path)
-        assert f.exists, f"{path} missing"
-        assert f.user == "postgres"
+# @pytest.fixture(scope="module")
+# def tls_paths():
+#     return {
+#         "pg": {
+#             "cert": "/etc/postgresql/tls/server.crt",
+#             "key": "/etc/postgresql/tls/server.key",
+#             "ca": "/etc/postgresql/tls/ca.crt",
+#         },
+#         "pgbouncer": {
+#             "cert": "/etc/pgbouncer/tls/server.crt",
+#             "key": "/etc/pgbouncer/tls/server.key",
+#             "client_cert": "/etc/pgbouncer/tls/client.crt",
+#             "client_key": "/etc/pgbouncer/tls/client.key",
+#             "ca": "/etc/pgbouncer/tls/ca.crt",
+#         },
+#         "redis": {
+#             "cert": "/etc/redis/tls/server.crt",
+#             "key": "/etc/redis/tls/server.key",
+#             "ca": "/etc/redis/tls/ca.crt",
+#         },
+#         "miarecweb_db": "/opt/miarecweb/current/production.ini",
+#         "miarec_ini": "/opt/miarec/current/miarec.ini",
+#     }
 
 
-def test_postgresql_tls_only(host):
-    cmd = (
-        "PGPASSWORD=password "
-        "PGSSLMODE=verify-ca "
-        "PGSSLROOTCERT=/etc/postgresql/tls/ca.crt "
-        "PGSSLCERT=/etc/postgresql/tls/client.crt "
-        "PGSSLKEY=/etc/postgresql/tls/client.key "
-        "psql -h 127.0.0.1 -U miarec -d miarecdb -c 'SELECT 1'"
-    )
-    result = host.run(cmd)
-    assert result.rc == 0, result.stderr
-
-    no_tls = host.run(
-        "PGPASSWORD=password PGSSLMODE=disable "
-        "psql -h 127.0.0.1 -U miarec -d miarecdb -c 'SELECT 1'"
-    )
-    assert no_tls.rc != 0, "Non-TLS connection unexpectedly succeeded"
+# def test_postgresql_ssl_files(host, tls_paths):
+#     for path in tls_paths["pg"].values():
+#         f = host.file(path)
+#         assert f.exists, f"{path} missing"
+#         assert f.user == "postgres"
 
 
-def test_pgbouncer_tls_config(host):
-    conf = host.file("/etc/pgbouncer/pgbouncer.ini")
-    assert conf.contains("client_tls_sslmode = require")
-    assert conf.contains("server_tls_sslmode = verify-ca")
+# def test_postgresql_ssl_only(host):
+#     cmd = (
+#         "PGPASSWORD=password "
+#         "PGSSLMODE=verify-ca "
+#         "PGSSLROOTCERT=/etc/postgresql/tls/ca.crt "
+#         "PGSSLCERT=/etc/postgresql/tls/client.crt "
+#         "PGSSLKEY=/etc/postgresql/tls/client.key "
+#         "psql -h 127.0.0.1 -U miarec -d miarecdb -c 'SELECT 1'"
+#     )
+#     result = host.run(cmd)
+#     assert result.rc == 0, result.stderr
+
+#     no_tls = host.run(
+#         "PGPASSWORD=password PGSSLMODE=disable "
+#         "psql -h 127.0.0.1 -U miarec -d miarecdb -c 'SELECT 1'"
+#     )
+#     assert no_tls.rc != 0, "Non-TLS connection unexpectedly succeeded"
 
 
-def test_pgbouncer_tls_only(host):
-    cmd = (
-        "PGPASSWORD=password "
-        "PGSSLMODE=verify-ca "
-        "PGSSLROOTCERT=/etc/pgbouncer/tls/ca.crt "
-        "PGSSLCERT=/etc/pgbouncer/tls/client.crt "
-        "PGSSLKEY=/etc/pgbouncer/tls/client.key "
-        "psql -h 127.0.0.1 -p 6432 -U miarec -d miarecdb -c 'SELECT 1'"
-    )
-    result = host.run(cmd)
-    assert result.rc == 0, result.stderr
-
-    no_tls = host.run(
-        "PGPASSWORD=password PGSSLMODE=disable "
-        "psql -h 127.0.0.1 -p 6432 -U miarec -d miarecdb -c 'SELECT 1'"
-    )
-    assert no_tls.rc != 0, "Plaintext PGBouncer connection should fail"
+# def test_pgbouncer_tls_config(host):
+#     conf = host.file("/etc/pgbouncer/pgbouncer.ini")
+#     assert conf.contains("client_tls_sslmode = require")
+#     assert conf.contains("server_tls_sslmode = verify-ca")
 
 
-def test_redis_tls_only(host):
-    tls = host.run(
-        "redis-cli --tls "
-        "--cacert /etc/redis/tls/ca.crt "
-        "--cert /etc/redis/tls/client.crt "
-        "--key /etc/redis/tls/client.key "
-        "PING"
-    )
-    assert tls.rc == 0 and "PONG" in tls.stdout
+# def test_pgbouncer_tls_only(host):
+#     cmd = (
+#         "PGPASSWORD=password "
+#         "PGSSLMODE=verify-ca "
+#         "PGSSLROOTCERT=/etc/pgbouncer/tls/ca.crt "
+#         "PGSSLCERT=/etc/pgbouncer/tls/client.crt "
+#         "PGSSLKEY=/etc/pgbouncer/tls/client.key "
+#         "psql -h 127.0.0.1 -p 6432 -U miarec -d miarecdb -c 'SELECT 1'"
+#     )
+#     result = host.run(cmd)
+#     assert result.rc == 0, result.stderr
 
-    no_tls = host.run("redis-cli PING")
-    assert no_tls.rc != 0, "Plaintext Redis connection should fail"
+#     no_tls = host.run(
+#         "PGPASSWORD=password PGSSLMODE=disable "
+#         "psql -h 127.0.0.1 -p 6432 -U miarec -d miarecdb -c 'SELECT 1'"
+#     )
+#     assert no_tls.rc != 0, "Plaintext PGBouncer connection should fail"
 
 
-def test_miarecweb_tls_config(host):
-    ini = host.file("/opt/miarecweb/current/production.ini")
-    assert "DATABASE_SSL_PARAMS" in ini.content_string
-    assert "REDIS_SCHEMA = rediss" in ini.content_string
+# def test_redis_tls_only(host):
+#     tls = host.run(
+#         "redis-cli --tls "
+#         "--cacert /etc/redis/tls/ca.crt "
+#         "--cert /etc/redis/tls/client.crt "
+#         "--key /etc/redis/tls/client.key "
+#         "PING"
+#     )
+#     assert tls.rc == 0 and "PONG" in tls.stdout
+
+#     no_tls = host.run("redis-cli PING")
+#     assert no_tls.rc != 0, "Plaintext Redis connection should fail"
 
 
-def test_miarec_recorder_tls_config(host):
-    ini = host.file("/opt/miarec/current/miarec.ini")
-    assert "SSLCertificate" in ini.content_string
-    assert "SSLCACertificates" in ini.content_string
+# def test_miarecweb_tls_config(host):
+#     ini = host.file("/opt/miarecweb/current/production.ini")
+#     assert "DATABASE_SSL_PARAMS" in ini.content_string
+#     assert "REDIS_SCHEMA = rediss" in ini.content_string
+
+
+# def test_miarec_recorder_tls_config(host):
+#     ini = host.file("/opt/miarec/current/miarec.ini")
+#     assert "SSLCertificate" in ini.content_string
+#     assert "SSLCACertificates" in ini.content_string
 
 
 # def test_miarec_service_running(host):

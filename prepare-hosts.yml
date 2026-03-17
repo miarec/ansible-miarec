@@ -28,27 +28,38 @@
 
     - name: Compute PostgreSQL TLS hba parameters
       set_fact:
-        _postgresql_hba_type: "{{ 'hostssl' if postgresql_tls | bool else 'host' }}"
-        _postgresql_hba_method: "{{ 'md5' if not postgresql_tls | bool else 'md5' + (postgresql_tls_require_clientcert | bool | ternary(' clientcert=verify-ca', '')) }}"
+        _postgresql_hba_type: "{{ 'hostssl' if postgresql_ssl | bool else 'host' }}"
+        _postgresql_hba_method: "{{ 'md5' if not postgresql_ssl | bool else 'md5' + (postgresql_ssl_require_clientcert | bool | ternary(' clientcert=verify-ca', '')) }}"
+      when: postgresql_ssl | bool
+
+    - name: Initialize TLS pg_hba entries
+      set_fact:
+        _postgresql_tls_hba_users: "{{ postgresql_tls_hba_users | default([postgresql_admin_user, miarec_db_user]) }}"
+        postgresql_pg_hba_custom: []
+      when: postgresql_ssl | bool
 
     - name: Define connection values
       set_fact:
-        postgresql_pg_hba_custom:
-          - comment: 'IPv4 local connections:'
-            address: '127.0.0.1/32'
-            type: "{{ _postgresql_hba_type }}"
-            database: all
-            user: "{{ miarec_db_user }}"
-            method: "{{ _postgresql_hba_method }}"
-
-          - comment: 'IPv6 local connections:'
-            address: '::1/128'
-            type: "{{ _postgresql_hba_type }}"
-            database: all
-            user: "{{ miarec_db_user }}"
-            method: "{{ _postgresql_hba_method }}"
-
-      when: postgresql_tls | bool
+        postgresql_pg_hba_custom: "{{ postgresql_pg_hba_custom + [
+          {
+            'comment': 'IPv4 TLS local connections for ' ~ item ~ ':',
+            'address': '127.0.0.1/32',
+            'type': _postgresql_hba_type,
+            'database': 'all',
+            'user': item,
+            'method': _postgresql_hba_method
+          },
+          {
+            'comment': 'IPv6 TLS local connections for ' ~ item ~ ':',
+            'address': '::1/128',
+            'type': _postgresql_hba_type,
+            'database': 'all',
+            'user': item,
+            'method': _postgresql_hba_method
+          }
+        ] }}"
+      loop: "{{ _postgresql_tls_hba_users }}"
+      when: postgresql_ssl | bool
 
     - name: Define connection rule for Recorder and Web servers
       set_fact:
@@ -60,38 +71,38 @@
           database: "{{ miarec_db_name }}"
           method: "{{ _postgresql_hba_method }}"
       with_items: "{{ groups.recorder + groups.web }}"
-      when: postgresql_tls | bool and not install_pgbouncer | default(False) | bool and hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
+      when: postgresql_ssl | bool and not install_pgbouncer | default(False) | bool and hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
       register: tmp_pg_hba_rules
 
     - name: Print tmp_pg_hba_rules
       debug:
         var: tmp_pg_hba_rules
-      when: postgresql_tls | bool and not install_pgbouncer | default(False) | bool
+      when: postgresql_ssl | bool and not install_pgbouncer | default(False) | bool
 
     - name: Define pg_hba_rules
       set_fact:
         pg_hba_rules: "{{ tmp_pg_hba_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
-      when: postgresql_tls | bool and not install_pgbouncer | default(False) | bool
+      when: postgresql_ssl | bool and not install_pgbouncer | default(False) | bool
 
     - name: Render postgresql_pg_hba_custom
       set_fact:
         postgresql_pg_hba_custom: "{{ postgresql_pg_hba_custom + pg_hba_rules }}"
         # Listen on all interfaces. By default, it listens on localhost only
         postgresql_listen_addresses: "*"
-      when: postgresql_tls | bool and not install_pgbouncer | default(False) | bool and pg_hba_rules | length > 0
+      when: postgresql_ssl | bool and not install_pgbouncer | default(False) | bool and pg_hba_rules | length > 0
 
     - name: Print postgresql_pg_hba_custom
       debug:
         var: postgresql_pg_hba_custom
-      when: postgresql_tls | bool and not install_pgbouncer | default(False) | bool
+      when: postgresql_ssl | bool and not install_pgbouncer | default(False) | bool
 
     - name: Configure PostgreSQL TLS role variables
       set_fact:
         postgresql_ssl: true
-        postgresql_ssl_cert_file: "{{ postgresql_tls_cert_file }}"
-        postgresql_ssl_key_file: "{{ postgresql_tls_key_file }}"
-        postgresql_ssl_ca_file: "{{ postgresql_tls_ca_file }}"
-      when: postgresql_tls | bool
+        postgresql_ssl_cert_file: "{{ postgresql_ssl_cert_file }}"
+        postgresql_ssl_key_file: "{{ postgresql_ssl_key_file }}"
+        postgresql_ssl_ca_file: "{{ postgresql_ssl_ca_file }}"
+      when: postgresql_ssl | bool
 
   roles:
     - role: 'postgresql'
@@ -176,6 +187,7 @@
 
   tags: 'pgbouncer'
 
+
 # ------------------------------------------------
 # Install redis
 # ------------------------------------------------
@@ -192,9 +204,6 @@
     - name: Configure Redis TLS variables
       set_fact:
         redis_make_tls: true
-        redis_tls_cert: "{{ redis_tls_cert_file }}"
-        redis_tls_key: "{{ redis_tls_key_file }}"
-        redis_tls_ca_cert: "{{ redis_tls_ca_file }}"
         redis_tls_auth_clients: "{{ redis_tls_auth_clients | bool }}"
       when: redis_tls | bool
 

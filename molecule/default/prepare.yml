@@ -32,7 +32,7 @@
             state: present
           when: ansible_facts['distribution'] != "RedHat"
 
-        - name: Python | Install Python{{ _python_major_minor }} packages
+        - name: "Python | Install Python packages {{ _python_major_minor }}"
           package:
             name:
               - "python{{ _python_major_minor }}"

@@ -1,64 +1,77 @@
+"""Test TLS configuration for MiaRec."""
 import json
 import os
 import testinfra.utils.ansible_runner
 
 testinfra_hosts = testinfra.utils.ansible_runner.AnsibleRunner(
-    os.environ['MOLECULE_INVENTORY_FILE']).get_hosts('all')
+    os.environ['MOLECULE_INVENTORY_FILE']
+).get_hosts('all')
 
-miarec_version = os.environ.get('MIAREC_VERSION')
+
+def test_miarec_service_running(host):
+    """Test that miarec service is running."""
+    service = host.service('miarec')
+    assert service.is_running
+    assert service.is_enabled
 
 
-def test_directories(host):
+def test_miarec_ini_has_tls_settings(host):
+    """Test that miarec.ini contains TLS settings."""
+    ini_file = host.file('/opt/miarec/current/miarec.ini')
+    assert ini_file.exists
+    content = ini_file.content_string
 
-    dirs = [
-        "/opt/miarec/releases/{}".format(miarec_version),
-        "/opt/miarec/shared",
-        "/var/log/miarec",
-        "/var/log/miarec/cdr",
-        "/var/log/miarec/error",
-        "/var/log/miarec/trace",
-        "/var/miarec/recordings"
-    ]
-    for dir in dirs:
-        d = host.file(dir)
-        assert d.is_directory
-        assert d.exists
+    # Check PostgreSQL TLS settings
+    assert 'UseSSL=true' in content or 'UseSSL = true' in content
+    assert 'SSLCACertificates' in content
+    assert 'SSLCertificate' in content
+    assert 'SSLPrivateKey' in content
 
-def test_files(host):
-    files = [
-        "/opt/miarec/releases/{}/miarec".format(miarec_version),
-        "/opt/miarec/releases/{}/miarec.ini".format(miarec_version)
-    ]
 
-    for file in files:
-        f = host.file(file)
-        assert f.exists
-        assert f.is_file
+def test_tls_certificate_files_exist(host):
+    """Test that TLS certificate files exist with correct permissions."""
+    ca_file = host.file('/etc/miarec/tls/ca.crt')
+    assert ca_file.exists
+    assert ca_file.mode == 0o644
 
-def test_service(host):
-    services = [
-        "miarec"
-    ]
+    client_cert = host.file('/etc/miarec/tls/client.crt')
+    assert client_cert.exists
+    assert client_cert.mode == 0o644
 
-    for service in services:
-        s = host.service(service)
-        assert s.is_enabled
-        assert s.is_running
+    client_key = host.file('/etc/miarec/tls/client.key')
+    assert client_key.exists
+    assert client_key.mode == 0o640
+    assert client_key.group == 'miarec'
 
-def test_socket(host):
-    sockets = [
-        "tcp://0.0.0.0:9080",
-        "tcp://0.0.0.0:5080",
-        "tcp://0.0.0.0:6554",
-        "tcp://0.0.0.0:6088"
-    ]
-    for socket in sockets:
-        s = host.socket(socket)
-        assert s.is_listening
+
+def test_postgresql_ssl_connection(host):
+    """Test that PostgreSQL TLS connection works."""
+    cmd = host.run(
+        'psql "host=127.0.0.1 port=5432 dbname=miarecdb user=miarec password=password '
+        'sslmode=verify-ca '
+        'sslrootcert=/etc/miarec/tls/ca.crt '
+        'sslcert=/etc/miarec/tls/client.crt '
+        'sslkey=/etc/miarec/tls/client.key" '
+        '-c "SELECT 1;"'
+    )
+    assert cmd.rc == 0
+
+
+def test_redis_tls_connection(host):
+    """Test that Redis TLS connection works."""
+    cmd = host.run(
+        'redis-cli --tls '
+        '--cacert /etc/miarec/tls/ca.crt '
+        '--cert /etc/miarec/tls/client.crt '
+        '--key /etc/miarec/tls/client.key '
+        '-h 127.0.0.1 -p 6379 PING'
+    )
+    assert cmd.rc == 0
+    assert 'PONG' in cmd.stdout
 
 
 def test_health_endpoint(host):
-    """Verify /health endpoint returns healthy status for dependencies."""
+    """Verify /health endpoint returns healthy status for TLS connections."""
     # MiaRec REST API listens on port 6088
     result = host.run("curl -fsS http://localhost:6088/health")
     assert result.rc == 0, f"Health endpoint not reachable: {result.stderr}"
@@ -72,5 +85,5 @@ def test_health_endpoint(host):
         )
 
     assert payload.get("status") == "ok", f"Unexpected overall status: {payload}"
-    assert payload.get("database") == "ok", f"Unexpected database status: {payload}"
-    assert payload.get("redis") == "ok", f"Unexpected Redis status: {payload}"
+    assert payload.get("database") == "ok", f"Database TLS connection failed: {payload}"
+    assert payload.get("redis") == "ok", f"Redis TLS connection failed: {payload}"

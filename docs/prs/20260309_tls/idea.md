@@ -7,7 +7,7 @@ This playbook should be updated to allow for an optional install of services (Po
 Submodules support TLS install, root level playbook does not
 
 ## Idea
-There should be variables like `postgresql_tls = true` that should be false by default, that will force the install to complete with tls configuration.
+There should be variables like `postgresql_ssl = true` that should be false by default, that will force the install to complete with tls configuration.
 
 When variables are not defined for the location of the Certificates, A `MakeFile` should be included that generates the TLS certificates needed in each scenario
 

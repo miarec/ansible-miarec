@@ -35,9 +35,11 @@ postgresql_shared_preload_libraries:
 # --------------------------------------
 # List of databases to be created
 # --------------------------------------
-postgresql_databases:
+postgresql_extra_databases: []
+postgresql_databases_default:
   - name: "{{ miarec_db_name }}"
     owner: "{{ miarec_db_user }}"
+postgresql_databases: "{{ postgresql_databases_default + postgresql_extra_databases }}"
 
 
 # --------------------------------------
@@ -54,19 +56,26 @@ postgresql_database_extensions:
 # --------------------------------------
 # List of users to be created
 # --------------------------------------
-postgresql_users:
+postgresql_extra_users: []
+postgresql_users_default:
   - name: "{{ miarec_db_user }}"
     pass: "{{ miarec_db_password }}"
     encrypted: true       # denotes if the password is already encrypted.
+postgresql_users: "{{ postgresql_users_default + postgresql_extra_users }}"
 
 # --------------------------------------
 # TLS settings
 # --------------------------------------
-postgresql_tls: false
-postgresql_tls_cert_file: /etc/postgresql/tls/server.crt
-postgresql_tls_key_file: /etc/postgresql/tls/server.key
-postgresql_tls_ca_file: /etc/postgresql/tls/ca.crt
-postgresql_tls_require_clientcert: true
+postgresql_ssl: false
+postgresql_ssl_cert_file: /etc/postgresql/tls/server.crt
+postgresql_ssl_key_file: /etc/postgresql/tls/server.key
+postgresql_ssl_ca_file: /etc/postgresql/tls/ca.crt
+postgresql_ssl_require_clientcert: true
+postgresql_tls_extra_hba_users: []
+postgresql_tls_hba_users_default:
+  - "{{ postgresql_admin_user }}"
+  - "{{ miarec_db_user }}"
+postgresql_tls_hba_users: "{{ (postgresql_tls_hba_users_default + postgresql_tls_extra_hba_users) | unique }}"
 
 pgbouncer_client_tls: false
 pgbouncer_client_tls_sslmode: require

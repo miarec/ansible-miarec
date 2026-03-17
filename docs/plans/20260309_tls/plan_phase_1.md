@@ -9,9 +9,9 @@ Introduce the per-service TLS configuration surface and Makefile-based certifica
 - Documentation snippets describing usage (README or docs/prs area)
 
 ## Tasks
-- [x] **Add PostgreSQL TLS vars** (`postgresql_tls`, `postgresql_tls_cert_file`, `postgresql_tls_key_file`, `postgresql_tls_ca_file`, `postgresql_tls_require_clientcert`) to `vars/db.yml` with defaults + comments.
+- [x] **Add PostgreSQL TLS vars** (`postgresql_ssl`, `postgresql_ssl_cert_file`, `postgresql_ssl_key_file`, `postgresql_ssl_ca_file`, `postgresql_ssl_require_clientcert`) to `vars/db.yml` with defaults + comments.
 - [x] **Add PGBouncer TLS vars** for client/server sides (`pgbouncer_client_tls`, `pgbouncer_client_tls_*`, `pgbouncer_server_tls`, `pgbouncer_server_tls_*`) with explicit YAML syntax and references to canonical file paths.
-- [x] **Add Redis TLS vars** (`redis_tls`, `redis_tls_cert_file`, `redis_tls_key_file`, `redis_tls_ca_file`, `redis_tls_auth_clients`) to `vars/redis.yml`.
+- [x] **Add Redis TLS vars** (`redis_tls`, `redis_tls_cert`, `redis_tls_key`, `redis_tls_ca_cert`, `redis_tls_auth_clients`) to `vars/redis.yml`.
 - [x] **Create Makefile** in repo root with targets:
   - `tls-certs-postgresql` (generate CA/server/client certs under `certs/postgresql/`)
   - `tls-certs-pgbouncer` (reuse PostgreSQL CA, emit server/client certs under `certs/pgbouncer/`)

@@ -11,7 +11,7 @@ Create an end-to-end Molecule scenario that exercises TLS-enabled deployments (P
 
 ## Tasks
 - [x] **Scenario setup**: Create `molecule/tls/molecule.yml` reusing the default driver/platforms but pointing `MOLECULE_PLAYBOOK` (or converge) to run `prepare-hosts.yml` + `setup-miarec.yml` with TLS toggles enabled (via vars or environment). Include `prepare.yml` steps to copy Makefile-generated certs or generate within the container as needed.
-- [x] **Inventory/vars overlay**: Within the scenario, provide vars (YAML or host_vars) enabling `postgresql_tls`, `pgbouncer_client_tls`, `pgbouncer_server_tls`, `redis_tls`, and ensuring MiaRec web/recorder receive TLS settings.
+- [x] **Inventory/vars overlay**: Within the scenario, provide vars (YAML or host_vars) enabling `postgresql_ssl`, `pgbouncer_client_tls`, `pgbouncer_server_tls`, `redis_tls`, and ensuring MiaRec web/recorder receive TLS settings.
 - [x] **Testinfra suite**: Add tests asserting:
   - PostgreSQL listens on TLS port, rejects plaintext connections.
   - PGBouncer client/server TLS configs present; plaintext attempts fail when appropriate.

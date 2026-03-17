@@ -9,7 +9,7 @@ Propagate the new TLS variables through `prepare-hosts.yml`, `setup-miarec.yml`,
 - Supporting documentation updates (e.g., README snippets) describing TLS usage within playbooks.
 
 ## Tasks
-- [x] **PostgreSQL wiring**: In `prepare-hosts.yml`, when `postgresql_tls | bool`, set facts for `postgresql_ssl`, `*_cert_file`, `*_key_file`, `*_ca_file`, and update `postgresql_pg_hba_custom` with `hostssl` entries referencing TLS requirements (`clientcert=verify-ca` when `postgresql_tls_require_clientcert` true). Ensure syntax matches existing YAML structure.
+- [x] **PostgreSQL wiring**: In `prepare-hosts.yml`, when `postgresql_ssl | bool`, set facts for `postgresql_ssl`, `*_cert_file`, `*_key_file`, `*_ca_file`, and update `postgresql_pg_hba_custom` with `hostssl` entries referencing TLS requirements (`clientcert=verify-ca` when `postgresql_ssl_require_clientcert` true). Ensure syntax matches existing YAML structure.
 - [x] **PGBouncer wiring**: Conditionally set `pgbouncer_client_tls*` and `pgbouncer_server_tls*` vars before including the role; ensure partial TLS (client vs server) is honored. Adjust instructions for copying certs into `/etc/pgbouncer/tls/`.
 - [x] **Redis wiring**: When `redis_tls | bool`, set `redis_make_tls: true` and pass cert paths/auth flag to the role. Update any `redis_bind` logic to keep TLS-only hosts accessible.
 - [x] **Recorder wiring**: In `setup-miarec.yml`, pass `miarec_db_tls*` and `miarec_redis_tls*` vars into recorder hosts via `set_fact` or vars files so the updated recorder role emits TLS parameters automatically. Ensure these vars point to the same cert/key paths produced in Phase 1.
@@ -23,7 +23,7 @@ Propagate the new TLS variables through `prepare-hosts.yml`, `setup-miarec.yml`,
 - Idempotency: rerunning playbooks with TLS enabled should not rewrite cert files or INI entries unnecessarily.
 
 ## Acceptance Criteria
-- `postgresql_tls`, `pgbouncer_*_tls`, and `redis_tls` toggles change the corresponding role configurations when true, leaving plaintext behavior untouched when false.
+- `postgresql_ssl`, `pgbouncer_*_tls`, and `redis_tls` toggles change the corresponding role configurations when true, leaving plaintext behavior untouched when false.
 - Recorder configuration gains TLS entries matching MiaRec web semantics and only activates when `miarec_db_tls` / `miarec_redis_tls` true.
 - Playbook runs with TLS enabled succeed end-to-end for at least one distro; idempotent reruns pass.
 - Documentation explains how to enable TLS per component via inventory variables.
