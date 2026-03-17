@@ -2,13 +2,13 @@
 
 ## 🔍 Summary
 
-Adds first-class TLS enablement across the Ansible playbooks by introducing shared certificate generation tooling, wiring TLS inventory variables through `prepare-hosts.yml`/`setup-miarec.yml`, and providing a Molecule scenario plus CI job that exercises the TLS path end-to-end.
+Adds end-to-end TLS automation for MiaRec deployments: certificate generation tooling, inventory/playbook wiring for PostgreSQL, PGBouncer, Redis, MiaRec Web/Recorder, and Molecule coverage (plus CI) that proves the TLS posture across Ubuntu 22.04/24.04 and EL9 distros.
 
 ---
 
 ## 🎯 Purpose
 
-Operators previously had to handcraft TLS assets even though the downstream roles supported them. This PR exposes consistent TLS toggles, ships a Makefile that mirrors the Molecule certificate generation logic, and ensures both the infrastructure playbooks and recorder/web roles consume those settings so encrypted deployments can be triggered from a single entry point. CI coverage guarantees regressions surface immediately.
+Previously, enabling TLS meant manually minting certificates, sprinkling host-specific overrides, and hoping downstream roles stayed in sync. This PR standardizes TLS inputs (one inventory switch per component), wires the playbooks to distribute certs/keys, and introduces repeatable Molecule scenarios with shared CA generation so encrypted topologies can be tested locally and in CI before landing changes.
 
 ---
 
@@ -20,8 +20,12 @@ How did you verify it works?
 * [ ] Ran `pytest`
 
 Notes:
-- `PYTHON_VERSION=3.12 uv run molecule test -s tls`
-- `PYTHON_VERSION=3.12 uv run molecule verify -s tls`
+- `MOLECULE_DISTRO=ubuntu2404 uv run molecule test`
+- `MOLECULE_DISTRO=ubuntu2404 uv run molecule test -s tls`
+- `MOLECULE_DISTRO=rhel9 uv run molecule test`
+- `MOLECULE_DISTRO=rhel9 uv run molecule test -s tls`
+- `MOLECULE_DISTRO=rockylinux9 uv run molecule test`
+- `MOLECULE_DISTRO=rockylinux9 uv run molecule test -s tls`
 
 ---
 
@@ -35,16 +39,16 @@ Closes #N/A
 
 Brief list of main changes:
 
-* Added a repo-level Makefile that generates CA/server/client bundles for PostgreSQL, PGBouncer, and Redis along with helper docs.
-* Introduced TLS inventory variables, `prepare-hosts.yml` wiring (pg_hba hostssl rules, redis TLS facts), and recorder/web fact propagation so services pick up the certs automatically.
-* Created a dedicated `molecule/tls` scenario with prepare/converge plays, Redis/PostgreSQL client distribution, Testinfra health checks, and a GitHub Actions matrix job to run it across supported distros.
-* Documented the multi-phase TLS implementation plan plus the originating idea/spec files.
+* Added a Makefile-driven TLS toolkit plus docs so operators (and Molecule) can mint consistent CA/server/client bundles for PostgreSQL, PGBouncer, and Redis.
+* Extended inventory defaults (`vars/db.yml`, `vars/redis.yml`) and `prepare-hosts.yml`/`setup-miarec.yml` to propagate TLS facts, update pg_hba rules, and configure MiaRec Web/Recorder + Redis with the generated certs.
+* Created/enhanced the `molecule/tls` scenario (prepare tasks, Testinfra suite) and taught GitHub Actions to run it across Ubuntu/Rocky/RHEL, alongside distro-aware verifier fixes.
+* Updated docs/prs planning notes plus `.gitignore`, workflow matrix, and supporting configs to reflect the TLS-first workflow.
 
 ---
 
 ## ⚠️ Notes for Reviewers
 
-`astral-sh/setup-uv@v4` requires a `GITHUB_TOKEN` when running `act` locally (hosted runners inject it automatically). Set `PYTHON_VERSION=3.12` before invoking Molecule so Ubuntu 24.04 images use the correct interpreter.
+TLS Molecule runs are lengthy (~12–15 minutes per distro) because they execute the full `prepare-hosts.yml` + `setup-miarec.yml` stack; plan CI time accordingly. When running locally, ensure Docker has enough memory (>=4 GB) and set `MOLECULE_DISTRO` explicitly to avoid pulling the wrong systemd image.
 
 ---
 

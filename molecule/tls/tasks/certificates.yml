@@ -5,36 +5,6 @@
     name: openssl
     state: present
 
-
-# Single CA generateion
-# Copy CA to each tls_dir
-
-
-# # This should be higher up in the playbook, but is included here for simplicity in this example
-# - name: Define TLS vars
-#   set_fact:
-#     tls_configs:
-#       - dir: /etc/postgresql/tls
-#         owner: postgres
-#         group: postgres
-#         CN: "postgresql"
-#       - dir: /etc/pgbouncer/tls
-#         owner: pgbouncer
-#         group: pgbouncer
-#         CN: "pgbouncer"
-#       - dir: /etc/redis/tls
-#         owner: redis
-#         group: redis
-#         CN: "redis"
-#       - dir: /etc/miarec/tls
-#         owner: root
-#         group: miarec
-#         CN: "miarec"
-#       - dir: /etc/miarecweb/tls
-#         owner: root
-#         group: miarec
-#         CN: "miarecweb"
-
 # Generate Shared CA for all services
 - name: Create Shared CA directory
   file:

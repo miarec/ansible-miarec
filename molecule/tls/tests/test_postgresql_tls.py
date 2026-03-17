@@ -68,44 +68,6 @@ def test_postgresql_tls_connection_with_client_cert(host):
     )
     assert cmd.rc == 0, f"Expected rc=0, got rc={cmd.rc}, stderr={cmd.stderr}"
 
-# def test_postgresql_ssl_connection_with_sslmode_require(host):
-#     """Verify PostgreSQL accepts TLS connections with sslmode=require."""
-#     cmd = host.run(
-#         'psql "host=127.0.0.1 user=postgres dbname=postgres '
-#         'sslmode=require '
-#         'sslcert=/etc/miarecweb/tls/client.crt '
-#         'sslkey=/etc/miarecweb/tls/client.key" '
-#         "-c 'SELECT 1;'"
-#     )
-#     assert cmd.rc == 0, f"Expected rc=0, got rc={cmd.rc}, stderr={cmd.stderr}"
-
-
-# def test_postgresql_ssl_connection_with_verify_ca(host):
-#     """Verify PostgreSQL accepts TLS connections with CA verification."""
-#     cmd = host.run(
-#         'psql "host=127.0.0.1 user=postgres dbname=postgres '
-#         'sslmode=verify-ca '
-#         'sslrootcert=/etc/miarecweb/tls/ca.crt '
-#         'sslcert=/etc/miarecweb/tls/client.crt '
-#         'sslkey=/etc/miarecweb/tls/client.key" '
-#         "-c 'SELECT 1;'"
-#     )
-#     assert cmd.rc == 0, f"Expected rc=0, got rc={cmd.rc}, stderr={cmd.stderr}"
-
-
-# def test_postgresql_ssl_connection_with_client_cert(host):
-#     """Verify PostgreSQL accepts TLS connections with client certificates."""
-#     cmd = host.run(
-#         'psql "host=127.0.0.1 user=postgres dbname=postgres '
-#         'sslmode=verify-ca '
-#         'sslrootcert=/etc/miarecweb/tls/ca.crt '
-#         'sslcert=/etc/miarecweb/tls/client.crt '
-#         'sslkey=/etc/miarecweb/tls/client.key" '
-#         "-c 'SELECT 1;'"
-#     )
-#     assert cmd.rc == 0, f"Expected rc=0, got rc={cmd.rc}, stderr={cmd.stderr}"
-
-
 def test_postgresql_ssl_info_in_connection(host):
     """Verify SSL is actually being used in the connection."""
     cmd = host.run(

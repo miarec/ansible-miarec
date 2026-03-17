@@ -30,4 +30,50 @@ sudo install -m 0600 -o postgres -g postgres /tmp/client.key /etc/postgresql/tls
 sudo install -m 0644 -o postgres -g postgres /tmp/client.crt /etc/postgresql/tls/client.crt
 ```
 
-Repeat the same pattern for `pgbouncer`, `redis`, `miarec`, and `miarecweb` (adjusting owners/groups such as `redis`, `root:miarec`, etc.). Once the files exist at the expected paths, enable TLS by setting the corresponding variables (for example `postgresql_ssl: true`) and run the playbooks normally.
+Repeat the same pattern for `pgbouncer` and `redis` (adjusting owners/groups such as `redis`, `root:pgbouncer`, etc.). Once the files exist at the expected paths, enable TLS by setting the corresponding variables (for example `postgresql_ssl: true`) and run the playbooks normally.
+
+### Example: MiaRec recorder certificates
+
+MiaRec consumes both PostgreSQL and Redis client credentials. Copy the generated bundles:
+
+```bash
+scp certs/miarec/{client.crt,client.key,ca.crt} user@host:/tmp/
+scp certs/miarec/{redis-client.crt,redis-client.key,redis-ca.crt} user@host:/tmp/
+```
+
+Install them under `/etc/miarec/tls` with the expected ownership (`root:miarec`) and permissions:
+
+```bash
+sudo install -d -m 0750 -o root -g miarec /etc/miarec/tls
+sudo install -m 0640 -o root -g miarec /tmp/client.key /etc/miarec/tls/client.key
+sudo install -m 0644 -o root -g miarec /tmp/client.crt /etc/miarec/tls/client.crt
+sudo install -m 0644 -o root -g miarec /tmp/ca.crt /etc/miarec/tls/ca.crt
+sudo install -m 0640 -o root -g miarec /tmp/redis-client.key /etc/miarec/tls/redis-client.key
+sudo install -m 0644 -o root -g miarec /tmp/redis-client.crt /etc/miarec/tls/redis-client.crt
+sudo install -m 0644 -o root -g miarec /tmp/redis-ca.crt /etc/miarec/tls/redis-ca.crt
+```
+
+When these files exist, `setup-miarec.yml` will automatically configure the recorder if `postgresql_ssl` or `redis_tls` are set.
+
+### Example: MiaRec web certificates
+
+MiaRec web needs its own client bundle plus Redis credentials. Transfer the files:
+
+```bash
+scp certs/miarecweb/{client.crt,client.key,ca.crt} user@host:/tmp/
+scp certs/miarecweb/{redis-client.crt,redis-client.key,redis-ca.crt} user@host:/tmp/
+```
+
+Install them under `/etc/miarecweb/tls` (owner `root:miarec`):
+
+```bash
+sudo install -d -m 0750 -o root -g miarec /etc/miarecweb/tls
+sudo install -m 0640 -o root -g miarec /tmp/client.key /etc/miarecweb/tls/client.key
+sudo install -m 0644 -o root -g miarec /tmp/client.crt /etc/miarecweb/tls/client.crt
+sudo install -m 0644 -o root -g miarec /tmp/ca.crt /etc/miarecweb/tls/ca.crt
+sudo install -m 0640 -o root -g miarec /tmp/redis-client.key /etc/miarecweb/tls/redis-client.key
+sudo install -m 0644 -o root -g miarec /tmp/redis-client.crt /etc/miarecweb/tls/redis-client.crt
+sudo install -m 0644 -o root -g miarec /tmp/redis-ca.crt /etc/miarecweb/tls/redis-ca.crt
+```
+
+With these files in place, set `miarecweb_db_tls: true` / `redis_tls: true` (or rely on defaults when PostgreSQL/Redis TLS is enabled) so the playbooks wire the paths into `production.ini`.
