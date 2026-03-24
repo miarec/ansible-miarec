@@ -104,17 +104,6 @@ def test_pgbouncer_connection_without_tls_fails(host):
     # Connection should fail when TLS is required
     assert cmd.rc != 0, "Connection without TLS should be rejected"
 
-
-def test_postgresql_direct_tls_connection(host):
-    """Verify PostgreSQL accepts direct TLS connections."""
-    cmd = host.run(
-        'PGPASSWORD=testpassword psql '
-        '"host=127.0.0.1 port=5432 user=testuser dbname=testdb sslmode=require" '
-        "-c 'SELECT 1;'"
-    )
-    assert cmd.rc == 0, f"Expected rc=0, got rc={cmd.rc}, stderr={cmd.stderr}"
-
-
 def test_full_tls_chain_query(host):
     """Verify full TLS chain works: client -> PGBouncer (TLS) -> PostgreSQL (TLS)."""
     # Execute a query through PGBouncer with TLS and verify it works

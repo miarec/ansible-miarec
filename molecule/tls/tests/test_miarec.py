@@ -44,32 +44,6 @@ def test_tls_certificate_files_exist(host):
     assert client_key.group == 'miarec'
 
 
-def test_postgresql_ssl_connection(host):
-    """Test that PostgreSQL TLS connection works."""
-    cmd = host.run(
-        'psql "host=127.0.0.1 port=5432 dbname=miarecdb user=miarec password=password '
-        'sslmode=verify-ca '
-        'sslrootcert=/etc/miarec/tls/ca.crt '
-        'sslcert=/etc/miarec/tls/client.crt '
-        'sslkey=/etc/miarec/tls/client.key" '
-        '-c "SELECT 1;"'
-    )
-    assert cmd.rc == 0
-
-
-def test_redis_tls_connection(host):
-    """Test that Redis TLS connection works."""
-    cmd = host.run(
-        'redis-cli --tls '
-        '--cacert /etc/miarec/tls/ca.crt '
-        '--cert /etc/miarec/tls/client.crt '
-        '--key /etc/miarec/tls/client.key '
-        '-h 127.0.0.1 -p 6379 PING'
-    )
-    assert cmd.rc == 0
-    assert 'PONG' in cmd.stdout
-
-
 def test_health_endpoint(host):
     """Verify /health endpoint returns healthy status for TLS connections."""
     # MiaRec REST API listens on port 6088

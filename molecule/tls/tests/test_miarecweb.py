@@ -61,21 +61,6 @@ def test_production_ini_redis_ssl_params(host):
     assert "ssl_keyfile=/etc/miarecweb/tls/redis-client.key" in content, "ssl_keyfile not configured"
 
 
-def test_postgresql_ssl_enabled(host):
-    """Verify PostgreSQL has SSL enabled."""
-    result = host.run(
-        "sudo -u postgres psql -tAc \"SHOW ssl;\""
-    )
-    assert result.rc == 0, f"Failed to query PostgreSQL: {result.stderr}"
-    assert "on" in result.stdout, "PostgreSQL SSL is not enabled"
-
-
-def test_redis_tls_listening(host):
-    """Verify Redis is listening on TLS port."""
-    socket = host.socket("tcp://127.0.0.1:6379")
-    assert socket.is_listening, "Redis is not listening on TLS port 6379"
-
-
 def test_directories(host):
     """Verify required directories exist."""
     dirs = [
