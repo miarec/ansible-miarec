@@ -148,7 +148,8 @@ tls-certs-redis: tls-certs-root ## Generate Redis server/client TLS bundle
 		$(OPENSSL) x509 -req -in $(CERTS_DIR)/redis/server.csr \
 			-CA $(CA_CERT) -CAkey $(CA_KEY) $(SERIAL_OPT) \
 			-out $(CERTS_DIR)/redis/server.crt \
-			-days $(TLS_DAYS) -sha256; \
+			-days $(TLS_DAYS) -sha256 \
+			-copy_extensions copy; \
 		rm -f $(CERTS_DIR)/redis/server.csr; \
 		chmod 644 $(CERTS_DIR)/redis/server.crt; \
 	else \
