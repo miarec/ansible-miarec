@@ -27,7 +27,7 @@
     - name: Configure MiaRec Recorder TLS settings
       set_fact:
         miarecweb_db_tls: "{{ postgresql_ssl | default(false) | bool }}"
-        miarecweb_db_tls_sslmode: "{{ 'verify-ca' if postgresql_ssl_require_clientcert | default(true) | bool else 'require' }}" '' }}"
+        miarecweb_db_tls_sslmode: "{{ 'verify-ca' if postgresql_ssl_require_clientcert | default(true) | bool else 'require' }}"
         miarecweb_redis_tls: "{{ redis_tls | default(false) | bool }}"
         miarecweb_redis_tls_cert_reqs: "{{ 'required' if (redis_tls | default(false) | bool) and (redis_tls_auth_clients | default(true) | bool) else 'optional' }}"
 
