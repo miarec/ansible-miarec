@@ -213,7 +213,7 @@
       set_fact:
         redis_make_tls: true
         redis_tls_auth_clients: "{{ redis_tls_auth_clients | bool }}"
-      when: redis_tls | bool
+      when: redis_tls | default(False) | bool
 
     - name: Define ip_address recorder and web hosts
       set_fact:

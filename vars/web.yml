@@ -18,9 +18,20 @@ python_cleanup_downloads: true
 python_force_install: false
 
 # Download the required sox components from MiaRec web-site to avoid dependencies on sourceforge.net and other sites
-sox_download_url: "https://miarec-download.s3.amazonaws.com/sox-{{ sox_version }}.tar.gz" 
+sox_download_url: "https://miarec-download.s3.amazonaws.com/sox-{{ sox_version }}.tar.gz"
 libmad_download_url: "https://miarec-download.s3.amazonaws.com/libmad-{{ libmad_version }}.tar.gz"
 libogg_download_url: "https://miarec-download.s3.amazonaws.com/libogg-{{ libogg_version }}.tar.gz"
 flac_download_url: "https://miarec-download.s3.amazonaws.com/flac-{{ flac_version }}.tar.xz"
 lame_download_url: "https://miarec-download.s3.amazonaws.com/lame-{{ lame_version }}.tar.gz"
 
+
+
+## -------------------------------
+## TLS Options
+## -------------------------------
+miarecweb_db_tls_ca_file: /etc/miarecweb/tls/ca.crt
+miarecweb_db_tls_cert_file: /etc/miarecweb/tls/client.crt
+miarecweb_db_tls_key_file: /etc/miarecweb/tls/client.key
+miarecweb_redis_tls_ca_file: /etc/miarecweb/tls/redis-ca.crt
+miarecweb_redis_tls_cert_file: /etc/miarecweb/tls/redis-client.crt
+miarecweb_redis_tls_key_file: /etc/miarecweb/tls/redis-client.key

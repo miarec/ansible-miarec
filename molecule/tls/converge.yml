@@ -19,58 +19,10 @@
         python_install_from_source: false
         sox_install_from_source: false
         # TLS configuration variables
-        # postgresql_ssl
-        # TLS for PostgreSQL
         postgresql_ssl: true
-        postgresql_ssl_cert_file: /etc/postgresql/tls/server.crt
-        postgresql_ssl_key_file: /etc/postgresql/tls/server.key
-        postgresql_ssl_ca_file: /etc/tls/ca/ca.crt
-        # postgresql_ssl_require_clientcert: false
-        # pgbouncer_client_tls
-        # TLS for client connections to pgbouncer
         pgbouncer_client_tls: true
-        pgbouncer_client_tls_sslmode: require
-        pgbouncer_client_tls_cert_file: /etc/pgbouncer/tls/server.crt
-        pgbouncer_client_tls_key_file: /etc/pgbouncer/tls/server.key
-        pgbouncer_client_tls_ca_file: /etc/tls/ca/ca.crt
-        # pgbouncer_server_tls
-        # TLS for pgbouncer connections to PostgreSQL
         pgbouncer_server_tls: true
-        pgbouncer_server_tls_sslmode: require
-        pgbouncer_server_tls_cert_file: /etc/pgbouncer/tls/client.crt
-        pgbouncer_server_tls_key_file: /etc/pgbouncer/tls/client.key
-        pgbouncer_server_tls_ca_file: /etc/pgbouncer/tls/ca.crt
-        # redis_tls
         redis_tls: true
-        redis_tls_cert: /etc/redis/tls/server.crt
-        redis_tls_key: /etc/redis/tls/server.key
-        redis_tls_ca_cert: /etc/tls/ca/ca.crt
-        redis_tls_auth_clients: true
-        # miarecweb PostgreSQL TLS configuration
-        miarecweb_db_tls: true
-        miarecweb_db_tls_sslmode: verify-ca
-        miarecweb_db_tls_ca_file: /etc/miarecweb/tls/ca.crt
-        miarecweb_db_tls_cert_file: /etc/miarecweb/tls/client.crt
-        miarecweb_db_tls_key_file: /etc/miarecweb/tls/client.key
-        # miarecweb-Redis TLS configuration
-        miarecweb_redis_tls: true
-        miarecweb_redis_tls_ca_file: /etc/miarecweb/tls/redis-ca.crt
-        miarecweb_redis_tls_cert_file: /etc/miarecweb/tls/redis-client.crt
-        miarecweb_redis_tls_key_file: /etc/miarecweb/tls/redis-client.key
-        miarecweb_redis_tls_cert_reqs: required
-        miarecweb_redis_tls_check_hostname: false
-        # miarec - PostgreSQL TLS configuration
-        miarec_db_use_ssl: true
-        miarec_db_tls_ca_file: /etc/miarec/tls/ca.crt
-        miarec_db_tls_cert_file: /etc/miarec/tls/client.crt
-        miarec_db_tls_key_file: /etc/miarec/tls/client.key
-        miarec_db_tls_check_hostname: false
-        # miarec-Redis TLS configuration
-        miarec_redis_use_ssl: true
-        miarec_redis_tls_ca_file: /etc/miarec/tls/redis-ca.crt
-        miarec_redis_tls_cert_file: /etc/miarec/tls/redis-client.crt
-        miarec_redis_tls_key_file: /etc/miarec/tls/redis-client.key
-        miarec_redis_tls_check_hostname: false
         # Molecule test database/user
         postgresql_extra_users:
           - name: testuser

@@ -66,28 +66,16 @@ postgresql_users: "{{ postgresql_users_default + postgresql_extra_users }}"
 # --------------------------------------
 # TLS settings
 # --------------------------------------
-postgresql_ssl: false
 postgresql_ssl_cert_file: /etc/postgresql/tls/server.crt
 postgresql_ssl_key_file: /etc/postgresql/tls/server.key
 postgresql_ssl_ca_file: /etc/postgresql/tls/ca.crt
 postgresql_ssl_require_clientcert: false
+
 postgresql_tls_extra_hba_users: []
 postgresql_tls_hba_users_default:
   - "{{ postgresql_admin_user }}"
   - "{{ miarec_db_user }}"
 postgresql_tls_hba_users: "{{ (postgresql_tls_hba_users_default + postgresql_tls_extra_hba_users) | unique }}"
-
-pgbouncer_client_tls: false
-pgbouncer_client_tls_sslmode: require
-pgbouncer_client_tls_cert_file: /etc/pgbouncer/tls/server.crt
-pgbouncer_client_tls_key_file: /etc/pgbouncer/tls/server.key
-pgbouncer_client_tls_ca_file: /etc/pgbouncer/tls/ca.crt
-
-pgbouncer_server_tls: false
-pgbouncer_server_tls_sslmode: require
-pgbouncer_server_tls_cert_file: /etc/pgbouncer/tls/client.crt
-pgbouncer_server_tls_key_file: /etc/pgbouncer/tls/client.key
-pgbouncer_server_tls_ca_file: /etc/pgbouncer/tls/ca.crt
 
 
 # --------------------------------------
@@ -108,6 +96,17 @@ pgbouncer_stats_users:
   - stats
   - "{{ miarec_db_user }}"
 
+# Client TLS settings
+pgbouncer_client_tls_sslmode: require
+pgbouncer_client_tls_cert_file: /etc/pgbouncer/tls/server.crt
+pgbouncer_client_tls_key_file: /etc/pgbouncer/tls/server.key
+pgbouncer_client_tls_ca_file: /etc/pgbouncer/tls/ca.crt
+
+# Server TLS settings (for connections from pgbouncer to PostgreSQL)
+pgbouncer_server_tls_sslmode: require
+pgbouncer_server_tls_cert_file: /etc/pgbouncer/tls/client.crt
+pgbouncer_server_tls_key_file: /etc/pgbouncer/tls/client.key
+pgbouncer_server_tls_ca_file: /etc/pgbouncer/tls/ca.crt
 
 # --------------------------------------
 # Optimizations

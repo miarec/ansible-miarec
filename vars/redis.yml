@@ -9,7 +9,6 @@ redis_port: 6379
 redis_verify_checksum: true
 
 ## TLS options
-redis_tls: false
 redis_tls_cert: /etc/redis/tls/server.crt
 redis_tls_key: /etc/redis/tls/server.key
 redis_tls_ca_cert: /etc/redis/tls/ca.crt
