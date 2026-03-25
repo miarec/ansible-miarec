@@ -24,10 +24,17 @@
         miarecweb_celery_user: celery
         miarec_bin_group: miarec
 
-    - name: Configure MiaRec Recorder TLS settings
+    - name: Configure MiaRec Web TLS settings
       set_fact:
-        miarecweb_db_tls: "{{ postgresql_ssl | default(false) | bool }}"
-        miarecweb_db_tls_sslmode: "{{ 'verify-ca' if postgresql_ssl_require_clientcert | default(true) | bool else 'require' }}"
+        miarecweb_db_tls: >-
+          {{
+            (postgresql_ssl | default(false) | bool) or
+            (
+              (install_pgbouncer | default(false) | bool) and
+              (pgbouncer_client_tls | default(false) | bool)
+            )
+          }}
+        miarecweb_db_tls_sslmode: "{{ ((install_pgbouncer | default(false) | bool) and (pgbouncer_client_tls | default(false) | bool)) | ternary(pgbouncer_client_tls_sslmode | default('require'), 'verify-ca' if postgresql_ssl_require_clientcert | default(true) | bool else 'require') }}"
         miarecweb_redis_tls: "{{ redis_tls | default(false) | bool }}"
         miarecweb_redis_tls_cert_reqs: "{{ 'required' if (redis_tls | default(false) | bool) and (redis_tls_auth_clients | default(true) | bool) else 'optional' }}"
 
@@ -62,7 +69,14 @@
 
     - name: Configure MiaRec Recorder TLS settings
       set_fact:
-        miarec_db_use_ssl: "{{ postgresql_ssl | default(false) | bool }}"
+        miarec_db_use_ssl: >-
+          {{
+            (postgresql_ssl | default(false) | bool) or
+            (
+              (install_pgbouncer | default(false) | bool) and
+              (pgbouncer_client_tls | default(false) | bool)
+            )
+          }}
         miarec_redis_use_ssl: "{{ redis_tls | default(false) | bool }}"
 
     - debug: var=miarec_db_host
