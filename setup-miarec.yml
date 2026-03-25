@@ -21,6 +21,24 @@
         miarecweb_install_apache: "{{ 'web' in group_names }}"
         miarecweb_install_celeryd: "{{ 'celery' in group_names }}"
         miarecweb_install_celerybeat: "{{ 'celerybeat' in group_names }}"
+        miarecweb_celery_user: celery
+        miarec_bin_group: miarec
+
+    - name: Configure MiaRec Web TLS settings
+      set_fact:
+        miarecweb_db_tls: >-
+          {{
+            (postgresql_ssl | default(false) | bool) or
+            (
+              (install_pgbouncer | default(false) | bool) and
+              (pgbouncer_client_tls | default(false) | bool)
+            )
+          }}
+        miarecweb_db_tls_sslmode: "{{ ((install_pgbouncer | default(false) | bool) and (pgbouncer_client_tls | default(false) | bool)) | ternary(pgbouncer_client_tls_sslmode | default('require'), 'verify-ca' if postgresql_ssl_require_clientcert | default(true) | bool else 'require') }}"
+        miarecweb_redis_tls: "{{ redis_tls | default(false) | bool }}"
+        miarecweb_redis_tls_cert_reqs: "{{ 'required' if (redis_tls | default(false) | bool) and (redis_tls_auth_clients | default(true) | bool) else 'optional' }}"
+
+
     - debug: var=miarecweb_db_host
     - debug: var=miarecweb_redis_host
   roles:
@@ -29,12 +47,14 @@
 
 
 # ------------------------------------------------
-# Deploy MiaRec recorder
+# Deploy MiaRec Recorder
 # ------------------------------------------------
 - name: Deploy MiaRec Recorder application
   hosts: recorder
   vars_files:
     - vars/db.yml
+    - vars/recorder.yml
+
   pre_tasks:
     - name: Include custom vars
       include_vars: vars/custom.yml
@@ -45,6 +65,19 @@
         miarec_redis_host: "{{ hostvars[groups.redis.0].private_ip_address }}"
         miarec_http_call_events_host: "{{ hostvars[groups.web.0].private_ip_address }}"
         miarec_rest_api_permitted_hosts: "{{ groups['web'] | map('extract', hostvars, ['private_ip_address']) | join(';') }}"
+        miarec_bin_group: miarec
+
+    - name: Configure MiaRec Recorder TLS settings
+      set_fact:
+        miarec_db_use_ssl: >-
+          {{
+            (postgresql_ssl | default(false) | bool) or
+            (
+              (install_pgbouncer | default(false) | bool) and
+              (pgbouncer_client_tls | default(false) | bool)
+            )
+          }}
+        miarec_redis_use_ssl: "{{ redis_tls | default(false) | bool }}"
 
     - debug: var=miarec_db_host
     - debug: var=miarec_redis_host

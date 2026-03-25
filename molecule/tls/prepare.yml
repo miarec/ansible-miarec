@@ -1,0 +1,95 @@
+---
+# Install version-specific Python on RedHat-based systems
+# The python role only installs generic 'python3', but Rocky/RHEL 9 ships
+# with Python 3.9 while we need Python 3.12 for testing.
+- name: Install version-specific Python on RedHat-based systems
+  hosts: all
+  become: true
+  vars:
+    molecule_python_version: "{{ lookup('env', 'MOLECULE_PYTHON_VERSION') | default('', true) }}"
+
+  tasks:
+    # Only run on RedHat-based systems where we need version-specific Python
+    - name: Install version-specific Python | RedHat
+      when: ansible_facts['os_family'] == "RedHat"
+      block:
+
+        - name: Set python_version when not already set | Rocky/RHEL only
+          set_fact:
+            python_version: "{{ molecule_python_version | default('3.12', true) }}"
+
+        - name: Python | Parse version
+          set_fact:
+            _python_major_minor: "{{ '.'.join(python_version.split('.')[:2]) }}"
+
+        - name: Python | Install EPEL repository
+          yum:
+            name: epel-release
+            state: present
+          when: ansible_facts['distribution'] != "RedHat"
+
+        - name: "Python | Install Python packages {{ _python_major_minor }}"
+          package:
+            name:
+              - "python{{ _python_major_minor }}"
+              - "python{{ _python_major_minor }}-devel"
+              - "python{{ _python_major_minor }}-pip"
+            state: present
+
+- name: TLS certificate generation
+  hosts: all
+  become: true
+  vars:
+    pgbouncer_tls_owner: "{{ 'pgbouncer' if ansible_facts['os_family'] == 'RedHat' else 'postgres' }}"
+    certificates:
+      - dir: /etc/postgresql/tls
+        owner: postgres
+        group: postgres
+        CN: "postgresql"
+        type: server
+      - dir: /etc/pgbouncer/tls
+        owner: "{{ pgbouncer_tls_owner }}"
+        group: "{{ pgbouncer_tls_owner }}"
+        CN: "pgbouncer-server"
+        type: server
+      - dir: /etc/pgbouncer/tls
+        owner: "{{ pgbouncer_tls_owner }}"
+        group: "{{ pgbouncer_tls_owner }}"
+        CN: "pgbouncer-client"
+        type: client
+      - dir: /etc/redis/tls
+        owner: redis
+        group: redis
+        CN: "redis"
+        type: server
+      - dir: /etc/redis/tls
+        owner: redis
+        group: redis
+        CN: "redis-client"
+        type: client
+      - dir: /etc/miarec/tls
+        owner: root
+        group: miarec
+        CN: "miarec"
+        type: client
+      - dir: /etc/miarec/tls
+        owner: root
+        group: miarec
+        CN: "miarec"
+        type: redis-client
+        ca_filename: "redis-ca.crt"
+      - dir: /etc/miarecweb/tls
+        owner: root
+        group: miarec
+        CN: "miarecweb"
+        type: client
+      - dir: /etc/miarecweb/tls
+        owner: root
+        group: miarec
+        CN: "miarecweb"
+        type: redis-client
+        ca_filename: "redis-ca.crt"
+
+  tasks:
+    - name: Include TLS certificate generation tasks
+      include_tasks: tasks/certificates.yml

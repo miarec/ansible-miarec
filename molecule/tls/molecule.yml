@@ -1,10 +1,12 @@
 ---
 dependency:
   name: galaxy
+
 driver:
   name: docker
+
 platforms:
-  - name: ansible-miarec-${MOLECULE_DISTRO:-ubuntu2404}
+  - name: ansible-miarec-tls-${MOLECULE_DISTRO:-ubuntu2404}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - recorder
@@ -21,23 +23,25 @@ platforms:
     cgroupns_mode: host
     privileged: true
     pre_build_image: true
+
 provisioner:
   name: ansible
   playbooks:
-    converge: ${MOLECULE_PLAYBOOK:-converge.yml}
+    prepare: prepare.yml
+    converge: converge.yml
   env:
     ANSIBLE_VERBOSITY: ${MOLECULE_ANSIBLE_VERBOSITY:-0}
+    MOLECULE_DISTRO: ${MOLECULE_DISTRO:-ubuntu2404}
     MIARECWEB_VERSION: ${MOLECULE_MIARECWEB_VERSION:-"2026.1.11.236"}
     MIARECWEB_SECRET: ${MOLECULE_MIARECWEB_SECRET:-"secret"}
     MIAREC_VERSION: ${MOLECULE_MIAREC_VERSION:-"2025.12.2.13"}
     MIAREC_SCREEN_VERSION: ${MOLECULE_MIAREC_SCREEN_VERSION:-"2024.6.2.0"}
     MIAREC_LIVEMON_VERSION: ${MOLECULE_MIAREC_LIVEMON_VERSION:-"0.1.0.183"}
-    # PYTHON_VERSION: ${MOLECULE_PYTHON_VERSION:-"3.10"}  # Python is installed from pacakge by default
     POSTGRESQL_VERSION: ${MOLECULE_POSTGRESQL_VERSION:-"15"}
-    PGBOUNCER_INSTALL: ${MOLECULE_PGBOUNCER_INSTALL:-"true"}
 
 verifier:
   name: testinfra
+  directory: tests
   options:
     s: true
     verbose: true

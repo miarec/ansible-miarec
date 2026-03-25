@@ -1,0 +1,170 @@
+---
+# Generate TLS certificates and keys for testing
+- name: Install OpenSSL
+  package:
+    name: openssl
+    state: present
+
+# Generate Shared CA for all services
+- name: Create Shared CA directory
+  file:
+    path: /etc/tls/ca
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Generate CA private keys
+  command: openssl genrsa -out /etc/tls/ca/ca.key 4096
+  args:
+    creates: "/etc/tls/ca/ca.key"
+
+- name: Set CA key permissions
+  file:
+    path: "/etc/tls/ca/ca.key"
+    mode: "0600"
+
+- name: Generate CA certificate
+  command: >
+    openssl req -x509 -new -nodes
+    -key /etc/tls/ca/ca.key
+    -sha256 -days 365
+    -out /etc/tls/ca/ca.crt
+    -subj "/CN=miarec-tls-CA"
+  args:
+    creates: "/etc/tls/ca/ca.crt"
+
+- name: Set CA certificate permissions
+  file:
+    path: "/etc/tls/ca/ca.crt"
+    mode: "0644"
+
+
+# Create Users ansd Groups and TLS directories for each Certirficate
+- name: Create Groups
+  group:
+    name: "{{ item.group }}"
+    state: present
+  loop: "{{ certificates}}"
+
+- name: Create Users
+  user:
+    name: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    system: true
+    create_home: false
+    shell: /bin/false
+    state: present
+  loop: "{{ certificates }}"
+
+- name: Create TLS directories
+  file:
+    path: "{{ item.dir }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "0755"
+  loop: "{{ certificates }}"
+
+
+
+
+
+
+# Generate  Certificate for each service
+
+- name: Generate private key
+  command: openssl genrsa -out {{ item.dir }}/{{ item.type }}.key 2048
+  args:
+    creates: "{{ item.dir }}/{{ item.type }}.key"
+  loop: "{{ certificates }}"
+
+
+- name: Create certificate config
+  copy:
+    dest: "{{ item.dir }}/{{ item.type }}.cnf"
+    mode: "0644"
+    content: |
+      {% if item.type in ["client", "redis-client"] %}
+      [req]
+      distinguished_name = req_distinguished_name
+      req_extensions = v3_req
+      prompt = no
+
+      [req_distinguished_name]
+      CN = {{ item.CN }}
+
+      [v3_req]
+      keyUsage = digitalSignature
+      extendedKeyUsage = clientAuth
+
+      {% elif item.type == "server" %}
+      [req]
+      distinguished_name = req_distinguished_name
+      req_extensions = v3_req
+      prompt = no
+
+      [req_distinguished_name]
+      CN = localhost
+
+      [v3_req]
+      keyUsage = keyEncipherment, dataEncipherment
+      extendedKeyUsage = serverAuth
+      subjectAltName = @alt_names
+
+      [alt_names]
+      DNS.1 = localhost
+      IP.1 = 127.0.0.1
+      {% endif %}
+  loop: "{{ certificates }}"
+
+- name: Generate client CSR
+  command: >
+    openssl req -new
+    -key {{ item.dir }}/{{ item.type }}.key
+    -out {{ item.dir }}/{{ item.type }}.csr
+    -config {{ item.dir }}/{{ item.type }}.cnf
+  args:
+    creates: "{{ item.dir }}/{{ item.type }}.csr"
+  loop: "{{ certificates }}"
+
+- name: Sign certificate with CA
+  command: >
+    openssl x509 -req
+    -in {{ item.dir }}/{{ item.type }}.csr
+    -CA /etc/tls/ca/ca.crt
+    -CAkey /etc/tls/ca/ca.key
+    -CAcreateserial
+    -out {{ item.dir }}/{{ item.type }}.crt
+    -days 365 -sha256
+    -extensions v3_req
+    -extfile {{ item.dir }}/{{ item.type }}.cnf
+  args:
+    creates: "{{ item.dir }}/{{ item.type }}.crt"
+  loop: "{{ certificates }}"
+
+- name: Set key permissions
+  file:
+    path: "{{ item.dir }}/{{ item.type }}.key"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ '0640' if item.owner == 'root' else '0600' }}"
+  loop: "{{ certificates }}"
+
+- name: Set certificate permissions
+  file:
+    path: "{{ item.dir }}/{{ item.type }}.crt"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "0644"
+  loop: "{{ certificates }}"
+
+- name: Copy CA certificate into service directories
+  copy:
+    src: /etc/tls/ca/ca.crt
+    dest: "{{ item.dir }}/{{ item.ca_filename | default('ca.crt') }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "0644"
+    remote_src: true
+  loop: "{{ certificates }}"

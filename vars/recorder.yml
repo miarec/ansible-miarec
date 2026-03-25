@@ -1,0 +1,10 @@
+## -------------------------------
+## TLS Options
+## -------------------------------
+miarec_db_tls_ca_file: /etc/miarec/tls/ca.crt
+miarec_db_tls_cert_file: /etc/miarec/tls/client.crt
+miarec_db_tls_key_file: /etc/miarec/tls/client.key
+
+miarec_redis_tls_ca_file: /etc/miarec/tls/redis-ca.crt
+miarec_redis_tls_cert_file: /etc/miarec/tls/redis-client.crt
+miarec_redis_tls_key_file: /etc/miarec/tls/redis-client.key

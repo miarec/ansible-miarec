@@ -5,16 +5,23 @@
 - name: Prepare
   hosts: all
   become: true
+  vars:
+    molecule_python_version: "{{ lookup('env', 'MOLECULE_PYTHON_VERSION') | default('', true) }}"
 
   tasks:
-    - name: Set python_version from environment
-      set_fact:
-        python_version: "{{ lookup('env', 'PYTHON_VERSION') }}"
+    # - name: Set python_version from environment
+    #   set_fact:
+    #     python_version: "{{ lookup('env', 'PYTHON_VERSION') }}"
 
     # Only run on RedHat-based systems where we need version-specific Python
     - name: Install version-specific Python | RedHat
       when: ansible_facts['os_family'] == "RedHat"
       block:
+
+        - name: Set python_version when not already set | Rocky/RHEL only
+          set_fact:
+            python_version: "{{ molecule_python_version | default('3.12', true) }}"
+
         - name: Python | Parse version
           set_fact:
             _python_major_minor: "{{ '.'.join(python_version.split('.')[:2]) }}"
@@ -25,7 +32,7 @@
             state: present
           when: ansible_facts['distribution'] != "RedHat"
 
-        - name: Python | Install Python{{ _python_major_minor }} packages
+        - name: "Python | Install Python packages {{ _python_major_minor }}"
           package:
             name:
               - "python{{ _python_major_minor }}"
