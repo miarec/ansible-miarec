@@ -9,6 +9,9 @@ def test_redis_service_running(host):
     """Verify Redis service is enabled and running."""
     if host.system_info.distribution == "ubuntu":
         s = host.service("redis-server")
+    elif host.run("systemctl cat redis_6379").rc == 0:
+        # Redis built from source (EL 7 and 8) runs as redis_<port>
+        s = host.service("redis_6379")
     else:
         s = host.service("redis")
     assert s.is_enabled

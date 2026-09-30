@@ -34,6 +34,15 @@
         postgresql_tls_extra_hba_users:
           - testuser
 
+    # Redis added TLS in 6.0. EL 8 packages Redis 5 and EL 7 packages Redis 3,
+    # so build Redis from source there.
+    - name: Build Redis from source | RHEL 7 and 8
+      set_fact:
+        redis_install_from_source: true
+      when:
+        - ansible_facts['os_family'] == "RedHat"
+        - ansible_facts['distribution_major_version'] | int < 9
+
     - name: Apply MOLECULE_PYTHON_VERSION override when provided
       when: molecule_python_version | length > 0
       set_fact:

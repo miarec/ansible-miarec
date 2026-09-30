@@ -32,6 +32,8 @@ MOLECULE_DISTRO=centos7 MOLECULE_MIARECWEB_VERSION=8.0.0.3909 molecule test
 
 End-to-end TLS provisioning that runs `prepare-hosts.yml` and `setup-miarec.yml` with TLS toggles enabled, copies self-signed certificates via the repository `Makefile`, and verifies TLS-only connectivity via Testinfra.
 
+On RHEL 7 and 8, the scenario builds Redis from source, because the distribution packages predate Redis 6.0, the first version with TLS support.
+
 ```
 MOLECULE_DISTRO=ubuntu2204 molecule test -s tls
 ```

@@ -215,6 +215,20 @@
         redis_tls_auth_clients: "{{ redis_tls_auth_clients | bool }}"
       when: redis_tls | default(False) | bool
 
+    # Redis added TLS in 6.0. The distribution packages are older on
+    # RHEL 7 (3.2), RHEL 8 (5.0), and Ubuntu 20.04 (5.0).
+    - name: Check that packaged Redis supports TLS
+      fail:
+        msg: >-
+          Redis TLS requires Redis 6.0 or later, but the {{ ansible_facts['distribution'] }}
+          {{ ansible_facts['distribution_version'] }} package is older.
+          Set redis_install_from_source to true.
+      when:
+        - redis_tls | default(False) | bool
+        - not (redis_install_from_source | default(False) | bool)
+        - (ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] | int < 9)
+          or (ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_version'] is version('22.04', '<'))
+
     - name: Define ip_address recorder and web hosts
       set_fact:
         ip_address: "{{ hostvars[item].private_ip_address }}"
