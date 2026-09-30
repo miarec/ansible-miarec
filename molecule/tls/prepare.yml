@@ -9,9 +9,12 @@
     molecule_python_version: "{{ lookup('env', 'MOLECULE_PYTHON_VERSION') | default('', true) }}"
 
   tasks:
-    # Only run on RedHat-based systems where we need version-specific Python
+    # Only run on RedHat-based systems where we need version-specific Python.
+    # RHEL 7 has no packages for Python 3.10 or later, so converge.yml builds Python from source.
     - name: Install version-specific Python | RedHat
-      when: ansible_facts['os_family'] == "RedHat"
+      when:
+        - ansible_facts['os_family'] == "RedHat"
+        - ansible_facts['distribution_major_version'] != '7'
       block:
 
         - name: Set python_version when not already set | Rocky/RHEL only

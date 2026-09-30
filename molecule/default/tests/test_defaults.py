@@ -25,22 +25,19 @@ def test_directories(host):
         assert d.is_directory, f"Directory {dir} does not exist"
         assert d.exists
 
+
 def test_files(host):
     """Test that infrastructure config files exist."""
-    distribution = host.system_info.distribution
-    release = host.system_info.release
-
-    if distribution.lower() == "ubuntu":
+    if host.system_info.distribution == "ubuntu":
         postgresql_conf = "/etc/postgresql/{}/main/postgresql.conf".format(postgresql_version)
         redis_conf = "/etc/redis/redis.conf"
-
-    elif release.startswith("9"):
-        postgresql_conf = "/var/lib/pgsql/{}/data/postgresql.conf".format(postgresql_version)
-        redis_conf = "/etc/redis/redis.conf"
-
     else:
         postgresql_conf = "/var/lib/pgsql/{}/data/postgresql.conf".format(postgresql_version)
-        redis_conf = "/etc/redis.conf"
+        # The Redis package moved its config file to /etc/redis/ in EL9
+        if int(host.system_info.release.split(".")[0]) >= 9:
+            redis_conf = "/etc/redis/redis.conf"
+        else:
+            redis_conf = "/etc/redis.conf"
 
     files = [
         postgresql_conf,
@@ -52,26 +49,6 @@ def test_files(host):
         f = host.file(file)
         assert f.exists, f"File {file} does not exist"
         assert f.is_file
-
-# def test_files(host):
-#     """Test that infrastructure config files exist."""
-#     if host.system_info.distribution == "ubuntu":
-#         postgresql_conf = "/etc/postgresql/{}/main/postgresql.conf".format(postgresql_version)
-#         redis_conf = "/etc/redis/redis.conf"
-#     else:
-#         postgresql_conf = "/var/lib/pgsql/{}/data/postgresql.conf".format(postgresql_version)
-#         redis_conf = "/etc/redis.conf"
-
-#     files = [
-#         postgresql_conf,
-#         redis_conf,
-#         "/etc/pgbouncer/pgbouncer.ini",
-#     ]
-
-#     for file in files:
-#         f = host.file(file)
-#         assert f.exists, f"File {file} does not exist"
-#         assert f.is_file
 
 
 def test_service(host):

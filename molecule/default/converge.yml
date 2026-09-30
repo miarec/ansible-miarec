@@ -32,7 +32,21 @@
         python_version: "3.12"
       when:
         - ansible_facts['os_family'] == "RedHat"
+        - ansible_facts['distribution_major_version'] != '7'
         - molecule_python_version | length == 0
+
+    # RHEL 7 has no Python 3.12 packages, so build Python from source.
+    # A source build needs the full version (like 3.11.16) to download the tarball.
+    # Use Python 3.11: miarecweb depends on onnxruntime, which has no cp312 wheels for glibc 2.17.
+    # The sox role requires a source build on RHEL 7 for mp3 support.
+    - name: Set source install variables | RHEL 7
+      set_fact:
+        python_install_from_source: true
+        python_version: "{{ molecule_python_version | default('3.11.16', true) }}"
+        sox_install_from_source: true
+      when:
+        - ansible_facts['os_family'] == "RedHat"
+        - ansible_facts['distribution_major_version'] == '7'
 
 - name: Run prepare-hosts playbook
   import_playbook: ../../prepare-hosts.yml
