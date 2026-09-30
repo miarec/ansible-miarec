@@ -2,6 +2,8 @@
 - name: Converge
   hosts: all
   # become: true
+  vars:
+    molecule_python_version: "{{ lookup('env', 'MOLECULE_PYTHON_VERSION') | default('', true) }}"
 
   pre_tasks:
 
@@ -15,11 +17,22 @@
         miarec_livemon_version: "{{ lookup('env', 'MIAREC_LIVEMON_VERSION') }}"
         postgresql_version: "{{ lookup('env', 'POSTGRESQL_VERSION') }}"
         install_pgbouncer: "{{ lookup('env', 'PGBOUNCER_INSTALL') }}"
-        python_version: "{{ lookup('env', 'PYTHON_VERSION') }}"
         # Use system packages instead of compiling from source
         redis_install_from_source: false
         python_install_from_source: false
         sox_install_from_source: false
+
+    - name: Apply MOLECULE_PYTHON_VERSION override when provided
+      when: molecule_python_version | length > 0
+      set_fact:
+        python_version: "{{ molecule_python_version }}"
+
+    - name: Set python_version when not already set | Rocky/RHEL only
+      set_fact:
+        python_version: "3.12"
+      when:
+        - ansible_facts['os_family'] == "RedHat"
+        - molecule_python_version | length == 0
 
 - name: Run prepare-hosts playbook
   import_playbook: ../../prepare-hosts.yml
