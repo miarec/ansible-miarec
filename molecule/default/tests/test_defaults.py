@@ -33,7 +33,11 @@ def test_files(host):
         redis_conf = "/etc/redis/redis.conf"
     else:
         postgresql_conf = "/var/lib/pgsql/{}/data/postgresql.conf".format(postgresql_version)
-        redis_conf = "/etc/redis.conf"
+        # The Redis package moved its config file to /etc/redis/ in EL9
+        if int(host.system_info.release.split(".")[0]) >= 9:
+            redis_conf = "/etc/redis/redis.conf"
+        else:
+            redis_conf = "/etc/redis.conf"
 
     files = [
         postgresql_conf,
