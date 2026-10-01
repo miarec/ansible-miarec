@@ -1,0 +1,98 @@
+---
+# Install version-specific Python on RedHat-based systems
+# The python role only installs generic 'python3', but Rocky/RHEL 9 ships
+# with Python 3.9 while we need Python 3.12 for testing.
+- name: Install version-specific Python on RedHat-based systems
+  hosts: all
+  become: true
+  vars:
+    molecule_python_version: "{{ lookup('env', 'MOLECULE_PYTHON_VERSION') | default('', true) }}"
+
+  tasks:
+    # Only run on RedHat-based systems where we need version-specific Python.
+    # RHEL 7 has no packages for Python 3.10 or later, so converge.yml builds Python from source.
+    - name: Install version-specific Python | RedHat
+      when:
+        - ansible_facts['os_family'] == "RedHat"
+        - ansible_facts['distribution_major_version'] != '7'
+      block:
+
+        - name: Set python_version when not already set | Rocky/RHEL only
+          set_fact:
+            python_version: "{{ molecule_python_version | default('3.12', true) }}"
+
+        - name: Python | Parse version
+          set_fact:
+            _python_major_minor: "{{ '.'.join(python_version.split('.')[:2]) }}"
+
+        - name: Python | Install EPEL repository
+          yum:
+            name: epel-release
+            state: present
+          when: ansible_facts['distribution'] != "RedHat"
+
+        - name: "Python | Install Python packages {{ _python_major_minor }}"
+          package:
+            name:
+              - "python{{ _python_major_minor }}"
+              - "python{{ _python_major_minor }}-devel"
+              - "python{{ _python_major_minor }}-pip"
+            state: present
+
+# Generate the TLS certificate set the same way an operator does, with the
+# repository Makefile, into a directory that is private to this scenario run.
+# converge.yml points tls_certs_dir at it, so prepare-hosts.yml and
+# setup-miarec.yml upload the files exactly as in production.
+- name: Generate TLS certificates on the control machine
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  vars:
+    molecule_tls_certs_dir: "{{ lookup('env', 'MOLECULE_TLS_CERTS_DIR') }}"
+    molecule_project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+
+  tasks:
+    - name: Check MOLECULE_TLS_CERTS_DIR
+      assert:
+        that: molecule_tls_certs_dir | length > 0
+        fail_msg: MOLECULE_TLS_CERTS_DIR is not set, see molecule.yml
+
+    - name: Generate the certificate set with make
+      command: make tls-certs-all CERTS_DIR={{ molecule_tls_certs_dir | quote }}
+      args:
+        chdir: "{{ molecule_project_dir }}"
+      register: _make_certs
+      changed_when: "'create' in _make_certs.stdout"
+
+    - name: Validate the certificate set
+      command: make tls-certs-validate CERTS_DIR={{ molecule_tls_certs_dir | quote }}
+      args:
+        chdir: "{{ molecule_project_dir }}"
+      changed_when: false
+
+
+# Test fixture: a client certificate that no service CA has signed.
+- name: Create an untrusted client certificate for negative tests
+  hosts: all
+  become: true
+  tasks:
+    - name: Install OpenSSL
+      package:
+        name: openssl
+        state: present
+
+    - name: Create fixture directory
+      file:
+        path: /var/tmp/tls-untrusted
+        state: directory
+        mode: "0755"
+
+    - name: Generate a self-signed client certificate
+      command: >
+        openssl req -x509 -newkey rsa:2048 -nodes -sha256 -days 30
+        -subj "/CN=untrusted-client"
+        -keyout /var/tmp/tls-untrusted/client.key
+        -out /var/tmp/tls-untrusted/client.crt
+      args:
+        creates: /var/tmp/tls-untrusted/client.crt

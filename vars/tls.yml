@@ -1,0 +1,47 @@
+---
+## -------------------------------
+## TLS certificate set (local files)
+## -------------------------------
+# The playbooks upload TLS certificates and private keys from this directory
+# on the Ansible control machine to the target hosts.
+#
+# Fill it with either:
+#   - a self-signed set:  make tls-certs-all
+#   - certificates issued by your own CA, in the same layout (see Makefile).
+#
+# Check the set before a deployment:  make tls-certs-validate
+tls_certs_dir: "{{ playbook_dir }}/certs"
+
+# PostgreSQL server (hosts: db)
+postgresql_ssl_cert_file_src: "{{ tls_certs_dir }}/postgresql/server.crt"
+postgresql_ssl_key_file_src: "{{ tls_certs_dir }}/postgresql/server.key"
+postgresql_ssl_ca_file_src: "{{ tls_certs_dir }}/postgresql/ca.crt"
+
+# PGBouncer (hosts: db). The "client" files are used for connections to PostgreSQL.
+pgbouncer_client_tls_cert_file_src: "{{ tls_certs_dir }}/pgbouncer/server.crt"
+pgbouncer_client_tls_key_file_src: "{{ tls_certs_dir }}/pgbouncer/server.key"
+pgbouncer_client_tls_ca_file_src: "{{ tls_certs_dir }}/pgbouncer/ca.crt"
+pgbouncer_server_tls_cert_file_src: "{{ tls_certs_dir }}/pgbouncer/client.crt"
+pgbouncer_server_tls_key_file_src: "{{ tls_certs_dir }}/pgbouncer/client.key"
+pgbouncer_server_tls_ca_file_src: "{{ tls_certs_dir }}/pgbouncer/ca.crt"
+
+# Redis server (hosts: redis)
+redis_tls_cert_src: "{{ tls_certs_dir }}/redis/server.crt"
+redis_tls_key_src: "{{ tls_certs_dir }}/redis/server.key"
+redis_tls_ca_cert_src: "{{ tls_certs_dir }}/redis/ca.crt"
+
+# MiaRec Web and Celery (hosts: web, celery, celerybeat)
+miarecweb_db_tls_ca_file_src: "{{ tls_certs_dir }}/miarecweb/ca.crt"
+miarecweb_db_tls_cert_file_src: "{{ tls_certs_dir }}/miarecweb/client.crt"
+miarecweb_db_tls_key_file_src: "{{ tls_certs_dir }}/miarecweb/client.key"
+miarecweb_redis_tls_ca_file_src: "{{ tls_certs_dir }}/miarecweb/redis-ca.crt"
+miarecweb_redis_tls_cert_file_src: "{{ tls_certs_dir }}/miarecweb/redis-client.crt"
+miarecweb_redis_tls_key_file_src: "{{ tls_certs_dir }}/miarecweb/redis-client.key"
+
+# MiaRec recorder (hosts: recorder)
+miarec_db_tls_ca_file_src: "{{ tls_certs_dir }}/miarec/ca.crt"
+miarec_db_tls_cert_file_src: "{{ tls_certs_dir }}/miarec/client.crt"
+miarec_db_tls_key_file_src: "{{ tls_certs_dir }}/miarec/client.key"
+miarec_redis_tls_ca_file_src: "{{ tls_certs_dir }}/miarec/redis-ca.crt"
+miarec_redis_tls_cert_file_src: "{{ tls_certs_dir }}/miarec/redis-client.crt"
+miarec_redis_tls_key_file_src: "{{ tls_certs_dir }}/miarec/redis-client.key"

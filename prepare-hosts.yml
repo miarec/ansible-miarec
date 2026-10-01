@@ -19,6 +19,7 @@
   hosts: db
   vars_files:
     - vars/db.yml
+    - vars/tls.yml
   become: true
 
   pre_tasks:
@@ -26,24 +27,48 @@
       include_vars: vars/custom.yml
       failed_when: false
 
-    - name: Define connection values
+    - name: Compute PostgreSQL TLS hba parameters
       set_fact:
-        postgresql_pg_hba_custom:
-          - comment: 'IPv4 local connections:'
-            address: '127.0.0.1/32'
-            type: host
-            database: all
-            user: "{{ miarec_db_user }}"
-            method: 'md5'
+        _postgresql_hba_type: "{{ 'hostssl' if postgresql_ssl | bool else 'host' }}"
+        _postgresql_hba_method: "{{ 'md5' if not postgresql_ssl | bool else 'md5' + (postgresql_ssl_require_clientcert | bool | ternary(' clientcert=verify-ca', '')) }}"
+      when: postgresql_ssl | bool
 
-          - comment: 'IPv6 local connections:'
-            address: '::1/128'
-            type: host
-            database: all
-            user: "{{ miarec_db_user }}"
-            method: 'md5'
+    - name: Initialize TLS pg_hba entries
+      set_fact:
+        _postgresql_tls_hba_users: "{{ postgresql_tls_hba_users | default([postgresql_admin_user, miarec_db_user]) }}"
+        postgresql_pg_hba_custom: []
+      when: postgresql_ssl | bool
 
-      when: not install_pgbouncer | default(False) | bool
+    - name: Define connection values
+      vars:
+        _user_method: >-
+          {{
+            (
+              item == (postgresql_admin_user | default('postgres'))
+            )
+            | ternary('trust', _postgresql_hba_method)
+          }}
+      set_fact:
+        postgresql_pg_hba_custom: "{{ postgresql_pg_hba_custom + [
+          {
+            'comment': 'IPv4 TLS local connections for ' ~ item ~ ':',
+            'address': '127.0.0.1/32',
+            'type': _postgresql_hba_type,
+            'database': 'all',
+            'user': item,
+            'method': _user_method
+          },
+          {
+            'comment': 'IPv6 TLS local connections for ' ~ item ~ ':',
+            'address': '::1/128',
+            'type': _postgresql_hba_type,
+            'database': 'all',
+            'user': item,
+            'method': _user_method
+          }
+        ] }}"
+      loop: "{{ _postgresql_tls_hba_users }}"
+      when: postgresql_ssl | bool
 
     - name: Define connection rule for Recorder and Web servers
       set_fact:
@@ -51,37 +76,71 @@
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
           address: "{{ hostvars[item].private_ip_address }}/32"
           user: "{{ miarec_db_user }}"
-          type: host
+          type: "{{ _postgresql_hba_type }}"
           database: "{{ miarec_db_name }}"
-          method: 'md5'
+          method: "{{ _postgresql_hba_method }}"
       with_items: "{{ groups.recorder + groups.web }}"
-      when: not install_pgbouncer | default(False) | bool and hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
+      when: postgresql_ssl | bool and not install_pgbouncer | default(False) | bool and hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
       register: tmp_pg_hba_rules
 
     - name: Print tmp_pg_hba_rules
       debug:
         var: tmp_pg_hba_rules
-      when: not install_pgbouncer | default(False) | bool
+      when: postgresql_ssl | bool and not install_pgbouncer | default(False) | bool
 
     - name: Define pg_hba_rules
       set_fact:
         pg_hba_rules: "{{ tmp_pg_hba_rules.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.tmp_rule') | list }}"
-      when: not install_pgbouncer | default(False) | bool
+      when: postgresql_ssl | bool and not install_pgbouncer | default(False) | bool
 
     - name: Render postgresql_pg_hba_custom
       set_fact:
         postgresql_pg_hba_custom: "{{ postgresql_pg_hba_custom + pg_hba_rules }}"
         # Listen on all interfaces. By default, it listens on localhost only
         postgresql_listen_addresses: "*"
-      when: not install_pgbouncer | default(False) | bool and pg_hba_rules | length > 0
+      when: postgresql_ssl | bool and not install_pgbouncer | default(False) | bool and pg_hba_rules | length > 0
 
     - name: Print postgresql_pg_hba_custom
       debug:
         var: postgresql_pg_hba_custom
-      when: not install_pgbouncer | default(False) | bool
+      when: postgresql_ssl | bool and not install_pgbouncer | default(False) | bool
+
+    - name: Configure PostgreSQL TLS role variables
+      set_fact:
+        postgresql_ssl: true
+        postgresql_ssl_cert_file: "{{ postgresql_ssl_cert_file }}"
+        postgresql_ssl_key_file: "{{ postgresql_ssl_key_file }}"
+        postgresql_ssl_ca_file: "{{ postgresql_ssl_ca_file }}"
+      when: postgresql_ssl | bool
+
+    # Upload the certificates before the role starts PostgreSQL with ssl=on.
+    - name: Upload PostgreSQL TLS certificates
+      include_tasks: tasks/upload-tls-certs.yml
+      vars:
+        tls_group: postgres
+        tls_files:
+          - src: "{{ postgresql_ssl_ca_file_src }}"
+            dest: "{{ postgresql_ssl_ca_file }}"
+          - src: "{{ postgresql_ssl_cert_file_src }}"
+            dest: "{{ postgresql_ssl_cert_file }}"
+          - src: "{{ postgresql_ssl_key_file_src }}"
+            dest: "{{ postgresql_ssl_key_file }}"
+            private: true
+      when: postgresql_ssl | bool
 
   roles:
     - role: 'postgresql'
+
+  post_tasks:
+    # The role restarts PostgreSQL only when its own config changes.
+    - name: Restart PostgreSQL when TLS certificates changed
+      debug:
+        msg: TLS certificates changed, PostgreSQL restarts at the end of the play
+      changed_when: true
+      notify: restart postgresql
+      when:
+        - postgresql_ssl | bool
+        - _tls_upload is defined and _tls_upload is changed
 
   tags: 'postgresql'
 
@@ -93,6 +152,7 @@
   hosts: db
   vars_files:
     - vars/db.yml
+    - vars/tls.yml
   become: true
 
   pre_tasks:
@@ -100,19 +160,23 @@
       include_vars: vars/custom.yml
       failed_when: false
 
+    - name: Compute PGBouncer TLS hba parameters
+      set_fact:
+        _pgbouncer_hba_type: "{{ 'hostssl' if pgbouncer_client_tls | bool else 'host' }}"
+
     - name: Set pgbouncer_hba_custom
       set_fact:
         pgbouncer_hba_custom:
           - comment: 'IPv4 local connections:'
             address: '127.0.0.1/32'
-            type: host
+            type: "{{ _pgbouncer_hba_type }}"
             database: all
             user: "{{ miarec_db_user }}"
             method: 'md5'
 
           - comment: 'IPv6 local connections:'
             address: '::1/128'
-            type: host
+            type: "{{ _pgbouncer_hba_type }}"
             database: all
             user: "{{ miarec_db_user }}"
             method: 'md5'
@@ -124,7 +188,7 @@
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
           address: "{{ hostvars[item].private_ip_address }}/32"
           user: "{{ miarec_db_user }}"
-          type: host
+          type: "{{ _pgbouncer_hba_type }}"
           database: "{{ miarec_db_name }},pgbouncer"
           method: 'md5'
       with_items: "{{ groups.recorder + groups.web }}"
@@ -153,11 +217,47 @@
         var: pgbouncer_hba_custom
       when: install_pgbouncer | default(False) | bool
 
+    # Upload the certificates before the role starts PGBouncer.
+    # The PGBouncer package runs as "pgbouncer" on RedHat and as "postgres" on Debian.
+    - name: Upload PGBouncer TLS certificates
+      include_tasks: tasks/upload-tls-certs.yml
+      vars:
+        tls_group: "{{ 'pgbouncer' if ansible_facts['os_family'] == 'RedHat' else 'postgres' }}"
+        tls_files:
+          - src: "{{ pgbouncer_client_tls_ca_file_src }}"
+            dest: "{{ pgbouncer_client_tls_ca_file }}"
+          - src: "{{ pgbouncer_client_tls_cert_file_src }}"
+            dest: "{{ pgbouncer_client_tls_cert_file }}"
+          - src: "{{ pgbouncer_client_tls_key_file_src }}"
+            dest: "{{ pgbouncer_client_tls_key_file }}"
+            private: true
+          - src: "{{ pgbouncer_server_tls_ca_file_src }}"
+            dest: "{{ pgbouncer_server_tls_ca_file }}"
+          - src: "{{ pgbouncer_server_tls_cert_file_src }}"
+            dest: "{{ pgbouncer_server_tls_cert_file }}"
+          - src: "{{ pgbouncer_server_tls_key_file_src }}"
+            dest: "{{ pgbouncer_server_tls_key_file }}"
+            private: true
+      when:
+        - install_pgbouncer | default(False) | bool
+        - pgbouncer_client_tls | bool or pgbouncer_server_tls | bool
+
   roles:
     - role: 'pgbouncer'
       when: install_pgbouncer | default(False) | bool
 
+  post_tasks:
+    - name: Restart PGBouncer when TLS certificates changed
+      debug:
+        msg: TLS certificates changed, PGBouncer restarts at the end of the play
+      changed_when: true
+      notify: Restart pgbouncer
+      when:
+        - install_pgbouncer | default(False) | bool
+        - _tls_upload is defined and _tls_upload is changed
+
   tags: 'pgbouncer'
+
 
 # ------------------------------------------------
 # Install redis
@@ -166,11 +266,32 @@
   hosts: redis
   vars_files:
     - vars/redis.yml
+    - vars/tls.yml
   become: true
   pre_tasks:
     - name: Include custom vars
       include_vars: vars/custom.yml
       failed_when: false
+
+    - name: Configure Redis TLS variables
+      set_fact:
+        redis_make_tls: true
+        redis_tls_auth_clients: "{{ redis_tls_auth_clients | bool }}"
+      when: redis_tls | default(False) | bool
+
+    # Redis added TLS in 6.0. The distribution packages are older on
+    # RHEL 7 (3.2), RHEL 8 (5.0), and Ubuntu releases before 22.04 (5.0).
+    - name: Check that packaged Redis supports TLS
+      fail:
+        msg: >-
+          Redis TLS requires Redis 6.0 or later, but the {{ ansible_facts['distribution'] }}
+          {{ ansible_facts['distribution_version'] }} package is older.
+          Set redis_install_from_source to true.
+      when:
+        - redis_tls | default(False) | bool
+        - not (redis_install_from_source | default(False) | bool)
+        - (ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] | int < 9)
+          or (ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_version'] is version('22.04', '<'))
 
     - name: Define ip_address recorder and web hosts
       set_fact:
@@ -195,8 +316,35 @@
     - name: Print redis_bind
       debug:
         var: redis_bind
+
+    # Upload the certificates before the role starts Redis with TLS.
+    - name: Upload Redis TLS certificates
+      include_tasks: tasks/upload-tls-certs.yml
+      vars:
+        tls_group: "{{ redis_group | default('redis') }}"
+        tls_files:
+          - src: "{{ redis_tls_ca_cert_src }}"
+            dest: "{{ redis_tls_ca_cert }}"
+          - src: "{{ redis_tls_cert_src }}"
+            dest: "{{ redis_tls_cert }}"
+          - src: "{{ redis_tls_key_src }}"
+            dest: "{{ redis_tls_key }}"
+            private: true
+      when: redis_tls | default(False) | bool
+
   roles:
     - role: 'redis-new'
+
+  post_tasks:
+    - name: Restart Redis when TLS certificates changed
+      debug:
+        msg: TLS certificates changed, Redis restarts at the end of the play
+      changed_when: true
+      notify: Restart Redis
+      when:
+        - redis_tls | default(False) | bool
+        - _tls_upload is defined and _tls_upload is changed
+
   tags: 'redis'
 
 
