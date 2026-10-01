@@ -19,10 +19,10 @@ def test_tls_certificates_exist(host):
         "/etc/postgresql/tls/server.crt",
         "/etc/postgresql/tls/server.key",
         "/etc/postgresql/tls/ca.crt",
-        # Redis server certs in /etc/redis/tls/
-        "/etc/redis/tls/server.crt",
-        "/etc/redis/tls/server.key",
-        "/etc/redis/tls/ca.crt",
+        # Redis server certs in /etc/redis-tls/
+        "/etc/redis-tls/server.crt",
+        "/etc/redis-tls/server.key",
+        "/etc/redis-tls/ca.crt",
     ]
     for cert_file in cert_files:
         f = host.file(cert_file)

@@ -2,78 +2,113 @@
 
 Documentation: [Installation of MiaRec on Linux using Ansible](https://www.miarec.com/doc/administration-guide/doc918)
 
-## TLS Certificate Helper
+## Service users
 
-Use the Makefile targets to bootstrap development certificates when you do not have PKI-issued assets:
+By default, the MiaRec services run as root, which keeps existing deployments
+working when you rerun the playbooks. To run them as dedicated accounts, set the
+variables in `vars/custom.yml` or in the inventory. The roles create the users
+and groups when they do not exist, and Apache is added to the shared group.
+Example `vars/custom.yml`:
 
-```bash
-make tls-certs-all            # or tls-certs-<service>
+```yaml
+# Shared group of all MiaRec services. Owns production.ini and the TLS private keys.
+miarec_bin_group: miarec
+
+# MiaRec recorder
+miarec_bin_user: miarec
+
+# Celery workers and beat scheduler (Apache keeps its own user)
+miarecweb_celery_user: celery
+
+# Screen recording controller
+miarec_screen_bin_user: miarec
+miarec_screen_bin_group: miarec
+
+# Live monitoring
+miarec_livemon_bin_user: miarec
+miarec_livemon_bin_group: miarec
 ```
 
-Artifacts land in `certs/<service>/`. Each directory contains a CA plus service-specific `server.*`, `client.*`, and (when applicable) `redis-client.*` bundles that mirror the paths referenced in the playbooks (`/etc/<service>/tls/...`).
+Switching an existing deployment from root to dedicated users changes the
+ownership of the installed files and requires a service restart, which the
+playbooks perform. The `molecule/tls` scenario uses this configuration.
 
-To copy them to a host:
+## TLS certificates
 
-```bash
-scp certs/postgresql/{server.crt,server.key,ca.crt} user@host:/tmp/
-scp certs/postgresql/{client.crt,client.key} user@host:/tmp/
+The playbooks can encrypt the connections between MiaRec components with TLS:
+PostgreSQL, PGBouncer, and Redis present server certificates, and MiaRec Web and
+the MiaRec recorder present client certificates. Enable TLS with these variables
+(for example in `vars/custom.yml`):
+
+```yaml
+postgresql_ssl: true
+pgbouncer_client_tls: true   # connections from MiaRec to PGBouncer
+pgbouncer_server_tls: true   # connections from PGBouncer to PostgreSQL
+redis_tls: true
 ```
 
-On the remote machine, move files into place and apply strict permissions (keys `0600`, certs `0644`) before running the playbooks:
+TLS private keys are installed readable by root and `miarec_bin_group` only, so
+the services that present client certificates (Celery and the recorder) must run
+as dedicated users. See [Service users](#service-users). The MiaRec Web role
+refuses to configure TLS when Celery runs as root.
+
+The certificates and private keys live on the Ansible control machine under
+`certs/` (variable `tls_certs_dir` in `vars/tls.yml`). `prepare-hosts.yml` and
+`setup-miarec.yml` upload the files of each service to the right hosts, create
+the target directories, and set the ownership and permissions. You do not copy
+any file by hand.
+
+### Option 1: self-signed certificates
 
 ```bash
-sudo install -d -m 0750 -o postgres -g postgres /etc/postgresql/tls
-sudo install -m 0600 -o postgres -g postgres /tmp/server.key /etc/postgresql/tls/server.key
-sudo install -m 0644 -o postgres -g postgres /tmp/server.crt /etc/postgresql/tls/server.crt
-sudo install -m 0644 -o postgres -g postgres /tmp/ca.crt /etc/postgresql/tls/ca.crt
-sudo install -m 0600 -o postgres -g postgres /tmp/client.key /etc/postgresql/tls/client.key
-sudo install -m 0644 -o postgres -g postgres /tmp/client.crt /etc/postgresql/tls/client.crt
+make tls-certs-all        # or tls-certs-<service> for one service
+make tls-certs-validate
 ```
 
-Repeat the same pattern for `pgbouncer` and `redis` (adjusting owners/groups such as `redis`, `root:pgbouncer`, etc.). Once the files exist at the expected paths, enable TLS by setting the corresponding variables (for example `postgresql_ssl: true`) and run the playbooks normally.
+The first run creates a root CA in `certs/root/` and one directory per service.
+The CA and the service certificates are valid for 10 years (`TLS_CA_DAYS` and
+`TLS_DAYS`). The targets are idempotent: they create only the files that are
+missing and never overwrite an existing file. To reissue a certificate, delete it
+and run the target again. Run `make help` for the list of targets and `make tls-certs-all TLS_SAN=IP:10.0.0.5`
+style overrides (see the header of the `Makefile`).
 
-### Example: MiaRec recorder certificates
+### Option 2: certificates issued by your own CA
 
-MiaRec consumes both PostgreSQL and Redis client credentials. Copy the generated bundles:
+Provide all the files in the same layout. The CA private key is not needed:
+
+```
+certs/
+├── root/ca.crt                          # optional, the CA certificate
+├── postgresql/{ca.crt,server.crt,server.key}
+├── pgbouncer/{ca.crt,server.crt,server.key,client.crt,client.key}
+├── redis/{ca.crt,server.crt,server.key}
+├── miarec/{ca.crt,client.crt,client.key,redis-ca.crt,redis-client.crt,redis-client.key}
+└── miarecweb/{ca.crt,client.crt,client.key,redis-ca.crt,redis-client.crt,redis-client.key}
+```
+
+Each `ca.crt` is the CA that the service uses to verify its peers. The
+`redis-ca.crt` files are the CA of the Redis server certificate. Mixing the two
+options is not supported. If you need it, generate the self-signed set first and
+then replace individual files.
+
+### Validation
 
 ```bash
-scp certs/miarec/{client.crt,client.key,ca.crt} user@host:/tmp/
-scp certs/miarec/{redis-client.crt,redis-client.key,redis-ca.crt} user@host:/tmp/
+make tls-certs-validate
 ```
 
-Install them under `/etc/miarec/tls` with the expected ownership (`root:miarec`) and permissions:
+The command works for both options. It checks that every file exists, that each
+private key matches its certificate, that no certificate has expired, and that
+every certificate is trusted by the CA file of the service that verifies it (for
+example, that PostgreSQL's `ca.crt` trusts the MiaRec Web client certificate).
+It exits with a non-zero status when it finds a problem.
 
-```bash
-sudo install -d -m 0750 -o root -g miarec /etc/miarec/tls
-sudo install -m 0640 -o root -g miarec /tmp/client.key /etc/miarec/tls/client.key
-sudo install -m 0644 -o root -g miarec /tmp/client.crt /etc/miarec/tls/client.crt
-sudo install -m 0644 -o root -g miarec /tmp/ca.crt /etc/miarec/tls/ca.crt
-sudo install -m 0640 -o root -g miarec /tmp/redis-client.key /etc/miarec/tls/redis-client.key
-sudo install -m 0644 -o root -g miarec /tmp/redis-client.crt /etc/miarec/tls/redis-client.crt
-sudo install -m 0644 -o root -g miarec /tmp/redis-ca.crt /etc/miarec/tls/redis-ca.crt
-```
+### Hostname verification
 
-When these files exist, `setup-miarec.yml` will automatically configure the recorder if `postgresql_ssl` or `redis_tls` are set.
-
-### Example: MiaRec web certificates
-
-MiaRec web needs its own client bundle plus Redis credentials. Transfer the files:
-
-```bash
-scp certs/miarecweb/{client.crt,client.key,ca.crt} user@host:/tmp/
-scp certs/miarecweb/{redis-client.crt,redis-client.key,redis-ca.crt} user@host:/tmp/
-```
-
-Install them under `/etc/miarecweb/tls` (owner `root:miarec`):
-
-```bash
-sudo install -d -m 0750 -o root -g miarec /etc/miarecweb/tls
-sudo install -m 0640 -o root -g miarec /tmp/client.key /etc/miarecweb/tls/client.key
-sudo install -m 0644 -o root -g miarec /tmp/client.crt /etc/miarecweb/tls/client.crt
-sudo install -m 0644 -o root -g miarec /tmp/ca.crt /etc/miarecweb/tls/ca.crt
-sudo install -m 0640 -o root -g miarec /tmp/redis-client.key /etc/miarecweb/tls/redis-client.key
-sudo install -m 0644 -o root -g miarec /tmp/redis-client.crt /etc/miarecweb/tls/redis-client.crt
-sudo install -m 0644 -o root -g miarec /tmp/redis-ca.crt /etc/miarecweb/tls/redis-ca.crt
-```
-
-With these files in place, set `miarecweb_db_tls: true` / `redis_tls: true` (or rely on defaults when PostgreSQL/Redis TLS is enabled) so the playbooks wire the paths into `production.ini`.
+The generated server certificates carry `DNS:localhost, IP:127.0.0.1` as subject
+alternative names. This is sufficient because no component verifies the server
+hostname by default: PGBouncer and MiaRec Web use `sslmode=require` or
+`verify-ca`, and the recorder and the Redis client have hostname checks turned
+off. If you turn on `verify-full` or the `*_check_hostname` variables, issue the
+server certificates with the addresses that the clients connect to
+(`make tls-certs-postgresql TLS_SAN_POSTGRESQL=IP:10.0.0.5`).

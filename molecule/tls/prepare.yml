@@ -39,60 +39,60 @@
               - "python{{ _python_major_minor }}-pip"
             state: present
 
-- name: TLS certificate generation
-  hosts: all
-  become: true
+# Generate the TLS certificate set the same way an operator does, with the
+# repository Makefile, into a directory that is private to this scenario run.
+# converge.yml points tls_certs_dir at it, so prepare-hosts.yml and
+# setup-miarec.yml upload the files exactly as in production.
+- name: Generate TLS certificates on the control machine
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
   vars:
-    pgbouncer_tls_owner: "{{ 'pgbouncer' if ansible_facts['os_family'] == 'RedHat' else 'postgres' }}"
-    certificates:
-      - dir: /etc/postgresql/tls
-        owner: postgres
-        group: postgres
-        CN: "postgresql"
-        type: server
-      - dir: /etc/pgbouncer/tls
-        owner: "{{ pgbouncer_tls_owner }}"
-        group: "{{ pgbouncer_tls_owner }}"
-        CN: "pgbouncer-server"
-        type: server
-      - dir: /etc/pgbouncer/tls
-        owner: "{{ pgbouncer_tls_owner }}"
-        group: "{{ pgbouncer_tls_owner }}"
-        CN: "pgbouncer-client"
-        type: client
-      - dir: /etc/redis/tls
-        owner: redis
-        group: redis
-        CN: "redis"
-        type: server
-      - dir: /etc/redis/tls
-        owner: redis
-        group: redis
-        CN: "redis-client"
-        type: client
-      - dir: /etc/miarec/tls
-        owner: root
-        group: miarec
-        CN: "miarec"
-        type: client
-      - dir: /etc/miarec/tls
-        owner: root
-        group: miarec
-        CN: "miarec"
-        type: redis-client
-        ca_filename: "redis-ca.crt"
-      - dir: /etc/miarecweb/tls
-        owner: root
-        group: miarec
-        CN: "miarecweb"
-        type: client
-      - dir: /etc/miarecweb/tls
-        owner: root
-        group: miarec
-        CN: "miarecweb"
-        type: redis-client
-        ca_filename: "redis-ca.crt"
+    molecule_tls_certs_dir: "{{ lookup('env', 'MOLECULE_TLS_CERTS_DIR') }}"
+    molecule_project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
 
   tasks:
-    - name: Include TLS certificate generation tasks
-      include_tasks: tasks/certificates.yml
+    - name: Check MOLECULE_TLS_CERTS_DIR
+      assert:
+        that: molecule_tls_certs_dir | length > 0
+        fail_msg: MOLECULE_TLS_CERTS_DIR is not set, see molecule.yml
+
+    - name: Generate the certificate set with make
+      command: make tls-certs-all CERTS_DIR={{ molecule_tls_certs_dir | quote }}
+      args:
+        chdir: "{{ molecule_project_dir }}"
+      register: _make_certs
+      changed_when: "'create' in _make_certs.stdout"
+
+    - name: Validate the certificate set
+      command: make tls-certs-validate CERTS_DIR={{ molecule_tls_certs_dir | quote }}
+      args:
+        chdir: "{{ molecule_project_dir }}"
+      changed_when: false
+
+
+# Test fixture: a client certificate that no service CA has signed.
+- name: Create an untrusted client certificate for negative tests
+  hosts: all
+  become: true
+  tasks:
+    - name: Install OpenSSL
+      package:
+        name: openssl
+        state: present
+
+    - name: Create fixture directory
+      file:
+        path: /var/tmp/tls-untrusted
+        state: directory
+        mode: "0755"
+
+    - name: Generate a self-signed client certificate
+      command: >
+        openssl req -x509 -newkey rsa:2048 -nodes -sha256 -days 30
+        -subj "/CN=untrusted-client"
+        -keyout /var/tmp/tls-untrusted/client.key
+        -out /var/tmp/tls-untrusted/client.crt
+      args:
+        creates: /var/tmp/tls-untrusted/client.crt

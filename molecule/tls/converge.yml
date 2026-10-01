@@ -18,7 +18,19 @@
         redis_install_from_source: false
         python_install_from_source: false
         sox_install_from_source: false
+        # Run the services as dedicated users. Production deployments set these
+        # in vars/custom.yml or in the inventory; the playbooks default to root.
+        # TLS private keys are readable by the "miarec" group only, so the
+        # services that use them must not run as root.
+        miarec_bin_user: miarec
+        miarec_bin_group: miarec
+        miarecweb_celery_user: celery
+        miarec_screen_bin_user: miarec
+        miarec_screen_bin_group: miarec
+        miarec_livemon_bin_user: miarec
+        miarec_livemon_bin_group: miarec
         # TLS configuration variables
+        tls_certs_dir: "{{ lookup('env', 'MOLECULE_TLS_CERTS_DIR') }}"
         postgresql_ssl: true
         pgbouncer_client_tls: true
         pgbouncer_server_tls: true

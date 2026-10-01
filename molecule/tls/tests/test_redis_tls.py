@@ -28,9 +28,9 @@ def test_redis_tls_connection_with_valid_certs(host):
     """Verify Redis accepts TLS connections with valid CA-signed certificates."""
     cmd = host.run(
         "redis-cli --tls "
-        "--cert /etc/redis/tls/client.crt "
-        "--key /etc/redis/tls/client.key "
-        "--cacert /etc/redis/tls/ca.crt "
+        "--cert /etc/miarec/tls/redis-client.crt "
+        "--key /etc/miarec/tls/redis-client.key "
+        "--cacert /etc/miarec/tls/redis-ca.crt "
         "PING"
     )
     assert cmd.rc == 0, f"Expected rc=0, got rc={cmd.rc}, stderr={cmd.stderr}"
@@ -48,10 +48,12 @@ def test_redis_tls_connection_with_invalid_cert_fails(host):
     """Verify Redis rejects TLS connections with certificates not signed by CA."""
     cmd = host.run(
         "redis-cli --tls "
-        "--cert /etc/redis/tls/invalid-client.crt "
-        "--key /etc/redis/tls/invalid-client.key "
-        "--cacert /etc/redis/tls/ca.crt "
+        "--cert /var/tmp/tls-untrusted/client.crt "
+        "--key /var/tmp/tls-untrusted/client.key "
+        "--cacert /etc/redis-tls/ca.crt "
         "PING"
     )
-    # Connection should fail with invalid certificate
+    # The fixture is created by prepare.yml. Make sure the test does not
+    # pass only because the files are missing.
+    assert host.file("/var/tmp/tls-untrusted/client.crt").exists
     assert cmd.rc != 0 or "PONG" not in cmd.stdout

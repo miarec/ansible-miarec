@@ -1,4 +1,14 @@
 ## -------------------------------
+## Service user
+## -------------------------------
+# By default, the recorder runs as root. To run as a dedicated account, set
+# these in vars/custom.yml or in the inventory. The role creates the user and
+# group when they do not exist. Use the same group on all hosts.
+#
+# miarec_bin_user: miarec
+# miarec_bin_group: miarec
+
+## -------------------------------
 ## TLS Options
 ## -------------------------------
 miarec_db_tls_ca_file: /etc/miarec/tls/ca.crt

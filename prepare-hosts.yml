@@ -19,6 +19,7 @@
   hosts: db
   vars_files:
     - vars/db.yml
+    - vars/tls.yml
   become: true
 
   pre_tasks:
@@ -112,8 +113,34 @@
         postgresql_ssl_ca_file: "{{ postgresql_ssl_ca_file }}"
       when: postgresql_ssl | bool
 
+    # Upload the certificates before the role starts PostgreSQL with ssl=on.
+    - name: Upload PostgreSQL TLS certificates
+      include_tasks: tasks/upload-tls-certs.yml
+      vars:
+        tls_group: postgres
+        tls_files:
+          - src: "{{ postgresql_ssl_ca_file_src }}"
+            dest: "{{ postgresql_ssl_ca_file }}"
+          - src: "{{ postgresql_ssl_cert_file_src }}"
+            dest: "{{ postgresql_ssl_cert_file }}"
+          - src: "{{ postgresql_ssl_key_file_src }}"
+            dest: "{{ postgresql_ssl_key_file }}"
+            private: true
+      when: postgresql_ssl | bool
+
   roles:
     - role: 'postgresql'
+
+  post_tasks:
+    # The role restarts PostgreSQL only when its own config changes.
+    - name: Restart PostgreSQL when TLS certificates changed
+      debug:
+        msg: TLS certificates changed, PostgreSQL restarts at the end of the play
+      changed_when: true
+      notify: restart postgresql
+      when:
+        - postgresql_ssl | bool
+        - _tls_upload is defined and _tls_upload is changed
 
   tags: 'postgresql'
 
@@ -125,6 +152,7 @@
   hosts: db
   vars_files:
     - vars/db.yml
+    - vars/tls.yml
   become: true
 
   pre_tasks:
@@ -189,9 +217,44 @@
         var: pgbouncer_hba_custom
       when: install_pgbouncer | default(False) | bool
 
+    # Upload the certificates before the role starts PGBouncer.
+    # The PGBouncer package runs as "pgbouncer" on RedHat and as "postgres" on Debian.
+    - name: Upload PGBouncer TLS certificates
+      include_tasks: tasks/upload-tls-certs.yml
+      vars:
+        tls_group: "{{ 'pgbouncer' if ansible_facts['os_family'] == 'RedHat' else 'postgres' }}"
+        tls_files:
+          - src: "{{ pgbouncer_client_tls_ca_file_src }}"
+            dest: "{{ pgbouncer_client_tls_ca_file }}"
+          - src: "{{ pgbouncer_client_tls_cert_file_src }}"
+            dest: "{{ pgbouncer_client_tls_cert_file }}"
+          - src: "{{ pgbouncer_client_tls_key_file_src }}"
+            dest: "{{ pgbouncer_client_tls_key_file }}"
+            private: true
+          - src: "{{ pgbouncer_server_tls_ca_file_src }}"
+            dest: "{{ pgbouncer_server_tls_ca_file }}"
+          - src: "{{ pgbouncer_server_tls_cert_file_src }}"
+            dest: "{{ pgbouncer_server_tls_cert_file }}"
+          - src: "{{ pgbouncer_server_tls_key_file_src }}"
+            dest: "{{ pgbouncer_server_tls_key_file }}"
+            private: true
+      when:
+        - install_pgbouncer | default(False) | bool
+        - pgbouncer_client_tls | bool or pgbouncer_server_tls | bool
+
   roles:
     - role: 'pgbouncer'
       when: install_pgbouncer | default(False) | bool
+
+  post_tasks:
+    - name: Restart PGBouncer when TLS certificates changed
+      debug:
+        msg: TLS certificates changed, PGBouncer restarts at the end of the play
+      changed_when: true
+      notify: Restart pgbouncer
+      when:
+        - install_pgbouncer | default(False) | bool
+        - _tls_upload is defined and _tls_upload is changed
 
   tags: 'pgbouncer'
 
@@ -203,6 +266,7 @@
   hosts: redis
   vars_files:
     - vars/redis.yml
+    - vars/tls.yml
   become: true
   pre_tasks:
     - name: Include custom vars
@@ -252,8 +316,35 @@
     - name: Print redis_bind
       debug:
         var: redis_bind
+
+    # Upload the certificates before the role starts Redis with TLS.
+    - name: Upload Redis TLS certificates
+      include_tasks: tasks/upload-tls-certs.yml
+      vars:
+        tls_group: "{{ redis_group | default('redis') }}"
+        tls_files:
+          - src: "{{ redis_tls_ca_cert_src }}"
+            dest: "{{ redis_tls_ca_cert }}"
+          - src: "{{ redis_tls_cert_src }}"
+            dest: "{{ redis_tls_cert }}"
+          - src: "{{ redis_tls_key_src }}"
+            dest: "{{ redis_tls_key }}"
+            private: true
+      when: redis_tls | default(False) | bool
+
   roles:
     - role: 'redis-new'
+
+  post_tasks:
+    - name: Restart Redis when TLS certificates changed
+      debug:
+        msg: TLS certificates changed, Redis restarts at the end of the play
+      changed_when: true
+      notify: Restart Redis
+      when:
+        - redis_tls | default(False) | bool
+        - _tls_upload is defined and _tls_upload is changed
+
   tags: 'redis'
 
 

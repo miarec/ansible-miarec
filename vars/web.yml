@@ -27,6 +27,18 @@ lame_download_url: "https://miarec-download.s3.amazonaws.com/lame-{{ lame_versio
 
 
 ## -------------------------------
+## Service users
+## -------------------------------
+# By default, Celery runs as root and the files are owned by root:root.
+# To run as dedicated accounts, set these in vars/custom.yml or in the
+# inventory. The roles create the users and groups when they do not exist.
+# Apache is added to miarec_bin_group so it can read production.ini and the
+# TLS private keys. TLS with client certificates requires a non-root Celery user.
+#
+# miarecweb_celery_user: celery
+# miarec_bin_group: miarec
+
+## -------------------------------
 ## TLS Options
 ## -------------------------------
 miarecweb_db_tls_ca_file: /etc/miarecweb/tls/ca.crt

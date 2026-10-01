@@ -29,7 +29,7 @@ MOLECULE_DISTRO=centos7 MOLECULE_MIARECWEB_VERSION=8.0.0.3909 molecule test
 
 ## Scenario - `tls`
 
-End-to-end TLS provisioning that runs `prepare-hosts.yml` and `setup-miarec.yml` with TLS toggles enabled, copies self-signed certificates via the repository `Makefile`, and verifies TLS-only connectivity via Testinfra.
+End-to-end TLS provisioning that runs `prepare-hosts.yml` and `setup-miarec.yml` with TLS toggles enabled and verifies TLS-only connectivity via Testinfra. The prepare step generates a self-signed certificate set with the repository `Makefile` (`make tls-certs-all`) into the scenario's ephemeral directory, and the playbooks upload it the same way as in production. The scenario never reads or writes `./certs`.
 
 On RHEL 7 and 8, the scenario builds Redis from source, because the distribution packages predate Redis 6.0, the first version with TLS support.
 
