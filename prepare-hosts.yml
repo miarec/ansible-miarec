@@ -216,7 +216,7 @@
       when: redis_tls | default(False) | bool
 
     # Redis added TLS in 6.0. The distribution packages are older on
-    # RHEL 7 (3.2), RHEL 8 (5.0), and Ubuntu 20.04 (5.0).
+    # RHEL 7 (3.2), RHEL 8 (5.0), and Ubuntu releases before 22.04 (5.0).
     - name: Check that packaged Redis supports TLS
       fail:
         msg: >-

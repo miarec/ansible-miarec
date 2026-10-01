@@ -2,7 +2,7 @@ This file provides guidance to coding agent when working with code in this repos
 
 ## Project Overview
 
-Ansible playbooks for deploying MiaRec call recording applications on Linux (RHEL/CentOS 7-9, Rocky 8-9, Ubuntu 20.04-24.04).
+Ansible playbooks for deploying MiaRec call recording applications on Linux (RHEL/CentOS 7-9, Rocky 8-9, Ubuntu 22.04-24.04).
 
 ## Commands
 
@@ -27,7 +27,7 @@ MOLECULE_DISTRO=ubuntu2204 uv run molecule test
 ### Molecule Test Variables
 
 Environment variables for molecule tests:
-- `MOLECULE_DISTRO` - Target OS (ubuntu2004, ubuntu2204, ubuntu2404, centos7, rockylinux8, rockylinux9, rhel7, rhel8, rhel9)
+- `MOLECULE_DISTRO` - Target OS (ubuntu2204, ubuntu2404, centos7, rockylinux8, rockylinux9, rhel7, rhel8, rhel9)
 - `MOLECULE_MIARECWEB_VERSION`, `MOLECULE_MIAREC_VERSION`, `MOLECULE_MIAREC_SCREEN_VERSION`
 - `MOLECULE_POSTGRESQL_VERSION`, `MOLECULE_REDIS_VERSION`, `MOLECULE_PYTHON_VERSION`
 
