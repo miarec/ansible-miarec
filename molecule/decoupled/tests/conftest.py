@@ -39,6 +39,13 @@ def own_ip(host):
     return resolve(host, host.file("/proc/sys/kernel/hostname").content_string.strip())
 
 
+def process_owners(host, comm):
+    """Return the set of (user, group) pairs of the processes with a command name."""
+    result = host.run("ps -C %s -o user:32=,group:32=", comm)
+    assert result.rc == 0, f"No {comm} process is running"
+    return {tuple(line.split()) for line in result.stdout.splitlines() if line.strip()}
+
+
 def listening_on_all_interfaces(host, port):
     """Return True when a TCP port is bound to the wildcard address."""
     sockets = host.socket.get_listening_sockets()

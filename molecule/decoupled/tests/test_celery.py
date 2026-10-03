@@ -1,6 +1,6 @@
 """Celery tier: worker and beat. No Apache."""
 import os
-from conftest import hosts_in, peer_ip, DB_NAME, DB_USER, DB_PASSWORD, PGBOUNCER_PORT, REDIS_PORT
+from conftest import hosts_in, peer_ip, process_owners, DB_NAME, DB_USER, DB_PASSWORD, PGBOUNCER_PORT, REDIS_PORT
 
 testinfra_hosts = hosts_in('celery')
 
@@ -33,6 +33,11 @@ def test_service(host):
         s = host.service(service)
         assert s.is_enabled, f"Service {service} is not enabled"
         assert s.is_running, f"Service {service} is not running"
+
+
+def test_process_user(host):
+    """The Celery worker and beat run as the celery user in the miarec group."""
+    assert process_owners(host, "celery") == {("celery", "miarec")}
 
 
 def test_no_apache(host):

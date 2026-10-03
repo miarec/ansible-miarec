@@ -102,6 +102,19 @@ provisioner:
   playbooks:
     prepare: prepare.yml
     converge: converge.yml
+  # The roles run the services as root by default. Run them as dedicated
+  # users here, so the scenario checks file ownership and permissions.
+  inventory:
+    group_vars:
+      all:
+        miarec_bin_user: miarec
+        miarec_bin_group: miarec
+        miarec_screen_bin_user: miarec
+        miarec_screen_bin_group: miarec
+        miarecweb_celery_user: celery
+        miarecweb_celery_group: miarec
+        miarec_livemon_bin_user: miarec
+        miarec_livemon_bin_group: miarec
   env:
     ANSIBLE_VERBOSITY: ${MOLECULE_ANSIBLE_VERBOSITY:-0}
     MIARECWEB_VERSION: ${MOLECULE_MIARECWEB_VERSION:-"2026.8.24.0"}

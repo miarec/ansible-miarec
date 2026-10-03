@@ -1,7 +1,7 @@
 """Screen tier: the screen recording controller alone."""
 import json
 import os
-from conftest import runner, hosts_in, peer_ip, PGBOUNCER_PORT, REDIS_PORT
+from conftest import runner, hosts_in, peer_ip, process_owners, PGBOUNCER_PORT, REDIS_PORT
 
 testinfra_hosts = hosts_in('screen')
 
@@ -22,6 +22,10 @@ def test_service(host):
     s = host.service("miarec_screen")
     assert s.is_enabled
     assert s.is_running
+
+
+def test_process_user(host):
+    assert process_owners(host, "miarec_screen") == {("miarec", "miarec")}
 
 
 def test_socket(host):

@@ -1,7 +1,7 @@
 """Recorder tier: the call recorder alone."""
 import json
 import os
-from conftest import runner, hosts_in, peer_ip, PGBOUNCER_PORT, REDIS_PORT
+from conftest import runner, hosts_in, peer_ip, process_owners, PGBOUNCER_PORT, REDIS_PORT
 
 testinfra_hosts = hosts_in('recorder')
 
@@ -26,6 +26,10 @@ def test_service(host):
     s = host.service("miarec")
     assert s.is_enabled
     assert s.is_running
+
+
+def test_process_user(host):
+    assert process_owners(host, "miarec") == {("miarec", "miarec")}
 
 
 def test_socket(host):
