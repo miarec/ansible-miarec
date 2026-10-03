@@ -1,0 +1,120 @@
+---
+# Decoupled deployment: each tier runs in its own container on one Docker
+# network, like the inventory in the installation guide. Six containers:
+#
+#   db      - PostgreSQL and PGBouncer
+#   redis   - Redis
+#   web     - Apache, miarecweb and live monitoring
+#   celery  - Celery worker and Celery beat
+#   rec     - call recorder
+#   screen  - screen recording controller
+dependency:
+  name: galaxy
+
+driver:
+  name: docker
+
+# The driver creates the network named under each platform.
+
+platforms:
+  - name: ansible-miarec-dec-db-${MOLECULE_DISTRO:-ubuntu2404}
+    image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
+    groups:
+      - db
+    networks:
+      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    privileged: true
+    pre_build_image: true
+
+  - name: ansible-miarec-dec-redis-${MOLECULE_DISTRO:-ubuntu2404}
+    image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
+    groups:
+      - redis
+    networks:
+      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    privileged: true
+    pre_build_image: true
+
+  - name: ansible-miarec-dec-web-${MOLECULE_DISTRO:-ubuntu2404}
+    image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
+    groups:
+      - web
+      - livemon
+    networks:
+      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    privileged: true
+    pre_build_image: true
+
+  - name: ansible-miarec-dec-celery-${MOLECULE_DISTRO:-ubuntu2404}
+    image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
+    groups:
+      - celery
+      - celerybeat
+    networks:
+      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    privileged: true
+    pre_build_image: true
+
+  - name: ansible-miarec-dec-rec-${MOLECULE_DISTRO:-ubuntu2404}
+    image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
+    groups:
+      - recorder
+    networks:
+      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    privileged: true
+    pre_build_image: true
+
+  - name: ansible-miarec-dec-screen-${MOLECULE_DISTRO:-ubuntu2404}
+    image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
+    groups:
+      - screen
+    networks:
+      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    privileged: true
+    pre_build_image: true
+
+provisioner:
+  name: ansible
+  playbooks:
+    prepare: prepare.yml
+    converge: converge.yml
+  env:
+    ANSIBLE_VERBOSITY: ${MOLECULE_ANSIBLE_VERBOSITY:-0}
+    MIARECWEB_VERSION: ${MOLECULE_MIARECWEB_VERSION:-"2026.8.24.0"}
+    MIARECWEB_SECRET: ${MOLECULE_MIARECWEB_SECRET:-"secret"}
+    MIAREC_VERSION: ${MOLECULE_MIAREC_VERSION:-"2026.8.16.0"}
+    MIAREC_SCREEN_VERSION: ${MOLECULE_MIAREC_SCREEN_VERSION:-"2026.8.3.0"}
+    MIAREC_LIVEMON_VERSION: ${MOLECULE_MIAREC_LIVEMON_VERSION:-"0.1.0.183"}
+    POSTGRESQL_VERSION: ${MOLECULE_POSTGRESQL_VERSION:-"15"}
+    PGBOUNCER_INSTALL: ${MOLECULE_PGBOUNCER_INSTALL:-"true"}
+
+verifier:
+  name: testinfra
+  directory: tests
+  options:
+    s: true
+    verbose: true
