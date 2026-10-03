@@ -29,6 +29,20 @@ provisioner:
   playbooks:
     prepare: prepare.yml
     converge: converge.yml
+  # The roles run the services as root by default. Run them as dedicated
+  # users here. TLS private keys are readable by the "miarec" group only, so
+  # the services that use them must not run as root.
+  inventory:
+    group_vars:
+      all:
+        miarec_bin_user: miarec
+        miarec_bin_group: miarec
+        miarec_screen_bin_user: miarec
+        miarec_screen_bin_group: miarec
+        miarecweb_celery_user: celery
+        miarecweb_celery_group: miarec
+        miarec_livemon_bin_user: miarec
+        miarec_livemon_bin_group: miarec
   env:
     ANSIBLE_VERBOSITY: ${MOLECULE_ANSIBLE_VERBOSITY:-0}
     MOLECULE_DISTRO: ${MOLECULE_DISTRO:-ubuntu2404}
@@ -44,6 +58,11 @@ provisioner:
 verifier:
   name: testinfra
   directory: tests
+  # Same process-user checks as the default scenario. They matter most here:
+  # a service that falls back to root still reads the private keys and hides
+  # a permission problem.
+  additional_files_or_dirs:
+    - ../../default/tests/test_service_users.py
   options:
     s: true
     verbose: true
