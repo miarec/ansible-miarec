@@ -38,6 +38,13 @@ def test_socket(host):
     assert listening_on_all_interfaces(host, PGBOUNCER_PORT), "PGBouncer does not listen on all interfaces"
 
 
+def test_postgresql_query(host):
+    """PostgreSQL accepts connections and answers queries."""
+    result = host.run("sudo -u postgres psql -tAc 'SELECT 1;'")
+    assert result.rc == 0, f"psql failed: {result.stderr}"
+    assert result.stdout.strip() == "1", f"Unexpected reply: {result.stdout}"
+
+
 def test_pgbouncer_hba_allows_peers(host):
     """Every tier that uses the database has a PGBouncer hba rule."""
     hba = host.file("/etc/pgbouncer/pgbouncer_hba.conf")

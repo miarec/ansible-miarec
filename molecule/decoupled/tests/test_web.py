@@ -1,6 +1,7 @@
 """Web tier: Apache, miarecweb, and live monitoring. No Celery."""
 import json
 import os
+import uuid
 from conftest import hosts_in, peer_ip, PGBOUNCER_PORT, REDIS_PORT
 
 testinfra_hosts = hosts_in('web')
@@ -56,6 +57,31 @@ def test_health_endpoint(host):
     assert payload.get("status") == "ok", f"Unexpected overall status: {payload}"
     assert payload.get("postgresql") == "ok", f"Unexpected PostgreSQL status: {payload}"
     assert payload.get("redis") == "ok", f"Unexpected Redis status: {payload}"
+
+
+def test_celery_round_trip(host):
+    """A task sent from the web host runs on the Celery host and returns a result.
+
+    The web host has no Celery worker, so the reply proves that the worker on the
+    Celery host consumes tasks from Redis and stores results back in Redis.
+    """
+    probe_id = str(uuid.uuid4())
+    script = (
+        "import json, sys\n"
+        "from miarecweb.celery.celery_app import celery_app, load_config_from_file\n"
+        "celery_config, _ = load_config_from_file(sys.argv[1])\n"
+        "celery_app.conf.update(celery_config)\n"
+        "result = celery_app.send_task('miarecweb.observability.celery_health_probe', args=[sys.argv[2]], expires=60)\n"
+        "print(json.dumps({'task_id': result.id, 'reply': result.get(timeout=60)}))\n"
+    )
+    result = host.run(
+        "/opt/miarecweb/current/pyenv/bin/python -c %s %s %s",
+        script, "/opt/miarecweb/current/production.ini", probe_id,
+    )
+    assert result.rc == 0, f"Celery health probe failed: {result.stderr}"
+    payload = json.loads(result.stdout.strip().splitlines()[-1])
+    assert payload["reply"]["probe_id"] == probe_id, f"Unexpected probe reply: {payload}"
+    assert payload["reply"]["celery_task_id"] == payload["task_id"], f"Unexpected probe reply: {payload}"
 
 
 def test_script(host):

@@ -1,6 +1,7 @@
 """Screen tier: the screen recording controller alone."""
+import json
 import os
-from conftest import hosts_in, peer_ip, PGBOUNCER_PORT, REDIS_PORT
+from conftest import runner, hosts_in, peer_ip, PGBOUNCER_PORT, REDIS_PORT
 
 testinfra_hosts = hosts_in('screen')
 
@@ -40,6 +41,22 @@ def test_ini_points_to_peers(host):
     assert f"Host = {redis_ip}:{REDIS_PORT}" in content
     assert ini.contains(rf"^IpAddress = 127\.0\.0\.1;.*\b{web_ip}\b")
     assert ini.contains(rf"^IpAddress = 127\.0\.0\.1;.*\b{celery_ip}\b")
+
+
+def test_health_endpoint(host):
+    """The screen controller reaches PostgreSQL and Redis on their hosts.
+
+    The screen image has no curl, so the web host queries the REST API over
+    the network.
+    """
+    screen_ip = peer_ip(host, 'screen')
+    web_host = runner.get_host(hosts_in('web')[0])
+    result = web_host.run(f"curl -fsS --max-time 10 http://{screen_ip}:6089/health")
+    assert result.rc == 0, f"Health endpoint not reachable from the web host: {result.stderr}"
+    payload = json.loads(result.stdout)
+    assert payload.get("status") == "ok", f"Unexpected overall status: {payload}"
+    assert payload.get("database") == "ok", f"Unexpected database status: {payload}"
+    assert payload.get("redis") == "ok", f"Unexpected Redis status: {payload}"
 
 
 def test_no_recorder(host):

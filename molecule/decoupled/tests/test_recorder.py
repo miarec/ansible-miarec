@@ -53,7 +53,7 @@ def test_health_endpoint(host):
     """The recorder reaches PostgreSQL and Redis on their hosts.
 
     The recorder image has no curl, so the web host queries the REST API over
-    the network. That also proves the web host is on the API allow-list.
+    the network.
     """
     rec_ip = peer_ip(host, 'recorder')
     web_host = runner.get_host(hosts_in('web')[0])

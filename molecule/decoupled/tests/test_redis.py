@@ -33,6 +33,13 @@ def test_redis_bind(host):
     assert conf.contains(r"^bind 0\.0\.0\.0"), "Redis must bind to all interfaces"
 
 
+def test_redis_ping(host):
+    """Redis accepts connections and answers commands."""
+    result = host.run("redis-cli PING")
+    assert result.rc == 0, f"redis-cli PING failed: {result.stderr}"
+    assert result.stdout.strip() == "PONG", f"Unexpected reply: {result.stdout}"
+
+
 def test_no_database(host):
     """PostgreSQL and PGBouncer run on the database host."""
     assert not host.socket("tcp://127.0.0.1:5432").is_listening
