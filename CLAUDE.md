@@ -30,6 +30,10 @@ Environment variables for molecule tests:
 - `MOLECULE_DISTRO` - Target OS (ubuntu2204, ubuntu2404, centos7, rockylinux8, rockylinux9, rhel7, rhel8, rhel9)
 - `MOLECULE_MIARECWEB_VERSION`, `MOLECULE_MIAREC_VERSION`, `MOLECULE_MIAREC_SCREEN_VERSION`
 - `MOLECULE_POSTGRESQL_VERSION`, `MOLECULE_REDIS_VERSION`, `MOLECULE_PYTHON_VERSION`
+- `MOLECULE_INSTALL_PGBOUNCER` - `false` skips PGBouncer (every scenario)
+- `MOLECULE_POSTGRESQL_SSL` - `true` encrypts PGBouncer-to-PostgreSQL traffic (`decoupled-tls` only)
+
+Scenarios: `default`, `tls`, `decoupled`, `decoupled-tls`. Shared plays live in `molecule/shared/`.
 
 ### Running Playbooks
 

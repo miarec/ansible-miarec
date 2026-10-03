@@ -151,3 +151,76 @@ jobs:
                   PY_COLORS: '1'
                   ANSIBLE_FORCE_COLOR: '1'
                   MOLECULE_DISTRO: ${{ matrix.distro }}
+
+    test_decoupled_tls:
+        name: molecule-decoupled-tls
+        runs-on: ubuntu-22.04
+        strategy:
+            fail-fast: false
+            matrix:
+                distro:
+                    - ubuntu2404
+                    - rockylinux9
+                    - rhel7
+                    - rhel8
+                    - rhel9
+
+        steps:
+            - name: Check out the Repository
+              uses: actions/checkout@v4
+              with:
+                  submodules: recursive
+
+            - name: Set up uv
+              uses: astral-sh/setup-uv@v4
+
+            - name: Run molecule decoupled TLS tests
+              run: uv run molecule test -s decoupled-tls
+              env:
+                  PY_COLORS: '1'
+                  ANSIBLE_FORCE_COLOR: '1'
+                  MOLECULE_DISTRO: ${{ matrix.distro }}
+
+    # Configurations that production deployments rarely use. One distro is enough.
+    test_edge_cases:
+        name: molecule-edge-${{ matrix.label }}
+        runs-on: ubuntu-22.04
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - label: decoupled-tls-postgresql-ssl
+                      scenario: decoupled-tls
+                      install_pgbouncer: 'true'
+                      postgresql_ssl: 'true'
+                    - label: decoupled-tls-no-pgbouncer
+                      scenario: decoupled-tls
+                      install_pgbouncer: 'false'
+                    - label: decoupled-no-pgbouncer
+                      scenario: decoupled
+                      install_pgbouncer: 'false'
+                    - label: tls-no-pgbouncer
+                      scenario: tls
+                      install_pgbouncer: 'false'
+                    - label: default-no-pgbouncer
+                      scenario: default
+                      install_pgbouncer: 'false'
+
+        steps:
+            - name: Check out the Repository
+              uses: actions/checkout@v4
+              with:
+                  submodules: recursive
+
+            - name: Set up uv
+              uses: astral-sh/setup-uv@v4
+
+            - name: Run molecule ${{ matrix.scenario }} tests
+              run: uv run molecule test -s ${{ matrix.scenario }}
+              env:
+                  PY_COLORS: '1'
+                  ANSIBLE_FORCE_COLOR: '1'
+                  MOLECULE_DISTRO: ubuntu2404
+                  MOLECULE_INSTALL_PGBOUNCER: ${{ matrix.install_pgbouncer }}
+                  # Empty when the entry does not set it: the scenario default applies.
+                  MOLECULE_POSTGRESQL_SSL: ${{ matrix.postgresql_ssl }}

@@ -122,9 +122,26 @@ uv sync
 MOLECULE_DISTRO=ubuntu2404 uv run molecule test -s decoupled
 ```
 
+The `tls` and `decoupled-tls` scenarios repeat `default` and `decoupled` with TLS on every connection to PostgreSQL, PGBouncer, and Redis.
+
+### Test the edge cases
+
+Two variables test configurations that production deployments rarely use:
+
+- `MOLECULE_POSTGRESQL_SSL=true` (`decoupled-tls` only) encrypts the connection from PGBouncer to PostgreSQL. By default, this connection stays plaintext, because both run on the same host.
+- `MOLECULE_INSTALL_PGBOUNCER=false` (every scenario) skips PGBouncer. The clients connect to PostgreSQL directly, over TLS in the TLS scenarios.
+
+```
+MOLECULE_DISTRO=ubuntu2404 MOLECULE_POSTGRESQL_SSL=true uv run molecule test -s decoupled-tls
+MOLECULE_DISTRO=ubuntu2404 MOLECULE_INSTALL_PGBOUNCER=false uv run molecule test -s decoupled-tls
+MOLECULE_DISTRO=ubuntu2404 MOLECULE_INSTALL_PGBOUNCER=false uv run molecule test -s decoupled
+```
+
+CI runs these combinations on Ubuntu 24.04 only. For the full list, see [molecule/README.md](molecule/README.md#edge-cases).
+
 ### Run tests for several distros in parallel
 
-Give each run its own `MOLECULE_EPHEMERAL_DIRECTORY`. Otherwise, the runs share Molecule state and break each other. The container names already include the distro, so they don't collide.
+Give each run its own `MOLECULE_EPHEMERAL_DIRECTORY`. Otherwise, the runs share Molecule state and break each other. The container names include the scenario and the distro, so runs of different scenarios or distros don't collide. Two runs of the same scenario on the same distro do, for example two edge cases of `decoupled-tls` on Ubuntu 24.04.
 
 ```
 for d in ubuntu2404 rockylinux9 rhel7 rhel8 rhel9; do
