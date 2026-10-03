@@ -1,75 +1,11 @@
 ---
-- name: Converge TLS scenario
-  hosts: all
-  vars:
-    molecule_python_version: "{{ lookup('env', 'MOLECULE_PYTHON_VERSION') | default('', true) }}"
+# The default scenario with TLS on the connections to PostgreSQL, PGBouncer,
+# and Redis.
+- name: Set install variables
+  import_playbook: ../shared/install-vars.yml
 
-  pre_tasks:
-    - name: Set Install Variables
-      set_fact:
-        private_ip_address: 127.0.0.1
-        miarecweb_secret: "{{ lookup('env', 'MIARECWEB_SECRET') }}"
-        miarecweb_version: "{{ lookup('env', 'MIARECWEB_VERSION') }}"
-        miarec_version: "{{ lookup('env', 'MIAREC_VERSION') }}"
-        miarec_screen_version: "{{ lookup('env', 'MIAREC_SCREEN_VERSION') }}"
-        miarec_livemon_version: "{{ lookup('env', 'MIAREC_LIVEMON_VERSION') }}"
-        postgresql_version: "{{ lookup('env', 'POSTGRESQL_VERSION') }}"
-        install_pgbouncer: true
-        redis_install_from_source: false
-        python_install_from_source: false
-        sox_install_from_source: false
-        # TLS configuration variables
-        tls_certs_dir: "{{ lookup('env', 'MOLECULE_TLS_CERTS_DIR') }}"
-        postgresql_ssl: true
-        pgbouncer_client_tls: true
-        pgbouncer_server_tls: true
-        redis_tls: true
-        # Molecule test database/user
-        postgresql_extra_users:
-          - name: testuser
-            pass: testpassword
-            encrypted: true
-        postgresql_extra_databases:
-          - name: testdb
-            owner: testuser
-        postgresql_tls_extra_hba_users:
-          - testuser
-
-    # Redis added TLS in 6.0. EL 8 packages Redis 5 and EL 7 packages Redis 3,
-    # so build Redis from source there.
-    - name: Build Redis from source | RHEL 7 and 8
-      set_fact:
-        redis_install_from_source: true
-      when:
-        - ansible_facts['os_family'] == "RedHat"
-        - ansible_facts['distribution_major_version'] | int < 9
-
-    - name: Apply MOLECULE_PYTHON_VERSION override when provided
-      when: molecule_python_version | length > 0
-      set_fact:
-        python_version: "{{ molecule_python_version }}"
-
-    - name: Set python_version default for Rocky/RHEL hosts
-      when:
-        - ansible_facts['os_family'] == "RedHat"
-        - ansible_facts['distribution_major_version'] != '7'
-        - molecule_python_version | length == 0
-      set_fact:
-        python_version: "3.12"
-
-    # RHEL 7 has no Python 3.12 packages, so build Python from source.
-    # A source build needs the full version (like 3.11.16) to download the tarball.
-    # Use Python 3.11: miarecweb depends on onnxruntime, which has no cp312 wheels for glibc 2.17.
-    # The sox role requires a source build on RHEL 7 for mp3 support.
-    - name: Set source install variables | RHEL 7
-      set_fact:
-        python_install_from_source: true
-        python_version: "{{ molecule_python_version | default('3.11.16', true) }}"
-        sox_install_from_source: true
-      when:
-        - ansible_facts['os_family'] == "RedHat"
-        - ansible_facts['distribution_major_version'] == '7'
-
+- name: Set TLS variables
+  import_playbook: ../shared/tls-vars.yml
 
 - name: Run prepare-hosts playbook
   import_playbook: ../../prepare-hosts.yml

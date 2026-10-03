@@ -1,0 +1,32 @@
+---
+# Decoupled scenarios: each container has one interface on the scenario
+# network. The playbooks use private_ip_address to connect components and to
+# allow-list peers in pg_hba.conf, pgbouncer.ini and the recorder REST API.
+- name: Set the container address
+  hosts: all
+
+  tasks:
+    # Docker writes the container address to /etc/hosts. Read it from there,
+    # because the RHEL 7 image has no "ip" command and Ansible network facts
+    # are empty without it.
+    - name: Detect the container IP address
+      command: "getent ahostsv4 {{ ansible_facts['hostname'] }}"
+      register: _container_address
+      changed_when: false
+      check_mode: false
+
+    - name: Require a container IP address
+      assert:
+        that:
+          - _container_address.stdout_lines | length > 0
+          - _container_address.stdout_lines[0].split()[0] is match('^\\d+\\.\\d+\\.\\d+\\.\\d+$')
+          - not _container_address.stdout_lines[0].startswith('127.')
+        fail_msg: "Cannot detect the IP address of {{ inventory_hostname }}: {{ _container_address.stdout }}"
+
+    - name: Set private_ip_address
+      set_fact:
+        private_ip_address: "{{ _container_address.stdout_lines[0].split()[0] }}"
+
+    - name: Print private_ip_address
+      debug:
+        var: private_ip_address

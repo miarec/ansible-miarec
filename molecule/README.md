@@ -24,7 +24,7 @@ MOLECULE_DISTRO=centos7 MOLECULE_MIARECWEB_VERSION=8.0.0.3909 molecule test
  - `MOLECULE_MIAREC_LIVEMON_VERSION` defines variable `miarec_livemon_version`, default `0.1.0.183`
  - `MOLECULE_PYTHON_VERSION` defines variable `python_version`. Default: `3.12` on RedHat-based distros; the system Python on Ubuntu (3.10 on 22.04, 3.12 on 24.04); `3.11.16` on RHEL 7, where Python is built from source and the value must be a full version
  - `MOLECULE_POSTGRESQL_VERSION` defines variable `postgresql_version`, default `12`
- - `MOLECULE_PGBOUNCER_INSTALL` defines variable `install_pgbouncer`, default `true`
+ - `MOLECULE_INSTALL_PGBOUNCER` defines variable `install_pgbouncer`, default `true`
  - `MOLECULE_ANSIBLE_VERBOSITY` set verbosity for ansible run, like running "ansible -vvv", values 0-3, default 0
 
 ## Scenario - `tls`

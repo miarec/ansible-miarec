@@ -1,0 +1,38 @@
+---
+# TLS scenarios: encrypt the connections to PostgreSQL, PGBouncer, and Redis.
+# Import after install-vars.yml, because this playbook overrides some of its
+# values.
+#
+# The vars files of the playbooks (vars/db.yml, vars/tls.yml) take precedence
+# over the inventory, so set the TLS variables as facts.
+- name: Set TLS variables
+  hosts: all
+
+  tasks:
+    - name: Set TLS variables
+      set_fact:
+        # prepare.yml generates the certificate set into this directory.
+        tls_certs_dir: "{{ lookup('env', 'MOLECULE_TLS_CERTS_DIR') }}"
+        postgresql_ssl: true
+        pgbouncer_client_tls: true
+        pgbouncer_server_tls: true
+        redis_tls: true
+        # Test database and user
+        postgresql_extra_users:
+          - name: testuser
+            pass: testpassword
+            encrypted: true
+        postgresql_extra_databases:
+          - name: testdb
+            owner: testuser
+        postgresql_tls_extra_hba_users:
+          - testuser
+
+    # Redis added TLS in 6.0. EL 8 packages Redis 5 and EL 7 packages Redis 3,
+    # so build Redis from source there.
+    - name: Build Redis from source | RHEL 7 and 8
+      set_fact:
+        redis_install_from_source: true
+      when:
+        - ansible_facts['os_family'] == "RedHat"
+        - ansible_facts['distribution_major_version'] | int < 9
