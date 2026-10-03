@@ -1,5 +1,11 @@
 import os
+import pytest
 import testinfra.utils.ansible_runner
+
+# MOLECULE_INSTALL_PGBOUNCER=false skips PGBouncer
+pytestmark = pytest.mark.skipif(
+    os.environ.get('INSTALL_PGBOUNCER', 'true').lower() not in ('true', 'yes', '1'),
+    reason="PGBouncer is not installed")
 
 testinfra_hosts = testinfra.utils.ansible_runner.AnsibleRunner(
     os.environ['MOLECULE_INVENTORY_FILE']).get_hosts('all')
