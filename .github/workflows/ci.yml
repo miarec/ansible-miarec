@@ -100,8 +100,10 @@ jobs:
             matrix:
                 distro:
                     - ubuntu2404
+                    - rockylinux9
                     - rhel7
                     - rhel8
+                    - rhel9
 
         steps:
             - name: Check out the Repository
