@@ -95,11 +95,15 @@ def ini_option(ini, section, option):
 
 
 def postgresql_paths(host):
-    """Return the PostgreSQL configuration directory and service name."""
+    """Return the PostgreSQL configuration directory and service name.
+
+    The postgresql role keeps the configuration in /etc/postgresql on every
+    distro. On RedHat, /var/lib/pgsql holds the data and an unused pg_hba.conf.
+    """
     version = os.environ.get('POSTGRESQL_VERSION')
     if host.system_info.distribution == "ubuntu":
         return f"/etc/postgresql/{version}/main", "postgresql"
-    return f"/var/lib/pgsql/{version}/data", f"postgresql-{version}"
+    return f"/etc/postgresql/{version}/data", f"postgresql-{version}"
 
 
 _DB_QUERY = """
