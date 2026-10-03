@@ -1,6 +1,7 @@
 """Web tier: Apache, miarecweb, and live monitoring. No Celery."""
 import json
 import os
+import re
 import uuid
 from conftest import hosts_in, peer_ip, process_owners, TLS, DB_PORT, REDIS_PORT
 
@@ -66,9 +67,9 @@ def test_production_ini_points_to_peers(host):
 
 def test_production_ini_tls(host):
     """In decoupled-tls, MiaRec Web connects to the database and Redis over TLS."""
-    ini = host.file("/opt/miarecweb/releases/{}/production.ini".format(miarecweb_version))
-    assert ini.contains(r"^DATABASE_SSL_PARAMS = .*sslmode=(require|verify-ca|verify-full)") == TLS
-    assert ini.contains("^REDIS_SCHEMA = {}$".format("rediss" if TLS else "redis"))
+    content = host.file("/opt/miarecweb/releases/{}/production.ini".format(miarecweb_version)).content_string
+    assert bool(re.search(r"^DATABASE_SSL_PARAMS = .*sslmode=(require|verify-ca|verify-full)", content, re.M)) == TLS
+    assert re.search(r"^REDIS_SCHEMA = {}$".format("rediss" if TLS else "redis"), content, re.M)
 
 
 def test_health_endpoint(host):

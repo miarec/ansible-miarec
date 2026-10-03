@@ -6,7 +6,7 @@ testinfra_hosts = hosts_in('redis')
 
 
 def redis_service(host):
-    if host.run("systemctl cat redis_%s", REDIS_PORT).rc == 0:
+    if host.run("systemctl cat %s", f"redis_{REDIS_PORT}").rc == 0:
         # Redis built from source (decoupled-tls on EL 7 and 8)
         return f"redis_{REDIS_PORT}"
     return "redis-server" if host.system_info.distribution == "ubuntu" else "redis"
