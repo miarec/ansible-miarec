@@ -1,7 +1,7 @@
 """Recorder tier: the call recorder alone."""
 import json
 import os
-from conftest import runner, hosts_in, peer_ip, process_owners, PGBOUNCER_PORT, REDIS_PORT
+from conftest import runner, hosts_in, peer_ip, process_owners, ini_option, TLS, DB_PORT, REDIS_PORT
 
 testinfra_hosts = hosts_in('recorder')
 
@@ -45,12 +45,19 @@ def test_ini_points_to_peers(host):
     web_ip = peer_ip(host, 'web')
     celery_ip = peer_ip(host, 'celery')
     content = ini.content_string
-    assert f"Host = {db_ip}:{PGBOUNCER_PORT}" in content
+    assert f"Host = {db_ip}:{DB_PORT}" in content
     assert f"Host = {redis_ip}:{REDIS_PORT}" in content
     assert f"http://{web_ip}/notify/call" in content
     # The web and Celery hosts may call the recorder REST API.
     assert ini.contains(rf"^IpAddress = 127\.0\.0\.1;.*\b{web_ip}\b")
     assert ini.contains(rf"^IpAddress = 127\.0\.0\.1;.*\b{celery_ip}\b")
+
+
+def test_ini_tls(host):
+    """In decoupled-tls, the recorder connects to the database and Redis over TLS."""
+    ini = host.file("/opt/miarec/releases/{}/miarec.ini".format(miarec_version))
+    for section in ["SQLConfig", "SQLCallsLog", "RedisCallsLog"]:
+        assert (ini_option(ini, section, "UseSSL") == "true") == TLS, f"Unexpected UseSSL in [{section}]"
 
 
 def test_health_endpoint(host):

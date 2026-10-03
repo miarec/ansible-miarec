@@ -1,0 +1,143 @@
+---
+# The decoupled scenario with TLS on every connection to PostgreSQL, PGBouncer,
+# and Redis. Same six containers as the decoupled scenario:
+#
+#   db      - PostgreSQL and PGBouncer
+#   redis   - Redis
+#   web     - Apache, miarecweb and live monitoring
+#   celery  - Celery worker and Celery beat
+#   rec     - call recorder
+#   screen  - screen recording controller
+#
+# PGBouncer and PostgreSQL share the db host, so the connection between them
+# stays plaintext unless MOLECULE_POSTGRESQL_SSL=true.
+dependency:
+  name: galaxy
+
+driver:
+  name: docker
+
+# The driver creates the network named under each platform.
+
+platforms:
+  - name: ansible-miarec-dtls-db-${MOLECULE_DISTRO:-ubuntu2404}
+    image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
+    groups:
+      - db
+    networks:
+      - name: ansible-miarec-dtls-${MOLECULE_DISTRO:-ubuntu2404}
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    privileged: true
+    pre_build_image: true
+
+  - name: ansible-miarec-dtls-redis-${MOLECULE_DISTRO:-ubuntu2404}
+    image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
+    groups:
+      - redis
+    networks:
+      - name: ansible-miarec-dtls-${MOLECULE_DISTRO:-ubuntu2404}
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    privileged: true
+    pre_build_image: true
+
+  - name: ansible-miarec-dtls-web-${MOLECULE_DISTRO:-ubuntu2404}
+    image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
+    groups:
+      - web
+      - livemon
+    networks:
+      - name: ansible-miarec-dtls-${MOLECULE_DISTRO:-ubuntu2404}
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    privileged: true
+    pre_build_image: true
+
+  - name: ansible-miarec-dtls-celery-${MOLECULE_DISTRO:-ubuntu2404}
+    image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
+    groups:
+      - celery
+      - celerybeat
+    networks:
+      - name: ansible-miarec-dtls-${MOLECULE_DISTRO:-ubuntu2404}
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    privileged: true
+    pre_build_image: true
+
+  - name: ansible-miarec-dtls-rec-${MOLECULE_DISTRO:-ubuntu2404}
+    image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
+    groups:
+      - recorder
+    networks:
+      - name: ansible-miarec-dtls-${MOLECULE_DISTRO:-ubuntu2404}
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    privileged: true
+    pre_build_image: true
+
+  - name: ansible-miarec-dtls-screen-${MOLECULE_DISTRO:-ubuntu2404}
+    image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
+    groups:
+      - screen
+    networks:
+      - name: ansible-miarec-dtls-${MOLECULE_DISTRO:-ubuntu2404}
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    privileged: true
+    pre_build_image: true
+
+provisioner:
+  name: ansible
+  playbooks:
+    prepare: prepare.yml
+    converge: converge.yml
+  # The roles run the services as root by default. Run them as dedicated
+  # users here. TLS private keys are readable by the "miarec" group only, so
+  # the services that use them must not run as root.
+  inventory:
+    group_vars:
+      all:
+        miarec_bin_user: miarec
+        miarec_bin_group: miarec
+        miarec_screen_bin_user: miarec
+        miarec_screen_bin_group: miarec
+        miarecweb_celery_user: celery
+        miarecweb_celery_group: miarec
+        miarec_livemon_bin_user: miarec
+        miarec_livemon_bin_group: miarec
+  env:
+    ANSIBLE_VERBOSITY: ${MOLECULE_ANSIBLE_VERBOSITY:-0}
+    MIARECWEB_VERSION: ${MOLECULE_MIARECWEB_VERSION:-"2026.8.24.0"}
+    MIARECWEB_SECRET: ${MOLECULE_MIARECWEB_SECRET:-"secret"}
+    MIAREC_VERSION: ${MOLECULE_MIAREC_VERSION:-"2026.8.16.0"}
+    MIAREC_SCREEN_VERSION: ${MOLECULE_MIAREC_SCREEN_VERSION:-"2026.8.3.0"}
+    MIAREC_LIVEMON_VERSION: ${MOLECULE_MIAREC_LIVEMON_VERSION:-"0.1.0.183"}
+    POSTGRESQL_VERSION: ${MOLECULE_POSTGRESQL_VERSION:-"15"}
+    INSTALL_PGBOUNCER: ${MOLECULE_INSTALL_PGBOUNCER:-"true"}
+    POSTGRESQL_SSL: ${MOLECULE_POSTGRESQL_SSL:-"false"}
+    # Tells the decoupled tests to expect TLS
+    TLS_ENABLED: "true"
+    # Private TLS certificate set for this scenario run. Never reuse ./certs.
+    MOLECULE_TLS_CERTS_DIR: ${MOLECULE_EPHEMERAL_DIRECTORY}/certs
+
+# The decoupled tests read TLS_ENABLED and check the TLS settings and transports.
+verifier:
+  name: testinfra
+  directory: ../decoupled/tests
+  options:
+    s: true
+    verbose: true

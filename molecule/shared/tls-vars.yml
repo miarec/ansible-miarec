@@ -10,12 +10,17 @@
 
   tasks:
     - name: Set TLS variables
+      vars:
+        # The clients reach PostgreSQL over TLS: through PGBouncer, or directly
+        # when PGBouncer is not installed. PGBouncer runs on the PostgreSQL
+        # host, so TLS between them is optional: POSTGRESQL_SSL turns it on.
+        _postgresql_ssl: "{{ (lookup('env', 'POSTGRESQL_SSL') | bool) or not (install_pgbouncer | bool) }}"
       set_fact:
         # prepare.yml generates the certificate set into this directory.
         tls_certs_dir: "{{ lookup('env', 'MOLECULE_TLS_CERTS_DIR') }}"
-        postgresql_ssl: true
+        postgresql_ssl: "{{ _postgresql_ssl }}"
         pgbouncer_client_tls: true
-        pgbouncer_server_tls: true
+        pgbouncer_server_tls: "{{ _postgresql_ssl }}"
         redis_tls: true
         # Test database and user
         postgresql_extra_users:

@@ -2,7 +2,7 @@
 import json
 import os
 import uuid
-from conftest import hosts_in, peer_ip, process_owners, PGBOUNCER_PORT, REDIS_PORT
+from conftest import hosts_in, peer_ip, process_owners, TLS, DB_PORT, REDIS_PORT
 
 testinfra_hosts = hosts_in('web')
 
@@ -59,9 +59,16 @@ def test_production_ini_points_to_peers(host):
     db_ip = peer_ip(host, 'db')
     redis_ip = peer_ip(host, 'redis')
     assert ini.contains(f"^DATABASE_HOST = {db_ip}$")
-    assert ini.contains(f"^DATABASE_PORT = {PGBOUNCER_PORT}$")
+    assert ini.contains(f"^DATABASE_PORT = {DB_PORT}$")
     assert ini.contains(f"^REDIS_HOST = {redis_ip}$")
     assert ini.contains(f"^REDIS_PORT = {REDIS_PORT}$")
+
+
+def test_production_ini_tls(host):
+    """In decoupled-tls, MiaRec Web connects to the database and Redis over TLS."""
+    ini = host.file("/opt/miarecweb/releases/{}/production.ini".format(miarecweb_version))
+    assert ini.contains(r"^DATABASE_SSL_PARAMS = .*sslmode=(require|verify-ca|verify-full)") == TLS
+    assert ini.contains("^REDIS_SCHEMA = {}$".format("rediss" if TLS else "redis"))
 
 
 def test_health_endpoint(host):
