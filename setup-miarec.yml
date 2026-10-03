@@ -102,7 +102,8 @@
         miarec_db_host: "{{ hostvars[groups.db.0].private_ip_address }}"
         miarec_redis_host: "{{ hostvars[groups.redis.0].private_ip_address }}"
         miarec_http_call_events_host: "{{ hostvars[groups.web.0].private_ip_address }}"
-        miarec_rest_api_permitted_hosts: "{{ groups['web'] | map('extract', hostvars, ['private_ip_address']) | join(';') }}"
+        # Web and Celery hosts call the REST API
+        miarec_rest_api_permitted_hosts: "{{ (groups['web'] | default([]) + groups['celery'] | default([])) | map('extract', hostvars, ['private_ip_address']) | unique | join(';') }}"
 
     - name: Configure MiaRec Recorder TLS settings
       set_fact:
@@ -172,7 +173,8 @@
     - set_fact:
         miarec_db_host: "{{ hostvars[groups.db.0].private_ip_address }}"
         miarec_redis_host: "{{ hostvars[groups.redis.0].private_ip_address }}"
-        miarec_rest_api_permitted_hosts: "{{ groups['web'] | map('extract', hostvars, ['private_ip_address']) | join(';') }}"
+        # Web and Celery hosts call the REST API
+        miarec_rest_api_permitted_hosts: "{{ (groups['web'] | default([]) + groups['celery'] | default([])) | map('extract', hostvars, ['private_ip_address']) | unique | join(';') }}"
 
     - debug: var=miarec_db_host
     - debug: var=miarec_redis_host
