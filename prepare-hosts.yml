@@ -45,7 +45,7 @@
 
       when: not install_pgbouncer | default(False) | bool
 
-    - name: Define connection rule for Recorder and Web servers
+    - name: Define connection rule for client hosts
       set_fact:
         tmp_rule:
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
@@ -54,7 +54,9 @@
           type: host
           database: "{{ miarec_db_name }}"
           method: 'md5'
-      with_items: "{{ groups.recorder + groups.web }}"
+      # Every host that connects to the database or Redis. Deduplicate because
+      # one host often belongs to several groups.
+      with_items: "{{ (groups['web'] | default([]) + groups['celery'] | default([]) + groups['celerybeat'] | default([]) + groups['recorder'] | default([]) + groups['screen'] | default([])) | unique }}"
       when: not install_pgbouncer | default(False) | bool and hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
       register: tmp_pg_hba_rules
 
@@ -127,7 +129,9 @@
           type: host
           database: "{{ miarec_db_name }},pgbouncer"
           method: 'md5'
-      with_items: "{{ groups.recorder + groups.web }}"
+      # Every host that connects to the database or Redis. Deduplicate because
+      # one host often belongs to several groups.
+      with_items: "{{ (groups['web'] | default([]) + groups['celery'] | default([]) + groups['celerybeat'] | default([]) + groups['recorder'] | default([]) + groups['screen'] | default([])) | unique }}"
       when: install_pgbouncer | default(False) | bool and hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
       register: tmp_pg_hba_rules
 
@@ -172,10 +176,12 @@
       include_vars: vars/custom.yml
       failed_when: false
 
-    - name: Define ip_address recorder and web hosts
+    - name: Define ip_address of client hosts
       set_fact:
         ip_address: "{{ hostvars[item].private_ip_address }}"
-      with_items: "{{ groups.recorder + groups.web }}"
+      # Every host that connects to the database or Redis. Deduplicate because
+      # one host often belongs to several groups.
+      with_items: "{{ (groups['web'] | default([]) + groups['celery'] | default([]) + groups['celerybeat'] | default([]) + groups['recorder'] | default([]) + groups['screen'] | default([])) | unique }}"
       when: hostvars[item].private_ip_address != hostvars[inventory_hostname].private_ip_address
       register: tmp_ip_addresses
 
