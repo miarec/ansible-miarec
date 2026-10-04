@@ -117,39 +117,51 @@ server certificates with the addresses that the clients connect to
 
 The playbooks are tested with Molecule. For the scenarios and their variables, see [molecule/README.md](molecule/README.md).
 
+Each `make test-*` target runs one configuration that CI tests, on Ubuntu 24.04 by default. To list the targets, run `make help`.
+
 ```
 uv sync
-MOLECULE_DISTRO=ubuntu2404 uv run molecule test -s decoupled
+make test-decoupled-tls
+make test-decoupled-tls DISTRO=rockylinux9
 ```
 
-The `tls` and `decoupled-tls` scenarios repeat `default` and `decoupled` with TLS on every connection to PostgreSQL, PGBouncer, and Redis.
+| Target | Containers | TLS | PGBouncer |
+|---|---|---|---|
+| `test-default` | One for all components | No | Yes |
+| `test-default-no-pgbouncer` | One for all components | No | No |
+| `test-tls` | One for all components | Yes | Yes |
+| `test-tls-no-pgbouncer` | One for all components | Yes | No |
+| `test-decoupled` | One per tier | No | Yes |
+| `test-decoupled-no-pgbouncer` | One per tier | No | No |
+| `test-decoupled-tls` | One per tier | Yes | Yes |
+| `test-decoupled-tls-no-pgbouncer` | One per tier | Yes | No |
+| `test-decoupled-tls-postgresql-ssl` | One per tier | Yes, also from PGBouncer to PostgreSQL | Yes |
 
-### Test the edge cases
+Production deployments rarely use the configurations without PGBouncer or with TLS from PGBouncer to PostgreSQL. CI runs them on Ubuntu 24.04 only.
 
-Two variables test configurations that production deployments rarely use:
-
-- `MOLECULE_POSTGRESQL_SSL=true` (`decoupled-tls` only) encrypts the connection from PGBouncer to PostgreSQL. By default, this connection stays plaintext, because both run on the same host.
-- `MOLECULE_INSTALL_PGBOUNCER=false` (every scenario) skips PGBouncer. The clients connect to PostgreSQL directly, over TLS in the TLS scenarios.
+To run another Molecule command, set `MOLECULE_COMMAND`. The next command for the same configuration and distro reuses the containers:
 
 ```
-MOLECULE_DISTRO=ubuntu2404 MOLECULE_POSTGRESQL_SSL=true uv run molecule test -s decoupled-tls
-MOLECULE_DISTRO=ubuntu2404 MOLECULE_INSTALL_PGBOUNCER=false uv run molecule test -s decoupled-tls
-MOLECULE_DISTRO=ubuntu2404 MOLECULE_INSTALL_PGBOUNCER=false uv run molecule test -s decoupled
+make test-decoupled-tls MOLECULE_COMMAND=converge
+make test-decoupled-tls MOLECULE_COMMAND=verify
+make test-decoupled-tls MOLECULE_COMMAND=destroy
 ```
 
-CI runs these combinations on Ubuntu 24.04 only. For the full list, see [molecule/README.md](molecule/README.md#edge-cases).
+### Run tests in parallel
 
-### Run tests for several distros in parallel
-
-Give each run its own `MOLECULE_EPHEMERAL_DIRECTORY`. Otherwise, the runs share Molecule state and break each other. The container names include the scenario and the distro, so runs of different scenarios or distros don't collide. Two runs of the same scenario on the same distro do, for example two edge cases of `decoupled-tls` on Ubuntu 24.04.
+Every configuration has its own container names and Molecule state directory, under `~/.cache/molecule/ansible-miarec/<configuration>-<distro>`. You can run any number of configurations and distros at the same time:
 
 ```
 for d in ubuntu2404 rockylinux9 rhel7 rhel8 rhel9; do
-  MOLECULE_DISTRO=$d MOLECULE_EPHEMERAL_DIRECTORY=/tmp/molecule/$d \
-    uv run molecule test -s decoupled </dev/null > /tmp/molecule-$d.log 2>&1 &
+  make test-decoupled DISTRO=$d </dev/null > /tmp/molecule-decoupled-$d.log 2>&1 &
 done
+make test-decoupled-tls-no-pgbouncer </dev/null > /tmp/molecule-dtls-no-pgbouncer.log 2>&1 &
 wait
 ```
+
+Don't run the same configuration on the same distro twice at the same time: both runs use the same containers.
+
+If you run `molecule` directly, give each run its own `MOLECULE_EPHEMERAL_DIRECTORY`. Otherwise, the runs share Molecule state and break each other. To run two configurations of one scenario on the same distro, also give each run its own `MOLECULE_INSTANCE_SUFFIX`, which Molecule appends to the container names.
 
 ### Raise the inotify instance limit
 

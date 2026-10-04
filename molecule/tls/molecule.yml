@@ -5,8 +5,11 @@ dependency:
 driver:
   name: docker
 
+# MOLECULE_INSTANCE_SUFFIX (empty by default) tells apart the containers of
+# two configurations of this scenario on the same distro, so both can run at
+# the same time. The Makefile sets it, see `make help`.
 platforms:
-  - name: ansible-miarec-tls-${MOLECULE_DISTRO:-ubuntu2404}
+  - name: ansible-miarec-tls-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - recorder

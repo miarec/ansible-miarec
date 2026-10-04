@@ -32,8 +32,16 @@ Environment variables for molecule tests:
 - `MOLECULE_POSTGRESQL_VERSION`, `MOLECULE_REDIS_VERSION`, `MOLECULE_PYTHON_VERSION`
 - `MOLECULE_INSTALL_PGBOUNCER` - `false` skips PGBouncer (every scenario)
 - `MOLECULE_POSTGRESQL_SSL` - `true` encrypts PGBouncer-to-PostgreSQL traffic (`decoupled-tls` only)
+- `MOLECULE_INSTANCE_SUFFIX` - appended to container and network names, so two configurations of one scenario can run on the same distro at the same time
 
 Scenarios: `default`, `tls`, `decoupled`, `decoupled-tls`. Shared plays live in `molecule/shared/`.
+
+`make test-<configuration>` runs one CI configuration with its own container names and Molecule state directory, so configurations can run in parallel. `DISTRO` defaults to `ubuntu2404`; `MOLECULE_COMMAND` defaults to `test`. Run `make help` for the targets.
+
+```bash
+make test-decoupled-tls-no-pgbouncer DISTRO=rockylinux9
+make test-decoupled MOLECULE_COMMAND=converge
+```
 
 ### Running Playbooks
 
