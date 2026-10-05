@@ -71,9 +71,10 @@ postgresql_ssl_key_file: /etc/postgresql/tls/server.key
 postgresql_ssl_ca_file: /etc/postgresql/tls/ca.crt
 postgresql_ssl_require_clientcert: false
 
+# Users that may connect over TCP from the local host. The administrator is not
+# one of them: it connects through the Unix socket (see postgresql_pg_hba_default).
 postgresql_tls_extra_hba_users: []
 postgresql_tls_hba_users_default:
-  - "{{ postgresql_admin_user }}"
   - "{{ miarec_db_user }}"
 postgresql_tls_hba_users: "{{ (postgresql_tls_hba_users_default + postgresql_tls_extra_hba_users) | unique }}"
 

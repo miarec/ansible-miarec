@@ -34,19 +34,11 @@
 
     - name: Initialize TLS pg_hba entries
       set_fact:
-        _postgresql_tls_hba_users: "{{ postgresql_tls_hba_users | default([postgresql_admin_user, miarec_db_user]) }}"
+        _postgresql_tls_hba_users: "{{ postgresql_tls_hba_users | default([miarec_db_user]) }}"
         postgresql_pg_hba_custom: []
       when: postgresql_ssl | bool
 
     - name: Define connection values
-      vars:
-        _user_method: >-
-          {{
-            (
-              item == (postgresql_admin_user | default('postgres'))
-            )
-            | ternary('trust', _postgresql_hba_method)
-          }}
       set_fact:
         postgresql_pg_hba_custom: "{{ postgresql_pg_hba_custom + [
           {
@@ -55,7 +47,7 @@
             'type': _postgresql_hba_type,
             'database': 'all',
             'user': item,
-            'method': _user_method
+            'method': _postgresql_hba_method
           },
           {
             'comment': 'IPv6 TLS local connections for ' ~ item ~ ':',
@@ -63,7 +55,7 @@
             'type': _postgresql_hba_type,
             'database': 'all',
             'user': item,
-            'method': _user_method
+            'method': _postgresql_hba_method
           }
         ] }}"
       loop: "{{ _postgresql_tls_hba_users }}"

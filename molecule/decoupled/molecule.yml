@@ -131,6 +131,9 @@ provisioner:
 verifier:
   name: testinfra
   directory: tests
+  # PostgreSQL authentication checks shared with the single-host scenarios
+  additional_files_or_dirs:
+    - ../../default/tests/test_postgresql_auth.py
   options:
     s: true
     verbose: true

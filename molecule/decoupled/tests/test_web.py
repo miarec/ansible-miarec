@@ -3,7 +3,7 @@ import json
 import os
 import re
 import uuid
-from conftest import hosts_in, peer_ip, process_owners, TLS, DB_PORT, REDIS_PORT
+from conftest import admin_query, hosts_in, peer_ip, process_owners, TLS, DB_PORT, REDIS_PORT
 
 testinfra_hosts = hosts_in('web')
 
@@ -70,6 +70,16 @@ def test_production_ini_tls(host):
     content = host.file("/opt/miarecweb/releases/{}/production.ini".format(miarecweb_version)).content_string
     assert bool(re.search(r"^DATABASE_SSL_PARAMS = .*sslmode=(require|verify-ca|verify-full)", content, re.M)) == TLS
     assert re.search(r"^REDIS_SCHEMA = {}$".format("rediss" if TLS else "redis"), content, re.M)
+
+
+def test_db_rejects_remote_admin_without_password(host):
+    """Another host cannot log in to the database tier as the administrator without a password."""
+    result = admin_query(host)
+    assert result.rc != 0, f"The web host logged in as postgres without a password: {result.stdout}"
+    # PGBouncer reports a missing hba rule as "no authentication method is found".
+    rejections = ("no pg_hba.conf entry", "no authentication method", "password", "authentication failed")
+    assert any(error in result.stderr for error in rejections), \
+        f"The connection failed before authentication: {result.stderr}"
 
 
 def test_health_endpoint(host):

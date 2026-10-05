@@ -131,6 +131,16 @@ def db_query(host, sql, tls=TLS, client_cert=f"{MIARECWEB_TLS_DIR}/client"):
     return host.run("%s -c %s %s %s", MIARECWEB_PYTHON, _DB_QUERY, dsn, sql)
 
 
+def admin_query(host, sql="SELECT current_user"):
+    """Run a query on the database tier as the PostgreSQL administrator, without a password.
+
+    Connects from a MiaRec Web host to the port that the application uses.
+    sslmode=prefer tries TLS first and falls back to plaintext.
+    """
+    dsn = f"host={peer_ip(host, 'db')} port={DB_PORT} dbname=postgres user=postgres sslmode=prefer"
+    return host.run("%s -c %s %s %s", MIARECWEB_PYTHON, _DB_QUERY, dsn, sql)
+
+
 _REDIS_PING = """
 import sys, redis
 kwargs = dict(host=sys.argv[1], port=int(sys.argv[2]), socket_connect_timeout=5, socket_timeout=5)
