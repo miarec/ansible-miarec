@@ -3,7 +3,8 @@ import json
 import os
 import re
 import uuid
-from conftest import admin_query, hosts_in, peer_ip, process_owners, TLS, DB_PORT, REDIS_PORT
+from conftest import (admin_query, hosts_in, own_ip, peer_ip, process_owners, TLS, INSTALL_PGBOUNCER,
+                      DB_PORT, REDIS_PORT)
 
 testinfra_hosts = hosts_in('web')
 
@@ -76,10 +77,12 @@ def test_db_rejects_remote_admin_without_password(host):
     """Another host cannot log in to the database tier as the administrator without a password."""
     result = admin_query(host)
     assert result.rc != 0, f"The web host logged in as postgres without a password: {result.stdout}"
-    # PGBouncer reports a missing hba rule as "no authentication method is found".
-    rejections = ("no pg_hba.conf entry", "no authentication method", "password", "authentication failed")
-    assert any(error in result.stderr for error in rejections), \
-        f"The connection failed before authentication: {result.stderr}"
+    # Neither hba file has a rule for the administrator from another host.
+    if INSTALL_PGBOUNCER:
+        expected = "no authentication method is found"
+    else:
+        expected = f'no pg_hba.conf entry for host "{own_ip(host)}", user "postgres"'
+    assert expected in result.stderr, f"Rejected for another reason: {result.stderr}"
 
 
 def test_health_endpoint(host):

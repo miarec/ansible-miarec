@@ -58,6 +58,8 @@ provisioner:
     INSTALL_PGBOUNCER: ${MOLECULE_INSTALL_PGBOUNCER:-"true"}
     # TLS between PGBouncer and PostgreSQL on the same host. The tls tests expect it.
     POSTGRESQL_SSL: "true"
+    # Tells the shared tests to expect TLS
+    TLS_ENABLED: "true"
     # Private TLS certificate set for this scenario run. Never reuse ./certs.
     MOLECULE_TLS_CERTS_DIR: ${MOLECULE_EPHEMERAL_DIRECTORY}/certs
 

@@ -21,6 +21,15 @@
         miarec_livemon_version: "{{ lookup('env', 'MIAREC_LIVEMON_VERSION') }}"
         postgresql_version: "{{ lookup('env', 'POSTGRESQL_VERSION') }}"
         install_pgbouncer: "{{ lookup('env', 'INSTALL_PGBOUNCER') | bool }}"
+        # An extra database user. test_postgresql_auth.py proves that it logs in
+        # with its password only, and the tls tests connect as this user.
+        postgresql_extra_users:
+          - name: testuser
+            pass: testpassword
+            encrypted: true
+        postgresql_extra_databases:
+          - name: testdb
+            owner: testuser
         # Use system packages instead of compiling from source
         redis_install_from_source: false
         python_install_from_source: false

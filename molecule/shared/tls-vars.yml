@@ -22,16 +22,6 @@
         pgbouncer_client_tls: true
         pgbouncer_server_tls: "{{ _postgresql_ssl }}"
         redis_tls: true
-        # Test database and user
-        postgresql_extra_users:
-          - name: testuser
-            pass: testpassword
-            encrypted: true
-        postgresql_extra_databases:
-          - name: testdb
-            owner: testuser
-        postgresql_tls_extra_hba_users:
-          - testuser
 
     # Redis added TLS in 6.0. EL 8 packages Redis 5 and EL 7 packages Redis 3,
     # so build Redis from source there.

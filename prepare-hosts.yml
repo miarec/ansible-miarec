@@ -27,49 +27,15 @@
       include_vars: vars/custom.yml
       failed_when: false
 
-    - name: Compute PostgreSQL TLS hba parameters
-      set_fact:
-        _postgresql_hba_type: "{{ 'hostssl' if postgresql_ssl | bool else 'host' }}"
-        _postgresql_hba_method: "{{ 'md5' if not postgresql_ssl | bool else 'md5' + (postgresql_ssl_require_clientcert | bool | ternary(' clientcert=verify-ca', '')) }}"
-
-    - name: Initialize TLS pg_hba entries
-      set_fact:
-        _postgresql_tls_hba_users: "{{ postgresql_tls_hba_users | default([miarec_db_user]) }}"
-        postgresql_pg_hba_custom: []
-      when: postgresql_ssl | bool
-
-    - name: Define connection values
-      set_fact:
-        postgresql_pg_hba_custom: "{{ postgresql_pg_hba_custom + [
-          {
-            'comment': 'IPv4 TLS local connections for ' ~ item ~ ':',
-            'address': '127.0.0.1/32',
-            'type': _postgresql_hba_type,
-            'database': 'all',
-            'user': item,
-            'method': _postgresql_hba_method
-          },
-          {
-            'comment': 'IPv6 TLS local connections for ' ~ item ~ ':',
-            'address': '::1/128',
-            'type': _postgresql_hba_type,
-            'database': 'all',
-            'user': item,
-            'method': _postgresql_hba_method
-          }
-        ] }}"
-      loop: "{{ _postgresql_tls_hba_users }}"
-      when: postgresql_ssl | bool
-
     - name: Define connection rule for client hosts
       set_fact:
         tmp_rule:
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
           address: "{{ hostvars[item].private_ip_address }}/32"
           user: "{{ miarec_db_user }}"
-          type: "{{ _postgresql_hba_type }}"
+          type: "{{ postgresql_hba_type }}"
           database: "{{ miarec_db_name }}"
-          method: "{{ _postgresql_hba_method }}"
+          method: "{{ postgresql_hba_method }}"
       # Every host that connects to the database or Redis. Deduplicate because
       # one host often belongs to several groups.
       with_items: "{{ (groups['web'] | default([]) + groups['celery'] | default([]) + groups['celerybeat'] | default([]) + groups['recorder'] | default([]) + groups['screen'] | default([])) | unique }}"
@@ -97,14 +63,6 @@
       debug:
         var: postgresql_pg_hba_custom
       when: not install_pgbouncer | default(False) | bool
-
-    - name: Configure PostgreSQL TLS role variables
-      set_fact:
-        postgresql_ssl: true
-        postgresql_ssl_cert_file: "{{ postgresql_ssl_cert_file }}"
-        postgresql_ssl_key_file: "{{ postgresql_ssl_key_file }}"
-        postgresql_ssl_ca_file: "{{ postgresql_ssl_ca_file }}"
-      when: postgresql_ssl | bool
 
     # Upload the certificates before the role starts PostgreSQL with ssl=on.
     - name: Upload PostgreSQL TLS certificates
@@ -153,35 +111,13 @@
       include_vars: vars/custom.yml
       failed_when: false
 
-    - name: Compute PGBouncer TLS hba parameters
-      set_fact:
-        _pgbouncer_hba_type: "{{ 'hostssl' if pgbouncer_client_tls | bool else 'host' }}"
-
-    - name: Set pgbouncer_hba_custom
-      set_fact:
-        pgbouncer_hba_custom:
-          - comment: 'IPv4 local connections:'
-            address: '127.0.0.1/32'
-            type: "{{ _pgbouncer_hba_type }}"
-            database: all
-            user: "{{ miarec_db_user }}"
-            method: 'md5'
-
-          - comment: 'IPv6 local connections:'
-            address: '::1/128'
-            type: "{{ _pgbouncer_hba_type }}"
-            database: all
-            user: "{{ miarec_db_user }}"
-            method: 'md5'
-      when: install_pgbouncer | default(False) | bool
-
     - name: Define tmp_rule
       set_fact:
         tmp_rule:
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
           address: "{{ hostvars[item].private_ip_address }}/32"
           user: "{{ miarec_db_user }}"
-          type: "{{ _pgbouncer_hba_type }}"
+          type: "{{ pgbouncer_hba_type }}"
           database: "{{ miarec_db_name }},pgbouncer"
           method: 'md5'
       # Every host that connects to the database or Redis. Deduplicate because
