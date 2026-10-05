@@ -53,10 +53,14 @@ as dedicated users. See [Service users](#service-users). The MiaRec Web role
 refuses to configure TLS when Celery runs as root.
 
 The certificates and private keys live on the Ansible control machine under
-`certs/` (variable `tls_certs_dir` in `vars/tls.yml`). `prepare-hosts.yml` and
-`setup-miarec.yml` upload the files of each service to the right hosts, create
-the target directories, and set the ownership and permissions. You do not copy
+`certs/` (variable `tls_certs_dir` in `vars/tls.yml`). Each role uploads the
+files of its own service, creates the target directories, sets the ownership
+and permissions, and restarts the service when a file changed. You do not copy
 any file by hand.
+
+To manage the files of a service outside Ansible, set its `*_src` variables
+from `vars/tls.yml` to an empty string in `vars/custom.yml`. The role then
+expects the files at the configured paths on the host and leaves them alone.
 
 ### Option 1: self-signed certificates
 

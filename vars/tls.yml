@@ -2,8 +2,13 @@
 ## -------------------------------
 ## TLS certificate set (local files)
 ## -------------------------------
-# The playbooks upload TLS certificates and private keys from this directory
-# on the Ansible control machine to the target hosts.
+# The roles upload TLS certificates and private keys from this directory on
+# the Ansible control machine to the target hosts, and restart a service when
+# one of its files changed.
+#
+# To manage the files of a service outside Ansible, set its *_src variables
+# to an empty string in vars/custom.yml. The role then expects the files at
+# the configured *_file paths on the host and leaves them alone.
 #
 # Fill it with either:
 #   - a self-signed set:  make tls-certs-all

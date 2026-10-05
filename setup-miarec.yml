@@ -41,44 +41,8 @@
     - debug: var=miarecweb_db_host
     - debug: var=miarecweb_redis_host
 
-    # The role defaults are not visible in pre_tasks, so repeat the default here.
-    - name: Upload MiaRec Web TLS certificates
-      include_tasks: tasks/upload-tls-certs.yml
-      vars:
-        tls_group: "{{ miarec_bin_group | default('root') }}"
-        _db_files:
-          - src: "{{ miarecweb_db_tls_ca_file_src }}"
-            dest: "{{ miarecweb_db_tls_ca_file }}"
-          - src: "{{ miarecweb_db_tls_cert_file_src }}"
-            dest: "{{ miarecweb_db_tls_cert_file }}"
-          - src: "{{ miarecweb_db_tls_key_file_src }}"
-            dest: "{{ miarecweb_db_tls_key_file }}"
-            private: true
-        _redis_files:
-          - src: "{{ miarecweb_redis_tls_ca_file_src }}"
-            dest: "{{ miarecweb_redis_tls_ca_file }}"
-          - src: "{{ miarecweb_redis_tls_cert_file_src }}"
-            dest: "{{ miarecweb_redis_tls_cert_file }}"
-          - src: "{{ miarecweb_redis_tls_key_file_src }}"
-            dest: "{{ miarecweb_redis_tls_key_file }}"
-            private: true
-        tls_files: "{{ (_db_files if miarecweb_db_tls | bool else []) + (_redis_files if miarecweb_redis_tls | bool else []) }}"
-      when: miarecweb_db_tls | bool or miarecweb_redis_tls | bool
-
   roles:
     - role: 'miarecweb'
-
-  post_tasks:
-    # The role reloads the services only when production.ini changes.
-    - name: Reload MiaRec Web services when TLS certificates changed
-      debug:
-        msg: TLS certificates changed, Apache and Celery reload at the end of the play
-      changed_when: true
-      notify:
-        - reload apache
-        - reload celeryd
-        - reload celerybeat
-      when: _tls_upload is defined and _tls_upload is changed
 
   tags: 'miarecweb'
 
@@ -122,39 +86,8 @@
     - debug: var=miarec_http_call_events_host
     - debug: var=miarec_rest_api_permitted_hosts
 
-    - name: Upload MiaRec Recorder TLS certificates
-      include_tasks: tasks/upload-tls-certs.yml
-      vars:
-        tls_group: "{{ miarec_bin_group | default('root') }}"
-        _db_files:
-          - src: "{{ miarec_db_tls_ca_file_src }}"
-            dest: "{{ miarec_db_tls_ca_file }}"
-          - src: "{{ miarec_db_tls_cert_file_src }}"
-            dest: "{{ miarec_db_tls_cert_file }}"
-          - src: "{{ miarec_db_tls_key_file_src }}"
-            dest: "{{ miarec_db_tls_key_file }}"
-            private: true
-        _redis_files:
-          - src: "{{ miarec_redis_tls_ca_file_src }}"
-            dest: "{{ miarec_redis_tls_ca_file }}"
-          - src: "{{ miarec_redis_tls_cert_file_src }}"
-            dest: "{{ miarec_redis_tls_cert_file }}"
-          - src: "{{ miarec_redis_tls_key_file_src }}"
-            dest: "{{ miarec_redis_tls_key_file }}"
-            private: true
-        tls_files: "{{ (_db_files if miarec_db_use_ssl | bool else []) + (_redis_files if miarec_redis_use_ssl | bool else []) }}"
-      when: miarec_db_use_ssl | bool or miarec_redis_use_ssl | bool
-
   roles:
     - role: 'miarec'
-
-  post_tasks:
-    - name: Restart MiaRec Recorder when TLS certificates changed
-      debug:
-        msg: TLS certificates changed, the recorder restarts at the end of the play
-      changed_when: true
-      notify: Restart miarec
-      when: _tls_upload is defined and _tls_upload is changed
 
   tags: 'miarec'
 
@@ -197,40 +130,8 @@
     - debug: var=miarec_redis_host
     - debug: var=miarec_rest_api_permitted_hosts
 
-    # The role defaults are not visible in pre_tasks, so repeat the default here.
-    - name: Upload MiaRec Screen Controller TLS certificates
-      include_tasks: tasks/upload-tls-certs.yml
-      vars:
-        tls_group: "{{ miarec_screen_bin_group | default('root') }}"
-        _db_files:
-          - src: "{{ miarec_db_tls_ca_file_src }}"
-            dest: "{{ miarec_db_tls_ca_file }}"
-          - src: "{{ miarec_db_tls_cert_file_src }}"
-            dest: "{{ miarec_db_tls_cert_file }}"
-          - src: "{{ miarec_db_tls_key_file_src }}"
-            dest: "{{ miarec_db_tls_key_file }}"
-            private: true
-        _redis_files:
-          - src: "{{ miarec_redis_tls_ca_file_src }}"
-            dest: "{{ miarec_redis_tls_ca_file }}"
-          - src: "{{ miarec_redis_tls_cert_file_src }}"
-            dest: "{{ miarec_redis_tls_cert_file }}"
-          - src: "{{ miarec_redis_tls_key_file_src }}"
-            dest: "{{ miarec_redis_tls_key_file }}"
-            private: true
-        tls_files: "{{ (_db_files if miarec_db_use_ssl | bool else []) + (_redis_files if miarec_redis_use_ssl | bool else []) }}"
-      when: miarec_db_use_ssl | bool or miarec_redis_use_ssl | bool
-
   roles:
     - role: 'miarec-screen'
-
-  post_tasks:
-    - name: Restart MiaRec Screen Controller when TLS certificates changed
-      debug:
-        msg: TLS certificates changed, the screen controller restarts at the end of the play
-      changed_when: true
-      notify: Restart miarec_screen
-      when: _tls_upload is defined and _tls_upload is changed
 
   tags: 'miarec-screen'
 
