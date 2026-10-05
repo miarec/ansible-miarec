@@ -2,7 +2,7 @@ This file provides guidance to coding agent when working with code in this repos
 
 ## Project Overview
 
-Ansible playbooks for deploying MiaRec call recording applications on Linux (RHEL/CentOS 7-9, Rocky 8-9, Ubuntu 20.04-24.04).
+Ansible playbooks for deploying MiaRec call recording applications on Linux (RHEL/CentOS 7-9, Rocky 8-9, Ubuntu 22.04-24.04).
 
 ## Commands
 
@@ -27,9 +27,21 @@ MOLECULE_DISTRO=ubuntu2204 uv run molecule test
 ### Molecule Test Variables
 
 Environment variables for molecule tests:
-- `MOLECULE_DISTRO` - Target OS (ubuntu2004, ubuntu2204, ubuntu2404, centos7, rockylinux8, rockylinux9, rhel7, rhel8, rhel9)
+- `MOLECULE_DISTRO` - Target OS (ubuntu2204, ubuntu2404, centos7, rockylinux8, rockylinux9, rhel7, rhel8, rhel9)
 - `MOLECULE_MIARECWEB_VERSION`, `MOLECULE_MIAREC_VERSION`, `MOLECULE_MIAREC_SCREEN_VERSION`
 - `MOLECULE_POSTGRESQL_VERSION`, `MOLECULE_REDIS_VERSION`, `MOLECULE_PYTHON_VERSION`
+- `MOLECULE_INSTALL_PGBOUNCER` - `false` skips PGBouncer (every scenario)
+- `MOLECULE_POSTGRESQL_SSL` - `true` encrypts PGBouncer-to-PostgreSQL traffic (`decoupled-tls` only)
+- `MOLECULE_INSTANCE_SUFFIX` - appended to container and network names, so two configurations of one scenario can run on the same distro at the same time
+
+Scenarios: `default`, `tls`, `decoupled`, `decoupled-tls`. Shared plays live in `molecule/shared/`.
+
+`make test-<configuration>` runs one CI configuration with its own container names and Molecule state directory, so configurations can run in parallel. `DISTRO` defaults to `ubuntu2404`; `MOLECULE_COMMAND` defaults to `test`. Run `make help` for the targets.
+
+```bash
+make test-decoupled-tls-no-pgbouncer DISTRO=rockylinux9
+make test-decoupled MOLECULE_COMMAND=converge
+```
 
 ### Running Playbooks
 

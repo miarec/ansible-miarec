@@ -1,8 +1,10 @@
 """Web tier: Apache, miarecweb, and live monitoring. No Celery."""
 import json
 import os
+import re
 import uuid
-from conftest import hosts_in, peer_ip, process_owners, PGBOUNCER_PORT, REDIS_PORT
+from conftest import (admin_query, hosts_in, own_ip, peer_ip, process_owners, TLS, INSTALL_PGBOUNCER,
+                      DB_PORT, REDIS_PORT)
 
 testinfra_hosts = hosts_in('web')
 
@@ -59,9 +61,28 @@ def test_production_ini_points_to_peers(host):
     db_ip = peer_ip(host, 'db')
     redis_ip = peer_ip(host, 'redis')
     assert ini.contains(f"^DATABASE_HOST = {db_ip}$")
-    assert ini.contains(f"^DATABASE_PORT = {PGBOUNCER_PORT}$")
+    assert ini.contains(f"^DATABASE_PORT = {DB_PORT}$")
     assert ini.contains(f"^REDIS_HOST = {redis_ip}$")
     assert ini.contains(f"^REDIS_PORT = {REDIS_PORT}$")
+
+
+def test_production_ini_tls(host):
+    """In decoupled-tls, MiaRec Web connects to the database and Redis over TLS."""
+    content = host.file("/opt/miarecweb/releases/{}/production.ini".format(miarecweb_version)).content_string
+    assert bool(re.search(r"^DATABASE_SSL_PARAMS = .*sslmode=(require|verify-ca|verify-full)", content, re.M)) == TLS
+    assert re.search(r"^REDIS_SCHEMA = {}$".format("rediss" if TLS else "redis"), content, re.M)
+
+
+def test_db_rejects_remote_admin_without_password(host):
+    """Another host cannot log in to the database tier as the administrator without a password."""
+    result = admin_query(host)
+    assert result.rc != 0, f"The web host logged in as postgres without a password: {result.stdout}"
+    # Neither hba file has a rule for the administrator from another host.
+    if INSTALL_PGBOUNCER:
+        expected = "no authentication method is found"
+    else:
+        expected = f'no pg_hba.conf entry for host "{own_ip(host)}", user "postgres"'
+    assert expected in result.stderr, f"Rejected for another reason: {result.stderr}"
 
 
 def test_health_endpoint(host):

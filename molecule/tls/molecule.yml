@@ -1,13 +1,15 @@
 ---
 dependency:
   name: galaxy
+
 driver:
   name: docker
+
 # MOLECULE_INSTANCE_SUFFIX (empty by default) tells apart the containers of
 # two configurations of this scenario on the same distro, so both can run at
 # the same time. The Makefile sets it, see `make help`.
 platforms:
-  - name: ansible-miarec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
+  - name: ansible-miarec-tls-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - recorder
@@ -24,12 +26,15 @@ platforms:
     cgroupns_mode: host
     privileged: true
     pre_build_image: true
+
 provisioner:
   name: ansible
   playbooks:
-    converge: ${MOLECULE_PLAYBOOK:-converge.yml}
+    prepare: prepare.yml
+    converge: converge.yml
   # The roles run the services as root by default. Run them as dedicated
-  # users here, so the scenario checks file ownership and permissions.
+  # users here. TLS private keys are readable by the "miarec" group only, so
+  # the services that use them must not run as root.
   inventory:
     group_vars:
       all:
@@ -43,6 +48,7 @@ provisioner:
         miarec_livemon_bin_group: miarec
   env:
     ANSIBLE_VERBOSITY: ${MOLECULE_ANSIBLE_VERBOSITY:-0}
+    MOLECULE_DISTRO: ${MOLECULE_DISTRO:-ubuntu2404}
     MIARECWEB_VERSION: ${MOLECULE_MIARECWEB_VERSION:-"2026.8.24.0"}
     MIARECWEB_SECRET: ${MOLECULE_MIARECWEB_SECRET:-"secret"}
     MIAREC_VERSION: ${MOLECULE_MIAREC_VERSION:-"2026.8.16.0"}
@@ -50,9 +56,23 @@ provisioner:
     MIAREC_LIVEMON_VERSION: ${MOLECULE_MIAREC_LIVEMON_VERSION:-"0.1.0.183"}
     POSTGRESQL_VERSION: ${MOLECULE_POSTGRESQL_VERSION:-"15"}
     INSTALL_PGBOUNCER: ${MOLECULE_INSTALL_PGBOUNCER:-"true"}
+    # TLS between PGBouncer and PostgreSQL on the same host. The tls tests expect it.
+    POSTGRESQL_SSL: "true"
+    # Tells the shared tests to expect TLS
+    TLS_ENABLED: "true"
+    # Private TLS certificate set for this scenario run. Never reuse ./certs.
+    MOLECULE_TLS_CERTS_DIR: ${MOLECULE_EPHEMERAL_DIRECTORY}/certs
 
 verifier:
   name: testinfra
+  directory: tests
+  # Same process-user checks as the default scenario. They matter most here:
+  # a service that falls back to root still reads the private keys and hides
+  # a permission problem. The PostgreSQL authentication checks matter here too:
+  # TLS encrypts a connection but does not authenticate the client.
+  additional_files_or_dirs:
+    - ../../default/tests/test_service_users.py
+    - ../../default/tests/test_postgresql_auth.py
   options:
     s: true
     verbose: true

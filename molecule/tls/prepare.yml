@@ -1,0 +1,7 @@
+---
+# The default scenario preparation plus the TLS certificate set.
+- name: Prepare the containers
+  import_playbook: ../default/prepare.yml
+
+- name: Generate TLS certificates
+  import_playbook: ../shared/tls-certs.yml

@@ -8,6 +8,15 @@ redis_port: 6379
 # Set this to true to validate redis tarball checksum against vars/main.yml
 redis_verify_checksum: true
 
+## TLS options
+# The files live outside /etc/redis on purpose. On RHEL-based systems the
+# redis package ships a tmpfiles.d rule (Z /etc/redis ~0750 redis root) that
+# re-owns everything under /etc/redis at install time and on every boot.
+redis_tls_cert: /etc/redis-tls/server.crt
+redis_tls_key: /etc/redis-tls/server.key
+redis_tls_ca_cert: /etc/redis-tls/ca.crt
+redis_tls_auth_clients: true
+
 ## Logging
 redis_logfile: "/var/log/redis/redis_{{ redis_port }}.log"
 # Enable syslog. "yes" or "no"

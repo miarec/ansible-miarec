@@ -1,6 +1,6 @@
 ---
-# Decoupled deployment: each tier runs in its own container on one Docker
-# network, like the inventory in the installation guide. Six containers:
+# The decoupled scenario with TLS on every connection to PostgreSQL, PGBouncer,
+# and Redis. Same six containers as the decoupled scenario:
 #
 #   db      - PostgreSQL and PGBouncer
 #   redis   - Redis
@@ -8,6 +8,9 @@
 #   celery  - Celery worker and Celery beat
 #   rec     - call recorder
 #   screen  - screen recording controller
+#
+# PGBouncer and PostgreSQL share the db host, so the connection between them
+# stays plaintext unless MOLECULE_POSTGRESQL_SSL=true.
 dependency:
   name: galaxy
 
@@ -20,12 +23,12 @@ driver:
 # the same time. The Makefile sets it, see `make help`.
 
 platforms:
-  - name: ansible-miarec-dec-db-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
+  - name: ansible-miarec-dtls-db-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - db
     networks:
-      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
+      - name: ansible-miarec-dtls-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -33,12 +36,12 @@ platforms:
     privileged: true
     pre_build_image: true
 
-  - name: ansible-miarec-dec-redis-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
+  - name: ansible-miarec-dtls-redis-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - redis
     networks:
-      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
+      - name: ansible-miarec-dtls-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -46,13 +49,13 @@ platforms:
     privileged: true
     pre_build_image: true
 
-  - name: ansible-miarec-dec-web-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
+  - name: ansible-miarec-dtls-web-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - web
       - livemon
     networks:
-      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
+      - name: ansible-miarec-dtls-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -60,13 +63,13 @@ platforms:
     privileged: true
     pre_build_image: true
 
-  - name: ansible-miarec-dec-celery-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
+  - name: ansible-miarec-dtls-celery-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - celery
       - celerybeat
     networks:
-      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
+      - name: ansible-miarec-dtls-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -74,12 +77,12 @@ platforms:
     privileged: true
     pre_build_image: true
 
-  - name: ansible-miarec-dec-rec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
+  - name: ansible-miarec-dtls-rec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - recorder
     networks:
-      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
+      - name: ansible-miarec-dtls-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -87,12 +90,12 @@ platforms:
     privileged: true
     pre_build_image: true
 
-  - name: ansible-miarec-dec-screen-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
+  - name: ansible-miarec-dtls-screen-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - screen
     networks:
-      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
+      - name: ansible-miarec-dtls-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -106,7 +109,8 @@ provisioner:
     prepare: prepare.yml
     converge: converge.yml
   # The roles run the services as root by default. Run them as dedicated
-  # users here, so the scenario checks file ownership and permissions.
+  # users here. TLS private keys are readable by the "miarec" group only, so
+  # the services that use them must not run as root.
   inventory:
     group_vars:
       all:
@@ -127,10 +131,16 @@ provisioner:
     MIAREC_LIVEMON_VERSION: ${MOLECULE_MIAREC_LIVEMON_VERSION:-"0.1.0.183"}
     POSTGRESQL_VERSION: ${MOLECULE_POSTGRESQL_VERSION:-"15"}
     INSTALL_PGBOUNCER: ${MOLECULE_INSTALL_PGBOUNCER:-"true"}
+    POSTGRESQL_SSL: ${MOLECULE_POSTGRESQL_SSL:-"false"}
+    # Tells the decoupled tests to expect TLS
+    TLS_ENABLED: "true"
+    # Private TLS certificate set for this scenario run. Never reuse ./certs.
+    MOLECULE_TLS_CERTS_DIR: ${MOLECULE_EPHEMERAL_DIRECTORY}/certs
 
+# The decoupled tests read TLS_ENABLED and check the TLS settings and transports.
 verifier:
   name: testinfra
-  directory: tests
+  directory: ../decoupled/tests
   # PostgreSQL authentication checks shared with the single-host scenarios
   additional_files_or_dirs:
     - ../../default/tests/test_postgresql_auth.py

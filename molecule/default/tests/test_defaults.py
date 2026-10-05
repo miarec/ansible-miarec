@@ -6,6 +6,8 @@ testinfra_hosts = testinfra.utils.ansible_runner.AnsibleRunner(
     os.environ['MOLECULE_INVENTORY_FILE']).get_hosts('all')
 
 postgresql_version = os.environ.get('POSTGRESQL_VERSION')
+# MOLECULE_INSTALL_PGBOUNCER=false skips PGBouncer
+install_pgbouncer = os.environ.get('INSTALL_PGBOUNCER', 'true').lower() in ('true', 'yes', '1')
 
 
 def test_directories(host):
@@ -17,9 +19,10 @@ def test_directories(host):
 
     dirs = [
         postgresql_dir,
-        "/var/log/pgbouncer",
         "/var/log/redis",
     ]
+    if install_pgbouncer:
+        dirs.append("/var/log/pgbouncer")
     for dir in dirs:
         d = host.file(dir)
         assert d.is_directory, f"Directory {dir} does not exist"
@@ -42,8 +45,9 @@ def test_files(host):
     files = [
         postgresql_conf,
         redis_conf,
-        "/etc/pgbouncer/pgbouncer.ini",
     ]
+    if install_pgbouncer:
+        files.append("/etc/pgbouncer/pgbouncer.ini")
 
     for file in files:
         f = host.file(file)
@@ -63,8 +67,9 @@ def test_service(host):
     services = [
         postgresql_service,
         redis_service,
-        "pgbouncer",
     ]
+    if install_pgbouncer:
+        services.append("pgbouncer")
 
     for service in services:
         s = host.service(service)
@@ -76,9 +81,10 @@ def test_socket(host):
     """Test that infrastructure services are listening on expected ports."""
     sockets = [
         "tcp://127.0.0.1:5432",   # PostgreSQL
-        "tcp://127.0.0.1:6432",   # PGBouncer
         "tcp://127.0.0.1:6379",   # Redis
     ]
+    if install_pgbouncer:
+        sockets.append("tcp://127.0.0.1:6432")
     for socket in sockets:
         s = host.socket(socket)
         assert s.is_listening, f"Socket {socket} is not listening"

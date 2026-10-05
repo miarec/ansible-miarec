@@ -19,6 +19,7 @@
   hosts: db
   vars_files:
     - vars/db.yml
+    - vars/tls.yml
   become: true
 
   pre_tasks:
@@ -26,34 +27,15 @@
       include_vars: vars/custom.yml
       failed_when: false
 
-    - name: Define connection values
-      set_fact:
-        postgresql_pg_hba_custom:
-          - comment: 'IPv4 local connections:'
-            address: '127.0.0.1/32'
-            type: host
-            database: all
-            user: "{{ miarec_db_user }}"
-            method: 'md5'
-
-          - comment: 'IPv6 local connections:'
-            address: '::1/128'
-            type: host
-            database: all
-            user: "{{ miarec_db_user }}"
-            method: 'md5'
-
-      when: not install_pgbouncer | default(False) | bool
-
     - name: Define connection rule for client hosts
       set_fact:
         tmp_rule:
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
           address: "{{ hostvars[item].private_ip_address }}/32"
           user: "{{ miarec_db_user }}"
-          type: host
+          type: "{{ postgresql_hba_type }}"
           database: "{{ miarec_db_name }}"
-          method: 'md5'
+          method: "{{ postgresql_hba_method }}"
       # Every host that connects to the database or Redis. Deduplicate because
       # one host often belongs to several groups.
       with_items: "{{ (groups['web'] | default([]) + groups['celery'] | default([]) + groups['celerybeat'] | default([]) + groups['recorder'] | default([]) + groups['screen'] | default([])) | unique }}"
@@ -95,6 +77,7 @@
   hosts: db
   vars_files:
     - vars/db.yml
+    - vars/tls.yml
   become: true
 
   pre_tasks:
@@ -102,31 +85,13 @@
       include_vars: vars/custom.yml
       failed_when: false
 
-    - name: Set pgbouncer_hba_custom
-      set_fact:
-        pgbouncer_hba_custom:
-          - comment: 'IPv4 local connections:'
-            address: '127.0.0.1/32'
-            type: host
-            database: all
-            user: "{{ miarec_db_user }}"
-            method: 'md5'
-
-          - comment: 'IPv6 local connections:'
-            address: '::1/128'
-            type: host
-            database: all
-            user: "{{ miarec_db_user }}"
-            method: 'md5'
-      when: install_pgbouncer | default(False) | bool
-
     - name: Define tmp_rule
       set_fact:
         tmp_rule:
           comment: "IPv4 connection from {{ hostvars[item].inventory_hostname }}:"
           address: "{{ hostvars[item].private_ip_address }}/32"
           user: "{{ miarec_db_user }}"
-          type: host
+          type: "{{ pgbouncer_hba_type }}"
           database: "{{ miarec_db_name }},pgbouncer"
           method: 'md5'
       # Every host that connects to the database or Redis. Deduplicate because
@@ -163,6 +128,7 @@
 
   tags: 'pgbouncer'
 
+
 # ------------------------------------------------
 # Install redis
 # ------------------------------------------------
@@ -170,11 +136,32 @@
   hosts: redis
   vars_files:
     - vars/redis.yml
+    - vars/tls.yml
   become: true
   pre_tasks:
     - name: Include custom vars
       include_vars: vars/custom.yml
       failed_when: false
+
+    - name: Configure Redis TLS variables
+      set_fact:
+        redis_make_tls: true
+        redis_tls_auth_clients: "{{ redis_tls_auth_clients | bool }}"
+      when: redis_tls | default(False) | bool
+
+    # Redis added TLS in 6.0. The distribution packages are older on
+    # RHEL 7 (3.2), RHEL 8 (5.0), and Ubuntu releases before 22.04 (5.0).
+    - name: Check that packaged Redis supports TLS
+      fail:
+        msg: >-
+          Redis TLS requires Redis 6.0 or later, but the {{ ansible_facts['distribution'] }}
+          {{ ansible_facts['distribution_version'] }} package is older.
+          Set redis_install_from_source to true.
+      when:
+        - redis_tls | default(False) | bool
+        - not (redis_install_from_source | default(False) | bool)
+        - (ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] | int < 9)
+          or (ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_version'] is version('22.04', '<'))
 
     - name: Define ip_address of client hosts
       set_fact:
@@ -201,8 +188,10 @@
     - name: Print redis_bind
       debug:
         var: redis_bind
+
   roles:
     - role: 'redis-new'
+
   tags: 'redis'
 
 
