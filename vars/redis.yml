@@ -5,6 +5,14 @@
 redis_bind: 127.0.0.1
 redis_port: 6379
 
+# TCP keepalive on idle client connections, in seconds. Redis sends the first probe after
+# this many idle seconds, then one every third of it, and closes the connection after 3
+# unanswered probes: 60 s idle, 20 s apart, about 120 s to detect a dead client. Keep it
+# well below the idle timeout of any load balancer, NAT gateway or firewall between the
+# clients and Redis (350 s on AWS NLB and NAT Gateway). The role's default of 1 closes
+# healthy connections after a network pause of about 4 seconds.
+redis_tcp_keepalive: 60
+
 # Set this to true to validate redis tarball checksum against vars/main.yml
 redis_verify_checksum: true
 
