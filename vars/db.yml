@@ -73,6 +73,16 @@ pgbouncer_hba_custom: "{{ postgresql_pg_hba_custom }}"
 pgbouncer_users: "{{ postgresql_users }}"
 pgbouncer_listen_addr: 127.0.0.1
 
+# TCP keepalive on idle client and server connections, in seconds. The first probe goes out
+# after pgbouncer_tcp_keepidle idle seconds, then one every pgbouncer_tcp_keepintvl seconds.
+# Each probe and its reply reset the idle timer of every load balancer, NAT gateway and
+# firewall between the application and PGBouncer, so keep the idle time well below the
+# shortest of those timeouts (350 s on AWS NLB and NAT Gateway, 4 minutes on Azure Load
+# Balancer). The role's defaults match the kernel's 2 hours, which lets those devices drop
+# an idle pooled connection without telling either end.
+pgbouncer_tcp_keepidle: 60
+pgbouncer_tcp_keepintvl: 10
+
 pgbouncer_stats_users:
   - postgres
   - stats
