@@ -19,6 +19,7 @@ import os
 import time
 
 import pytest
+import testinfra
 import testinfra.utils.ansible_runner
 
 runner = testinfra.utils.ansible_runner.AnsibleRunner(os.environ['MOLECULE_INVENTORY_FILE'])
@@ -83,14 +84,27 @@ def hosts_in(group):
     return runner.get_hosts(group)
 
 
+def host_named(name):
+    """Return a testinfra host for an inventory host.
+
+    Uses the Ansible backend, like the hosts that the tests run on, so that
+    host.ansible() works. runner.get_host() returns a Docker backend instead.
+    """
+    return testinfra.get_host(f"ansible://{name}", ansible_inventory=os.environ['MOLECULE_INVENTORY_FILE'])
+
+
 def host_of(group):
     """Return a testinfra host for the first host in a group."""
-    return runner.get_host(hosts_in(group)[0])
+    return host_named(hosts_in(group)[0])
 
 
 def name_of(host):
-    """Return the inventory name of a testinfra host."""
-    return host.backend.host
+    """Return the inventory name of a testinfra host.
+
+    The test hosts use the Ansible backend, and runner.get_host() returns hosts
+    with the Docker backend. Both report the inventory name as the host name.
+    """
+    return host.backend.get_hostname()
 
 
 def shares_host(host, group):
@@ -185,7 +199,7 @@ def postgresql_service(host):
 
 
 def redis_service(host):
-    if host.run("systemctl cat redis_%s", REDIS_PORT).rc == 0:
+    if host.run("systemctl cat %s", f"redis_{REDIS_PORT}").rc == 0:
         # Redis built from source (TLS scenarios on EL 7 and 8)
         return f"redis_{REDIS_PORT}"
     return "redis-server" if host.system_info.distribution == "ubuntu" else "redis"

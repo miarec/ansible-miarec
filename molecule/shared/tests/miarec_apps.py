@@ -7,7 +7,7 @@ and answer other REST requests only from the addresses that the playbooks allow.
 import pytest
 from conftest import (
     hosts_in, name_of, address_of, assert_db_connections_match_tls, db_rows, get_json, host_of,
-    hostname, miarecweb_client, own_address, process_age, runner, untrusted_file, wait_for,
+    host_named, hostname, miarecweb_client, own_address, process_age, untrusted_file, wait_for,
     REST_USER, REST_PASSWORD,
 )
 
@@ -60,7 +60,7 @@ def other_hosts_params(group):
 
 def assert_rest_api_rejects(host, group, port, client_name):
     """A host without MiaRec Web cannot call the REST API, even with the right password."""
-    client = runner.get_host(client_name)
+    client = host_named(client_name)
     url = f"http://{address_of(client, group)}:{port}/api/version.json"
     status, _ = get_json(client, url, REST_USER, REST_PASSWORD)
     assert status == 401, f"{client_name} called the REST API: HTTP {status}"
