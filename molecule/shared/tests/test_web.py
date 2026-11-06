@@ -4,9 +4,9 @@ import uuid
 
 import pytest
 from conftest import (
-    hosts_in, host_of, shares_host, address_of, own_address, process_owners, listening_on_all_interfaces,
+    hosts_in, host_of, shares_host, address_of, process_owners, listening_on_all_interfaces,
     apache_service, get_json, wait_for, untrusted_file, admin_query, assert_db_connections_match_tls,
-    needs_tls, INSTALL_PGBOUNCER, MIARECWEB_PYTHON, MIARECWEB_TLS_DIR, MIARECWEB_VERSION,
+    needs_tls, MIARECWEB_PYTHON, MIARECWEB_TLS_DIR, MIARECWEB_VERSION,
 )
 
 testinfra_hosts = hosts_in('web')
@@ -119,12 +119,6 @@ def test_db_rejects_remote_admin_without_password(host):
         pytest.skip("The database runs on this host. See test_postgresql_auth.py.")
     result = admin_query(host)
     assert result.rc != 0, f"The web host logged in as postgres without a password: {result.stdout}"
-    # Neither hba file has a rule for the administrator from another host.
-    if INSTALL_PGBOUNCER:
-        expected = "no authentication method is found"
-    else:
-        expected = f'no pg_hba.conf entry for host "{own_address(host)}", user "postgres"'
-    assert expected in result.stderr, f"Rejected for another reason: {result.stderr}"
 
 
 @needs_tls

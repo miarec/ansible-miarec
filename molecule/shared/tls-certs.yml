@@ -56,3 +56,10 @@
         -out /var/tmp/tls-untrusted/client.crt
       args:
         creates: /var/tmp/tls-untrusted/client.crt
+
+    # OpenSSL 1.0 on EL 7 writes the key with the default umask. libpq refuses a
+    # key that the group or others can read, before it talks to the server.
+    - name: Restrict the private key
+      file:
+        path: /var/tmp/tls-untrusted/client.key
+        mode: "0600"
