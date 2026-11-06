@@ -11,6 +11,9 @@
 ## -------------------------------
 ## TLS Options
 ## -------------------------------
+# miarec_db_use_ssl is in vars/db.yml.
+miarec_redis_use_ssl: "{{ redis_tls | default(False) | bool }}"
+
 miarec_db_tls_ca_file: /etc/miarec/tls/db-ca.crt
 miarec_db_tls_cert_file: /etc/miarec/tls/db-client.crt
 miarec_db_tls_key_file: /etc/miarec/tls/db-client.key

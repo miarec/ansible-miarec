@@ -113,9 +113,10 @@ It exits with a non-zero status when it finds a problem.
 
 The generated server certificates carry `DNS:localhost, IP:127.0.0.1` as subject
 alternative names. This is sufficient because no component verifies the server
-hostname by default: PGBouncer and MiaRec Web use `sslmode=require` or
-`verify-ca`, and the recorder and the Redis client have hostname checks turned
-off. If you turn on `verify-full` or the `*_check_hostname` variables, issue the
+hostname by default: the clients verify that the CA signed the server
+certificate (`sslmode=verify-ca` for the database, `ssl_cert_reqs=required` for
+Redis) but do not compare the hostname. PGBouncer connects to PostgreSQL with
+`sslmode=require`. If you turn on `verify-full` or the `*_check_hostname` variables, issue the
 server certificates with the addresses that the clients connect to
 (`make tls-certs-postgresql TLS_SAN_POSTGRESQL=IP:10.0.0.5`).
 
