@@ -41,9 +41,9 @@ lame_download_url: "https://miarec-download.s3.amazonaws.com/lame-{{ lame_versio
 ## -------------------------------
 ## TLS Options
 ## -------------------------------
-miarecweb_db_tls_ca_file: /etc/miarecweb/tls/ca.crt
-miarecweb_db_tls_cert_file: /etc/miarecweb/tls/client.crt
-miarecweb_db_tls_key_file: /etc/miarecweb/tls/client.key
+miarecweb_db_tls_ca_file: /etc/miarecweb/tls/db-ca.crt
+miarecweb_db_tls_cert_file: /etc/miarecweb/tls/db-client.crt
+miarecweb_db_tls_key_file: /etc/miarecweb/tls/db-client.key
 miarecweb_redis_tls_ca_file: /etc/miarecweb/tls/redis-ca.crt
 miarecweb_redis_tls_cert_file: /etc/miarecweb/tls/redis-client.crt
 miarecweb_redis_tls_key_file: /etc/miarecweb/tls/redis-client.key

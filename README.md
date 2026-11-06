@@ -86,12 +86,14 @@ certs/
 ├── postgresql/{ca.crt,server.crt,server.key}
 ├── pgbouncer/{ca.crt,server.crt,server.key,client.crt,client.key}
 ├── redis/{ca.crt,server.crt,server.key}
-├── miarec/{ca.crt,client.crt,client.key,redis-ca.crt,redis-client.crt,redis-client.key}
-└── miarecweb/{ca.crt,client.crt,client.key,redis-ca.crt,redis-client.crt,redis-client.key}
+├── miarec/{db-ca.crt,db-client.crt,db-client.key,redis-ca.crt,redis-client.crt,redis-client.key}
+└── miarecweb/{db-ca.crt,db-client.crt,db-client.key,redis-ca.crt,redis-client.crt,redis-client.key}
 ```
 
-Each `ca.crt` is the CA that the service uses to verify its peers. The
-`redis-ca.crt` files are the CA of the Redis server certificate. Mixing the two
+Each `ca.crt` is the CA that the service uses to verify its peers. The MiaRec
+Web and recorder clients have one set of files for each server: the `db-*` files
+for PGBouncer or PostgreSQL, and the `redis-*` files for Redis. `db-ca.crt` and
+`redis-ca.crt` are the CAs of the server certificates. Mixing the two
 options is not supported. If you need it, generate the self-signed set first and
 then replace individual files.
 

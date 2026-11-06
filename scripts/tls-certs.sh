@@ -61,8 +61,9 @@ bundle_spec() {
             echo "server server redis-server"
             ;;
         miarec|miarecweb)
-            echo "ca ca.crt"
-            echo "client client $1-client"
+            # db-* for PGBouncer or PostgreSQL, redis-* for Redis
+            echo "ca db-ca.crt"
+            echo "client db-client $1-db-client"
             echo "ca redis-ca.crt"
             echo "client redis-client $1-redis-client"
             ;;
@@ -78,15 +79,15 @@ bundle_spec() {
 trust_spec() {
     cat <<'SPEC'
 postgresql/server.crt sslserver pgbouncer/ca.crt
-postgresql/server.crt sslserver miarec/ca.crt
-postgresql/server.crt sslserver miarecweb/ca.crt
-pgbouncer/server.crt sslserver miarec/ca.crt
-pgbouncer/server.crt sslserver miarecweb/ca.crt
+postgresql/server.crt sslserver miarec/db-ca.crt
+postgresql/server.crt sslserver miarecweb/db-ca.crt
+pgbouncer/server.crt sslserver miarec/db-ca.crt
+pgbouncer/server.crt sslserver miarecweb/db-ca.crt
 pgbouncer/client.crt sslclient postgresql/ca.crt
-miarec/client.crt sslclient postgresql/ca.crt
-miarec/client.crt sslclient pgbouncer/ca.crt
-miarecweb/client.crt sslclient postgresql/ca.crt
-miarecweb/client.crt sslclient pgbouncer/ca.crt
+miarec/db-client.crt sslclient postgresql/ca.crt
+miarec/db-client.crt sslclient pgbouncer/ca.crt
+miarecweb/db-client.crt sslclient postgresql/ca.crt
+miarecweb/db-client.crt sslclient pgbouncer/ca.crt
 redis/server.crt sslserver miarec/redis-ca.crt
 redis/server.crt sslserver miarecweb/redis-ca.crt
 miarec/redis-client.crt sslclient redis/ca.crt

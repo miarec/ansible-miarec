@@ -36,17 +36,17 @@ redis_tls_key_src: "{{ tls_certs_dir }}/redis/server.key"
 redis_tls_ca_cert_src: "{{ tls_certs_dir }}/redis/ca.crt"
 
 # MiaRec Web and Celery (hosts: web, celery, celerybeat)
-miarecweb_db_tls_ca_file_src: "{{ tls_certs_dir }}/miarecweb/ca.crt"
-miarecweb_db_tls_cert_file_src: "{{ tls_certs_dir }}/miarecweb/client.crt"
-miarecweb_db_tls_key_file_src: "{{ tls_certs_dir }}/miarecweb/client.key"
+miarecweb_db_tls_ca_file_src: "{{ tls_certs_dir }}/miarecweb/db-ca.crt"
+miarecweb_db_tls_cert_file_src: "{{ tls_certs_dir }}/miarecweb/db-client.crt"
+miarecweb_db_tls_key_file_src: "{{ tls_certs_dir }}/miarecweb/db-client.key"
 miarecweb_redis_tls_ca_file_src: "{{ tls_certs_dir }}/miarecweb/redis-ca.crt"
 miarecweb_redis_tls_cert_file_src: "{{ tls_certs_dir }}/miarecweb/redis-client.crt"
 miarecweb_redis_tls_key_file_src: "{{ tls_certs_dir }}/miarecweb/redis-client.key"
 
 # MiaRec recorder (hosts: recorder)
-miarec_db_tls_ca_file_src: "{{ tls_certs_dir }}/miarec/ca.crt"
-miarec_db_tls_cert_file_src: "{{ tls_certs_dir }}/miarec/client.crt"
-miarec_db_tls_key_file_src: "{{ tls_certs_dir }}/miarec/client.key"
+miarec_db_tls_ca_file_src: "{{ tls_certs_dir }}/miarec/db-ca.crt"
+miarec_db_tls_cert_file_src: "{{ tls_certs_dir }}/miarec/db-client.crt"
+miarec_db_tls_key_file_src: "{{ tls_certs_dir }}/miarec/db-client.key"
 miarec_redis_tls_ca_file_src: "{{ tls_certs_dir }}/miarec/redis-ca.crt"
 miarec_redis_tls_cert_file_src: "{{ tls_certs_dir }}/miarec/redis-client.crt"
 miarec_redis_tls_key_file_src: "{{ tls_certs_dir }}/miarec/redis-client.key"
