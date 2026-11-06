@@ -10,6 +10,8 @@ miarec_version = os.environ.get('MIAREC_VERSION')
 
 def test_directories(host):
 
+    # miarec_instance_name defaults to the inventory hostname.
+    instance_name = host.ansible.get_variables()["inventory_hostname"]
     dirs = [
         "/opt/miarec/releases/{}".format(miarec_version),
         "/opt/miarec/shared",
@@ -17,7 +19,7 @@ def test_directories(host):
         "/var/log/miarec/cdr",
         "/var/log/miarec/error",
         "/var/log/miarec/trace",
-        "/var/miarec/recordings"
+        "/var/recordings/{}".format(instance_name)
     ]
     for dir in dirs:
         d = host.file(dir)
