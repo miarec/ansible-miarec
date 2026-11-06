@@ -25,7 +25,7 @@ MOLECULE_DISTRO=centos7 MOLECULE_MIARECWEB_VERSION=8.0.0.3909 molecule test
 
 ### Variables
  - `MOLECULE_DISTRO` OS of docker container to test, default `ubuntu2404`. For the tested distros, see `.github/workflows/ci.yml`.
- - `MOLECULE_MIARECWEB_VERSION` defines variable `miarecweb_version`, default `2026.8.24.0`
+ - `MOLECULE_MIARECWEB_VERSION` defines variable `miarecweb_version`, default `2026.8.24.1214`
  - `MOLECULE_MIARECWEB_SECRET` defines variabled `miarecweb_secret`, default `secret`
  - `MOLECULE_MIAREC_VERSION` defines variable `miarec_version`, default `2026.8.16.0`
  - `MOLECULE_MIAREC_SCREEN_VERSION` defines variable `miarec_screen_version`, default `2026.8.3.0`
