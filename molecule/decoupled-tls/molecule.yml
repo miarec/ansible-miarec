@@ -137,13 +137,10 @@ provisioner:
     # Private TLS certificate set for this scenario run. Never reuse ./certs.
     MOLECULE_TLS_CERTS_DIR: ${MOLECULE_EPHEMERAL_DIRECTORY}/certs
 
-# The decoupled tests read TLS_ENABLED and check the TLS settings and transports.
 verifier:
   name: testinfra
-  directory: ../decoupled/tests
-  # PostgreSQL authentication checks shared with the single-host scenarios
-  additional_files_or_dirs:
-    - ../../default/tests/test_postgresql_auth.py
+  # The tests of every scenario. They read the provisioner environment above.
+  directory: ../shared/tests
   options:
     s: true
     verbose: true

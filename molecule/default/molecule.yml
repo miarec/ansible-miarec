@@ -53,6 +53,8 @@ provisioner:
 
 verifier:
   name: testinfra
+  # The tests of every scenario. They read the provisioner environment above.
+  directory: ../shared/tests
   options:
     s: true
     verbose: true

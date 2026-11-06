@@ -36,13 +36,28 @@ MOLECULE_DISTRO=centos7 MOLECULE_MIARECWEB_VERSION=8.0.0.3909 molecule test
  - `MOLECULE_INSTANCE_SUFFIX` is appended to the container and network names, default empty. Two runs of one scenario on the same distro need different suffixes and different `MOLECULE_EPHEMERAL_DIRECTORY` values. The `make test-*` targets set both.
  - `MOLECULE_ANSIBLE_VERBOSITY` set verbosity for ansible run, like running "ansible -vvv", values 0-3, default 0
 
+## Tests
+
+All scenarios run the same Testinfra tests, in `molecule/shared/tests/`. Each test file covers one inventory group and runs on its hosts. The provisioner environment in `molecule.yml` tells the tests which connections use TLS and whether PGBouncer is installed.
+
+The tests treat the components as black boxes and never read a configuration file. They check what a component does:
+
+ - The services run as the dedicated users and listen on their ports, on all interfaces only when another host connects to them.
+ - The database tier and Redis accept the MiaRec Web client. With TLS, they reject plaintext connections and client certificates that their CA did not sign, and a client that trusts another CA rejects their server certificates.
+ - The applications reach PostgreSQL and Redis: the `/health` endpoints report both as `ok`, a Celery worker runs a task sent from the web host, and the recorder and the screen controller register their start in the database. Their open database connections use TLS exactly when the scenario has TLS.
+ - The REST API of the recorder and the screen controller answers the MiaRec Web hosts and rejects other hosts.
+ - With TLS, replacing the CA file of an application with an untrusted certificate breaks its connection, which proves that the application verifies the server certificate. The test restores the file and restarts the service afterward.
+ - A local account cannot reach PostgreSQL as the administrator without a password, and the TLS private keys are unreadable by an unprivileged account.
+
+Tests that need another host, such as the check that the REST API rejects other hosts, are skipped in the single-host scenarios.
+
 ## Scenario - `tls`
 
-End-to-end TLS provisioning that runs `prepare-hosts.yml` and `setup-miarec.yml` with TLS toggles enabled and verifies TLS-only connectivity via Testinfra. The prepare step generates a self-signed certificate set with the repository `Makefile` (`make tls-certs-all`) into the scenario's ephemeral directory, and the playbooks upload it the same way as in production. The scenario never reads or writes `./certs`.
+End-to-end TLS provisioning that runs `prepare-hosts.yml` and `setup-miarec.yml` with TLS toggles enabled. The prepare step generates a self-signed certificate set with the repository `Makefile` (`make tls-certs-all`) into the scenario's ephemeral directory, and the playbooks upload it the same way as in production. The scenario never reads or writes `./certs`.
 
 On RHEL 7 and 8, the scenario builds Redis from source, because the distribution packages predate Redis 6.0, the first version with TLS support.
 
-The services run as dedicated users, because the TLS private keys are readable by the `miarec` group only. The scenario runs the process-user tests of the `default` scenario too.
+The services run as dedicated users, because the TLS private keys are readable by the `miarec` group only.
 
 ```
 MOLECULE_DISTRO=ubuntu2404 molecule test -s tls
@@ -61,7 +76,7 @@ Deploys the components on six containers that share one Docker network, like the
 | `ansible-miarec-dec-rec-<distro><suffix>` | `recorder` |
 | `ansible-miarec-dec-screen-<distro><suffix>` | `screen` |
 
-The converge step sets `private_ip_address` on each host to the container address on the scenario network. The playbooks then open PGBouncer and Redis to the other tiers and allow-list their addresses, which the all-in-one scenario never exercises. The Testinfra tests run per group and check that each tier connects to the database and Redis hosts and that the configuration files point to the right peers.
+The converge step sets `private_ip_address` on each host to the container address on the scenario network. The playbooks then open PGBouncer and Redis to the other tiers and allow-list their addresses, which the all-in-one scenario never exercises. The tests check that each tier reaches the database and Redis hosts over the network.
 
 The scenario accepts the same variables as the `default` scenario.
 
@@ -71,7 +86,7 @@ MOLECULE_DISTRO=ubuntu2404 molecule test -s decoupled
 
 ## Scenario - `decoupled-tls`
 
-The `decoupled` scenario with TLS on every connection to PostgreSQL, PGBouncer, and Redis. It combines the plays of the `decoupled` and `tls` scenarios: the same six containers (named `ansible-miarec-dtls-*`), the same certificate set, and the same TLS variables. It runs the `decoupled` tests, which read `TLS_ENABLED` from the scenario environment. With TLS, the tests also check that the clients connect over TLS and that PGBouncer, PostgreSQL, and Redis reject plaintext connections and untrusted client certificates.
+The `decoupled` scenario with TLS on every connection to PostgreSQL, PGBouncer, and Redis. It combines the plays of the `decoupled` and `tls` scenarios: the same six containers (named `ansible-miarec-dtls-*`), the same certificate set, and the same TLS variables.
 
 PGBouncer and PostgreSQL run on the same host, so the connection between them stays plaintext by default. Encrypting it costs CPU time and protects nothing that leaves the host.
 

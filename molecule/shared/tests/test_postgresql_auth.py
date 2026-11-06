@@ -1,35 +1,16 @@
 """PostgreSQL authentication on the database host.
 
-Every scenario runs these tests: default and tls on their single host, decoupled
-and decoupled-tls on the database host. A local OS account must not reach the
-database as the administrator without a password, over TCP or over the Unix
-socket, with or without TLS. A user from postgresql_extra_users logs in with its
-password only, and only over TLS when the server requires it.
+A local OS account must not reach the database as the administrator without a
+password, over TCP or over the Unix socket, with or without TLS. A user from
+postgresql_extra_users logs in with its password only, and only over TLS when
+the server requires it.
 """
-import os
 import pytest
-import testinfra.utils.ansible_runner
+from conftest import hosts_in, is_listening, run_as, TLS, INSTALL_PGBOUNCER, POSTGRESQL_SSL
 
-testinfra_hosts = testinfra.utils.ansible_runner.AnsibleRunner(
-    os.environ['MOLECULE_INVENTORY_FILE']).get_hosts('db')
+testinfra_hosts = hosts_in('db')
 
-
-def env_flag(name, default=False):
-    """Return an Ansible-style boolean from the provisioner environment."""
-    value = os.environ.get(name)
-    if value is None:
-        return default
-    return value.strip().lower() in ("true", "yes", "on", "1")
-
-
-postgresql_version = os.environ.get('POSTGRESQL_VERSION')
-# MOLECULE_INSTALL_PGBOUNCER=false skips PGBouncer
-install_pgbouncer = env_flag("INSTALL_PGBOUNCER", default=True)
-# The tls scenarios set TLS_ENABLED: the clients connect to PGBouncer over TLS.
-# PostgreSQL itself requires TLS when the clients connect to it directly, or when
-# POSTGRESQL_SSL asks for TLS between PGBouncer and PostgreSQL (tls-vars.yml).
-TLS = env_flag("TLS_ENABLED")
-POSTGRESQL_SSL = TLS and (env_flag("POSTGRESQL_SSL") or not install_pgbouncer)
+install_pgbouncer = INSTALL_PGBOUNCER
 
 ADMIN_USER = "postgres"
 # The extra user that molecule/shared/install-vars.yml creates
@@ -53,47 +34,11 @@ if install_pgbouncer:
     USER_ENDPOINTS.append((6432, TLS))
 
 
-def pg_hba_path(host):
-    """Return pg_hba.conf from the PostgreSQL configuration directory."""
-    if host.system_info.distribution == "ubuntu":
-        return f"/etc/postgresql/{postgresql_version}/main/pg_hba.conf"
-    return f"/etc/postgresql/{postgresql_version}/data/pg_hba.conf"
-
-
 def has_ipv6_loopback(host):
     """Return True when the loopback interface has an IPv6 address."""
     inet6 = host.file("/proc/net/if_inet6")
     return inet6.exists and any(
         line.split()[-1] == "lo" for line in inet6.content_string.splitlines() if line.strip())
-
-
-def is_listening(host, address, port):
-    """Return True when a TCP port is bound to an address, or to the wildcard that covers it.
-
-    testinfra does not count a wildcard socket (0.0.0.0 or ::) as listening on a
-    specific address, and PGBouncer binds the wildcard in the decoupled scenarios.
-    """
-    wildcard = "0.0.0.0" if "." in address else "::"
-    sockets = host.socket.get_listening_sockets()
-    return f"tcp://{address}:{port}" in sockets or f"tcp://{wildcard}:{port}" in sockets
-
-
-def run_as(host, user, command):
-    """Run a command as an OS user, from a directory that every user can read."""
-    if user == "root":
-        return host.run(f"cd /tmp && {command}")
-    return host.run("cd /tmp && su -s /bin/sh %s -c %s", user, command)
-
-
-def test_pg_hba_has_no_trust_rule(host):
-    """No pg_hba.conf rule accepts a connection without credentials."""
-    hba = host.file(pg_hba_path(host))
-    assert hba.exists, f"{hba.path} does not exist"
-    rules = [line.split() for line in hba.content_string.splitlines()
-             if line.strip() and not line.lstrip().startswith("#")]
-    assert rules, f"{hba.path} has no rules"
-    trusted = [" ".join(rule) for rule in rules if "trust" in rule]
-    assert not trusted, f"{hba.path} has trust rules: {trusted}"
 
 
 @pytest.mark.parametrize("os_user", ["root", "nobody"])

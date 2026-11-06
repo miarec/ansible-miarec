@@ -34,7 +34,7 @@ Environment variables for molecule tests:
 - `MOLECULE_POSTGRESQL_SSL` - `true` encrypts PGBouncer-to-PostgreSQL traffic (`decoupled-tls` only)
 - `MOLECULE_INSTANCE_SUFFIX` - appended to container and network names, so two configurations of one scenario can run on the same distro at the same time
 
-Scenarios: `default`, `tls`, `decoupled`, `decoupled-tls`. Shared plays live in `molecule/shared/`.
+Scenarios: `default`, `tls`, `decoupled`, `decoupled-tls`. Shared plays live in `molecule/shared/`, and the tests of every scenario in `molecule/shared/tests/`.
 
 `make test-<configuration>` runs one CI configuration with its own container names and Molecule state directory, so configurations can run in parallel. `DISTRO` defaults to `ubuntu2404`; `MOLECULE_COMMAND` defaults to `test`. Run `make help` for the targets.
 
