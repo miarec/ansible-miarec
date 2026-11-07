@@ -35,6 +35,7 @@ platforms:
     cgroupns_mode: host
     privileged: true
     pre_build_image: true
+    keep_volumes: false
 
   - name: ansible-miarec-dtls-redis-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
@@ -48,6 +49,7 @@ platforms:
     cgroupns_mode: host
     privileged: true
     pre_build_image: true
+    keep_volumes: false
 
   - name: ansible-miarec-dtls-web-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
@@ -62,6 +64,7 @@ platforms:
     cgroupns_mode: host
     privileged: true
     pre_build_image: true
+    keep_volumes: false
 
   - name: ansible-miarec-dtls-celery-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
@@ -76,6 +79,7 @@ platforms:
     cgroupns_mode: host
     privileged: true
     pre_build_image: true
+    keep_volumes: false
 
   - name: ansible-miarec-dtls-rec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
@@ -89,6 +93,7 @@ platforms:
     cgroupns_mode: host
     privileged: true
     pre_build_image: true
+    keep_volumes: false
 
   - name: ansible-miarec-dtls-screen-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
@@ -102,6 +107,7 @@ platforms:
     cgroupns_mode: host
     privileged: true
     pre_build_image: true
+    keep_volumes: false
 
 provisioner:
   name: ansible
