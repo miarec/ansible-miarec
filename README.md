@@ -106,6 +106,13 @@ for PGBouncer or PostgreSQL, and the `redis-*` files for Redis. `db-ca.crt` and
 options is not supported. If you need it, generate the self-signed set first and
 then replace individual files.
 
+If your CA issues the certificates through an intermediate CA, append the
+intermediate certificate to each certificate file after the leaf certificate,
+in the order a TLS server sends the chain (the `fullchain.pem` layout). The
+`ca.crt` files then hold the root alone. Placing the intermediate in the
+`ca.crt` files instead works as well, but every host that verifies a
+certificate must then receive the new file when the intermediate changes.
+
 ### Validation
 
 ```bash

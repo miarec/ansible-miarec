@@ -15,8 +15,14 @@
 #                    unless it has to issue a new certificate.
 #   <service>/...    One directory per service, see bundle_spec below.
 #
+# A certificate file may hold the leaf certificate followed by its issuing
+# chain, as a TLS server sends it. Intermediate CA certificates may also go
+# in the ca.crt files, next to the root.
+#
 # The generate command is idempotent: it never overwrites a file. Remove a
 # file and run generate again to reissue it.
+#
+# scripts/tls-certs-test.sh runs the regression tests of this script.
 #
 # Environment:
 #   OPENSSL       openssl binary (default: openssl)
@@ -331,14 +337,33 @@ check_pair() {
 }
 
 # check_trust <cert> <purpose> <ca file>
+#
+# The certificate file may carry the issuing chain after the leaf, in the order
+# a TLS server sends it (leaf first, then the intermediates). openssl verify
+# reads only the first certificate of the file it checks, so the rest goes in
+# as untrusted intermediates. Intermediates in the CA file work as well.
 check_trust() {
     local crt="$1" purpose="$2" ca="$3"
-    local out
-    if out="$("$OPENSSL" verify -purpose "$purpose" -CAfile "$ca" "$crt" 2>&1)"; then
+    local work leaf chain out
+    work="$(tmpdir)"
+    leaf="$(mktemp "$work/leaf.XXXXXX")"
+    chain="$(mktemp "$work/chain.XXXXXX")"
+    awk -v leaf="$leaf" -v chain="$chain" '
+        /-----BEGIN CERTIFICATE-----/ { n++ }
+        n == 1 { print > leaf }
+        n > 1  { print > chain }
+    ' "$crt"
+    local untrusted=()
+    [ -s "$chain" ] && untrusted=(-untrusted "$chain")
+    # OpenSSL 1.0.2 (RHEL 7) reports a wrong certificate purpose on an "error"
+    # line but still exits with 0, so check the output as well.
+    if out="$("$OPENSSL" verify -purpose "$purpose" -CAfile "$ca" ${untrusted[@]+"${untrusted[@]}"} "$leaf" 2>&1)" \
+        && ! echo "$out" | grep -Eq '^error [0-9]+ at '; then
         ok "$crt is trusted by $ca ($purpose)"
     else
         fail "$crt is NOT trusted by $ca ($purpose): $(echo "$out" | grep -v '^C = \|OK$' | tr '\n' ' ')"
     fi
+    rm -f "$leaf" "$chain"
 }
 
 check_same_ca() {

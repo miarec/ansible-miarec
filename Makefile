@@ -56,7 +56,7 @@ MOLECULE_TARGETS := test-default test-default-no-pgbouncer \
 	test-decoupled-tls test-decoupled-tls-no-pgbouncer test-decoupled-tls-postgresql-ssl
 
 .PHONY: help tls-certs-all tls-certs-postgresql tls-certs-pgbouncer tls-certs-redis \
-	tls-certs-miarec tls-certs-miarecweb tls-certs-validate tls-certs-clean \
+	tls-certs-miarec tls-certs-miarecweb tls-certs-validate tls-certs-test tls-certs-clean \
 	$(MOLECULE_TARGETS)
 
 help: ## Show available targets
@@ -82,6 +82,9 @@ tls-certs-miarecweb: ## Generate the missing TLS files for MiaRec Web
 
 tls-certs-validate: ## Validate the TLS certificate set (generated or customer-provided)
 	@$(TLS_CERTS) validate $(CERTS_DIR)
+
+tls-certs-test: ## Run the regression tests of scripts/tls-certs.sh (needs only openssl)
+	@scripts/tls-certs-test.sh
 
 tls-certs-clean: ## Remove the TLS certificate set
 	@rm -rf $(CERTS_DIR)

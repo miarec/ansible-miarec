@@ -31,6 +31,9 @@ jobs:
             - name: Run ansible-lint
               run: uv run ansible-lint
 
+            - name: Test the TLS certificate script
+              run: make tls-certs-test
+
     test:
         name: molecule
         runs-on: ubuntu-22.04
