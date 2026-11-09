@@ -89,11 +89,12 @@ style overrides (see the header of the `Makefile`).
 
 ### Option 2: certificates issued by your own CA
 
-Provide all the files in the same layout. The CA private key is not needed:
+Provide the files of the services in the same layout. The `root/` directory
+belongs to the self-signed option and is not needed. Only the service files are
+uploaded to the hosts:
 
 ```
 certs/
-├── root/ca.crt                          # optional, the CA certificate
 ├── postgresql/{ca.crt,server.crt,server.key}
 ├── pgbouncer/{ca.crt,server.crt,server.key,client.crt,client.key}
 ├── redis/{ca.crt,server.crt,server.key}

@@ -9,7 +9,9 @@
 #
 # Layout of DIR (the same for generated and customer-provided sets):
 #
-#   root/ca.crt      Root CA certificate (source for the per-service ca.crt copies)
+#   root/ca.crt      Root CA certificate, the source of the per-service ca.crt
+#                    files. Generated sets only: no host receives it, and the
+#                    validate command checks the services from their own files.
 #   root/ca.key      Root CA private key. Generated sets only. Customer-provided
 #                    sets never contain it, and the script never asks for it
 #                    unless it has to issue a new certificate.
@@ -48,7 +50,7 @@ ALL_BUNDLES="postgresql pgbouncer redis miarec miarecweb"
 # ---------------------------------------------------------------------------
 
 # Print one line per file of a bundle:
-#   ca      <file>             copy of the root CA certificate
+#   ca      <file>             CA certificate the service trusts (generate copies root/ca.crt)
 #   server  <name> <CN>        <name>.key and <name>.crt, a TLS server certificate
 #   client  <name> <CN>        <name>.key and <name>.crt, a TLS client certificate
 bundle_spec() {
@@ -366,17 +368,13 @@ check_trust() {
     rm -f "$leaf" "$chain"
 }
 
-check_same_ca() {
-    local copy="$1" root="$2"
-    if cmp -s "$copy" "$root"; then
-        ok "$copy is identical to $root"
-    else
-        fail "$copy differs from $root"
-    fi
-}
-
+# validate_bundle <dir> <bundle>
+#
+# Checks the files of one service on their own. Trust between the services is
+# checked afterwards from trust_spec, against the CA file of the service that
+# verifies the certificate on the host.
 validate_bundle() {
-    local dir="$1" bundle="$2" root_cert="$3"
+    local dir="$1" bundle="$2"
     echo "-- $bundle"
     local prefix="$dir/$bundle"
     while read -r kind name _; do
@@ -387,7 +385,6 @@ validate_bundle() {
                 if ! check_cert_readable "$ca"; then fail "$ca is not a PEM certificate"; continue; fi
                 check_validity "$ca"
                 check_is_ca "$ca"
-                [ -n "$root_cert" ] && check_same_ca "$ca" "$root_cert"
                 ;;
             server|client)
                 local key="$prefix/$name.key" crt="$prefix/$name.crt"
@@ -400,9 +397,6 @@ validate_bundle() {
                 [ "$good" = 1 ] || continue
                 check_validity "$crt"
                 check_pair "$key" "$crt"
-                if [ -n "$root_cert" ]; then
-                    check_trust "$crt" "ssl$kind" "$root_cert"
-                fi
                 ;;
         esac
     done < <(bundle_spec "$bundle")
@@ -420,32 +414,35 @@ cmd_validate() {
     fi
 
     echo "Validating TLS certificate set in $dir"
-    echo "-- root CA"
-    local root_cert=""
+
+    # root/ belongs to the generate command: ca.key signs the certificates and
+    # ca.crt is the source of the per-service CA files. No host receives it, so
+    # the services are validated from their own files below. Check only that the
+    # generate command can keep working with what is there.
+    echo "-- root CA (generate command only)"
     if [ -f "$dir/root/ca.crt" ]; then
-        root_cert="$dir/root/ca.crt"
+        local root_cert="$dir/root/ca.crt"
         if check_cert_readable "$root_cert"; then
             check_validity "$root_cert"
             check_is_ca "$root_cert"
-        else
-            fail "$root_cert is not a PEM certificate"
-            root_cert=""
-        fi
-        if [ -f "$dir/root/ca.key" ]; then
-            if check_key_readable "$dir/root/ca.key"; then
-                check_pair "$dir/root/ca.key" "$dir/root/ca.crt"
+            if [ -f "$dir/root/ca.key" ]; then
+                if check_key_readable "$dir/root/ca.key"; then
+                    check_pair "$dir/root/ca.key" "$root_cert"
+                else
+                    fail "$dir/root/ca.key is not a PEM private key"
+                fi
             else
-                fail "$dir/root/ca.key is not a PEM private key"
+                ok "$dir/root/ca.key is absent (generate cannot issue new certificates)"
             fi
         else
-            ok "$dir/root/ca.key is absent (external CA, generate cannot issue new certificates)"
+            fail "$root_cert is not a PEM certificate"
         fi
     else
-        ok "$dir/root is absent (external CA, per-service CA files are checked against each other)"
+        ok "$dir/root is absent (certificates issued by an external CA)"
     fi
 
     for b in $bundles; do
-        validate_bundle "$dir" "$b" "$root_cert"
+        validate_bundle "$dir" "$b"
     done
 
     echo "-- trust between services"
