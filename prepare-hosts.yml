@@ -154,7 +154,6 @@
     - name: Configure Redis TLS variables
       set_fact:
         redis_tls_enabled: true
-        redis_tls_auth_clients: "{{ redis_tls_auth_clients | bool }}"
       when: redis_tls | default(False) | bool
 
     # Redis added TLS in 6.0. The distribution packages are older on
