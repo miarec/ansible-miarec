@@ -1,11 +1,12 @@
 """Screen tier: the screen recording controller.
 
-The screen controller uses the TLS files of the recorder (vars/recorder.yml).
+The screen controller has its own TLS files (vars/screen.yml), apart from
+the recorder's, so a changed file restarts both services on a shared host.
 """
 import pytest
 import miarec_apps
 from conftest import hosts_in, process_owners, listening_on_all_interfaces, needs_tls, \
-    MIAREC_TLS_DIR, MIAREC_SCREEN_VERSION, SCREEN_REST_PORT
+    MIAREC_SCREEN_TLS_DIR, MIAREC_SCREEN_VERSION, SCREEN_REST_PORT
 
 testinfra_hosts = hosts_in('screen')
 
@@ -54,8 +55,8 @@ def test_rest_api_rejects_other_hosts(host, client_name):
 
 @needs_tls
 @pytest.mark.parametrize("component, ca_file", [
-    ("database", f"{MIAREC_TLS_DIR}/db-ca.crt"),
-    ("redis", f"{MIAREC_TLS_DIR}/redis-ca.crt"),
+    ("database", f"{MIAREC_SCREEN_TLS_DIR}/db-ca.crt"),
+    ("redis", f"{MIAREC_SCREEN_TLS_DIR}/redis-ca.crt"),
 ])
 def test_untrusted_ca_breaks_the_connection(host, component, ca_file):
     miarec_apps.assert_untrusted_ca_breaks(host, PORT, SERVICE, ca_file, component)

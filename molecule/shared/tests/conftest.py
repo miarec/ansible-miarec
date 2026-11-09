@@ -72,6 +72,7 @@ CLIENT_GROUPS = ["web", "celery", "celerybeat", "recorder", "screen"]
 MIARECWEB_PYTHON = "/opt/miarecweb/current/pyenv/bin/python"
 MIARECWEB_TLS_DIR = "/etc/miarecweb/tls"
 MIAREC_TLS_DIR = "/etc/miarec/tls"
+MIAREC_SCREEN_TLS_DIR = "/etc/miarec_screen/tls"
 # A client certificate that every service CA trusts, on the database host, for
 # the tests that run psql there (molecule/shared/tls-certs.yml).
 TEST_CLIENT_CERT = "/var/tmp/tls-test-client/client"

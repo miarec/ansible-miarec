@@ -43,7 +43,9 @@ miarecweb_redis_tls_ca_file_src: "{{ tls_certs_dir }}/miarecweb/redis-ca.crt"
 miarecweb_redis_tls_cert_file_src: "{{ tls_certs_dir }}/miarecweb/redis-client.crt"
 miarecweb_redis_tls_key_file_src: "{{ tls_certs_dir }}/miarecweb/redis-client.key"
 
-# MiaRec recorder (hosts: recorder)
+# MiaRec recorder (hosts: recorder) and screen controller (hosts: screen).
+# The two roles share these variable names and upload the same local files,
+# each to the paths of its own service (vars/recorder.yml, vars/screen.yml).
 miarec_db_tls_ca_file_src: "{{ tls_certs_dir }}/miarec/db-ca.crt"
 miarec_db_tls_cert_file_src: "{{ tls_certs_dir }}/miarec/db-client.crt"
 miarec_db_tls_key_file_src: "{{ tls_certs_dir }}/miarec/db-client.key"

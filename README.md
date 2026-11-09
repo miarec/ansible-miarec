@@ -36,9 +36,9 @@ playbooks perform. The `molecule/tls` scenario uses this configuration.
 ## TLS certificates
 
 The playbooks can encrypt the connections between MiaRec components with TLS:
-PostgreSQL, PGBouncer, and Redis present server certificates, and MiaRec Web and
-the MiaRec recorder present client certificates. Enable TLS with these variables
-(for example in `vars/custom.yml`):
+PostgreSQL, PGBouncer, and Redis present server certificates, and MiaRec Web,
+the MiaRec recorder, and the screen controller present client certificates.
+Enable TLS with these variables (for example in `vars/custom.yml`):
 
 ```yaml
 postgresql_ssl: true
@@ -57,9 +57,9 @@ pgbouncer_client_tls_sslmode: verify-ca   # instead of require
 ```
 
 TLS private keys are installed readable by root and `miarec_bin_group` only, so
-the services that present client certificates (Celery and the recorder) must run
-as dedicated users. See [Service users](#service-users). The MiaRec Web role
-refuses to configure TLS when Celery runs as root.
+the services that present client certificates (Celery, the recorder, and the
+screen controller) must run as dedicated users. See [Service users](#service-users).
+The MiaRec Web role refuses to configure TLS when Celery runs as root.
 
 The certificates and private keys live on the Ansible control machine under
 `certs/` (variable `tls_certs_dir` in `vars/tls.yml`). Each role uploads the

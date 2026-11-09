@@ -24,8 +24,10 @@ def private_keys(host):
         keys.append("/etc/redis-tls/server.key")
     if any(shares_host(host, group) for group in ["web", "celery", "celerybeat"]):
         keys += ["/etc/miarecweb/tls/db-client.key", "/etc/miarecweb/tls/redis-client.key"]
-    if shares_host(host, "recorder") or shares_host(host, "screen"):
+    if shares_host(host, "recorder"):
         keys += ["/etc/miarec/tls/db-client.key", "/etc/miarec/tls/redis-client.key"]
+    if shares_host(host, "screen"):
+        keys += ["/etc/miarec_screen/tls/db-client.key", "/etc/miarec_screen/tls/redis-client.key"]
     return keys
 
 

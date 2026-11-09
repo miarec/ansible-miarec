@@ -71,10 +71,7 @@
   hosts: screen
   vars_files:
     - vars/db.yml
-    # The screen controller shares the miarec_db_* and miarec_redis_* variables
-    # with the recorder, so it uses the recorder's TLS files. On a host that
-    # runs both, the paths must be the same.
-    - vars/recorder.yml
+    - vars/screen.yml
     - vars/tls.yml
   pre_tasks:
     - name: Include custom vars
