@@ -216,7 +216,7 @@ def redis_service(host):
 # HTTP
 # ---------------------------------------------------------------------------
 
-def http_get(host, url, user=None, password=None):
+def http_get(host, url, user=None, password=None, timeout=10):
     """Send a GET request from a host and return (status, body).
 
     Uses the Ansible uri module, which works on every host, also on hosts
@@ -226,7 +226,7 @@ def http_get(host, url, user=None, password=None):
         "url": url,
         "return_content": True,
         "validate_certs": False,
-        "timeout": 10,
+        "timeout": timeout,
         # Report every status instead of failing on it
         "status_code": list(range(100, 600)),
     }
@@ -236,9 +236,9 @@ def http_get(host, url, user=None, password=None):
     return result.get("status", -1), result.get("content", "")
 
 
-def get_json(host, url, user=None, password=None):
+def get_json(host, url, user=None, password=None, timeout=10):
     """Send a GET request and return (status, decoded JSON body or {})."""
-    status, body = http_get(host, url, user, password)
+    status, body = http_get(host, url, user, password, timeout)
     try:
         return status, json.loads(body)
     except ValueError:

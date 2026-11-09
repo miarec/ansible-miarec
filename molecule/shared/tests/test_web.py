@@ -1,10 +1,7 @@
 """Web tier: Apache and MiaRec Web."""
-import json
-import uuid
-
 import pytest
 from conftest import (
-    hosts_in, host_of, shares_host, address_of, process_owners, listening_on_all_interfaces,
+    hosts_in, host_of, host_named, name_of, shares_host, address_of, process_owners, listening_on_all_interfaces,
     apache_service, get_json, wait_for, untrusted_file, admin_query, assert_db_connections_match_tls,
     needs_tls, MIARECWEB_PYTHON, MIARECWEB_TLS_DIR, MIARECWEB_VERSION,
 )
@@ -12,8 +9,12 @@ from conftest import (
 testinfra_hosts = hosts_in('web')
 
 HEALTH_URL = "http://localhost/health"
-# MiaRec Web answers 10 health requests per minute from one address, so poll slowly.
+CELERY_PROBE_PATH = "/health/celery/probe"
+# MiaRec Web answers 10 requests per minute from one address to each health
+# endpoint, so poll slowly.
 HEALTH_POLL_INTERVAL = 6
+# The probe waits up to 10 seconds for the worker, so wait longer for the answer.
+CELERY_PROBE_HTTP_TIMEOUT = 30
 
 
 def health(host):
@@ -21,16 +22,48 @@ def health(host):
     return get_json(host, HEALTH_URL)
 
 
-def wait_for_health(host, done):
-    """Poll the health endpoint until done(status, payload) is true and return the last answer."""
+def poll(get, done):
+    """Call get() until done(status, payload) is true and return the last answer."""
     last = []
 
     def check():
-        last[:] = health(host)
+        last[:] = get()
         return done(*last)
 
     wait_for(check, interval=HEALTH_POLL_INTERVAL)
     return tuple(last)
+
+
+def wait_for_health(host, done):
+    """Poll the health endpoint until done(status, payload) is true and return the last answer."""
+    return poll(lambda: health(host), done)
+
+
+def celery_probe(client, address):
+    """Call the Celery health probe of MiaRec Web from a host and return (HTTP status, payload).
+
+    Retries while the probe answers that the client sent too many requests.
+    """
+    url = f"http://{address}{CELERY_PROBE_PATH}"
+    return poll(lambda: get_json(client, url, timeout=CELERY_PROBE_HTTP_TIMEOUT),
+                lambda status, payload: status != 429)
+
+
+def assert_celery_probe_passes(client, address):
+    status, payload = celery_probe(client, address)
+    assert status == 200, f"Unexpected Celery probe status {status}: {payload}"
+    assert payload.get("status") == "ok", f"Unexpected Celery probe payload: {payload}"
+    assert payload.get("worker_processed") is True, f"No Celery worker ran the probe task: {payload}"
+
+
+def other_hosts():
+    """Return the hosts that may not call the Celery health probe.
+
+    The scenarios allow the web host itself and the Celery host.
+    """
+    allowed = set(hosts_in("web") + hosts_in("celery"))
+    return [name for name in hosts_in("all") if name not in allowed] or \
+        [pytest.param(None, marks=pytest.mark.skip(reason="No other host"))]
 
 
 def healthy(host):
@@ -84,27 +117,35 @@ def test_db_connections_use_tls(host):
     assert_db_connections_match_tls(inspector, address_of(inspector, "web"), "web")
 
 
-def test_celery_round_trip(host):
-    """A task sent from the web host runs on a Celery worker and returns a result.
+def test_celery_probe(host):
+    """The Celery health probe sends a task to a Celery worker and gets the result back.
 
-    In the decoupled scenarios, the web host has no Celery worker, so the reply
-    proves that the worker on the Celery host consumes tasks from Redis and
-    stores the results back in Redis.
+    The request goes through Apache, so the task leaves from the MiaRec Web
+    process that serves the users. In the decoupled scenarios, the web host has
+    no Celery worker, so the reply proves that the worker on the Celery host
+    consumes tasks from Redis and stores the results back in Redis.
     """
-    probe_id = str(uuid.uuid4())
-    script = (
-        "import json, sys\n"
-        "from miarecweb.celery.celery_app import celery_app, load_config_from_file\n"
-        "celery_config, _ = load_config_from_file(sys.argv[1])\n"
-        "celery_app.conf.update(celery_config)\n"
-        "result = celery_app.send_task('miarecweb.observability.celery_health_probe', args=[sys.argv[2]], expires=60)\n"
-        "print(json.dumps({'task_id': result.id, 'reply': result.get(timeout=60)}))\n"
-    )
-    result = host.run("%s -c %s %s %s", MIARECWEB_PYTHON, script, "/opt/miarecweb/current/production.ini", probe_id)
-    assert result.rc == 0, f"Celery health probe failed: {result.stderr}"
-    payload = json.loads(result.stdout.strip().splitlines()[-1])
-    assert payload["reply"]["probe_id"] == probe_id, f"Unexpected probe reply: {payload}"
-    assert payload["reply"]["celery_task_id"] == payload["task_id"], f"Unexpected probe reply: {payload}"
+    assert_celery_probe_passes(host, "localhost")
+
+
+def test_celery_probe_allows_listed_host(host):
+    """A host in miarecweb_celery_probe_hosts calls the Celery health probe.
+
+    The decoupled scenarios list the Celery host. By default, MiaRec Web allows
+    only the web host itself, so the answer proves that the role applies the list.
+    """
+    client = host_of("celery")
+    if name_of(client) == name_of(host):
+        pytest.skip("The Celery host is the web host")
+    assert_celery_probe_passes(client, address_of(client, "web"))
+
+
+@pytest.mark.parametrize("client_name", other_hosts())
+def test_celery_probe_rejects_other_hosts(host, client_name):
+    """A host that is not in miarecweb_celery_probe_hosts cannot call the Celery health probe."""
+    client = host_named(client_name)
+    status, payload = celery_probe(client, address_of(client, "web"))
+    assert status == 403, f"{client_name} called the Celery health probe: HTTP {status} {payload}"
 
 
 def test_script(host):

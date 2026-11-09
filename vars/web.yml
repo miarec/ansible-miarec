@@ -39,6 +39,19 @@ lame_download_url: "https://miarec-download.s3.amazonaws.com/lame-{{ lame_versio
 # miarec_bin_group: miarec
 
 ## -------------------------------
+## Celery health probe
+## -------------------------------
+# /health/celery/probe sends a task to a Celery worker and reports whether the
+# worker ran it. By default, only the web host itself may call it. To let a
+# monitoring service call it, list its addresses or networks in
+# vars/custom.yml or in the inventory:
+#
+# miarecweb_celery_probe_hosts:
+#   - 127.0.0.1
+#   - ::1
+#   - 10.0.0.0/24
+
+## -------------------------------
 ## TLS Options
 ## -------------------------------
 # miarecweb_db_tls is in vars/db.yml.

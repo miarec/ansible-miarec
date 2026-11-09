@@ -1,6 +1,7 @@
 """Celery tier: worker and beat.
 
-test_web.py sends a task from the web host and checks that a worker runs it.
+test_web.py calls the Celery health probe of MiaRec Web, which sends a task
+and checks that a worker runs it.
 """
 import pytest
 from conftest import hosts_in, shares_host, process_owners, listening_on_all_interfaces

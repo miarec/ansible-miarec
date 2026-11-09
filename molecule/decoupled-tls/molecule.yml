@@ -128,6 +128,9 @@ provisioner:
         miarecweb_celery_group: miarec
         miarec_livemon_bin_user: miarec
         miarec_livemon_bin_group: miarec
+        # The Celery host stands in for a monitoring service, so the tests can
+        # call the Celery health probe from a host other than the web host.
+        miarecweb_celery_probe_hosts: "{{ ['127.0.0.1', '::1'] + groups['celery'] | map('extract', hostvars, 'private_ip_address') | list }}"
   env:
     ANSIBLE_VERBOSITY: ${MOLECULE_ANSIBLE_VERBOSITY:-0}
     MIARECWEB_VERSION: ${MOLECULE_MIARECWEB_VERSION:-"2026.8.24.1214"}
