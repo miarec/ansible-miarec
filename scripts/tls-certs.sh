@@ -110,14 +110,11 @@ SPEC
 die() { echo "error: $*" >&2; exit 1; }
 info() { echo "$*"; }
 
-TMPDIR_WORK=""
-cleanup() { if [ -n "$TMPDIR_WORK" ]; then rm -rf "$TMPDIR_WORK"; fi; }
+# Scratch directory for configuration files, CSRs, and split certificate chains.
+# It is created here, in the main shell, so that the EXIT trap knows its path.
+TMPDIR_WORK="$(mktemp -d)"
+cleanup() { rm -rf "$TMPDIR_WORK"; }
 trap cleanup EXIT
-
-tmpdir() {
-    [ -n "$TMPDIR_WORK" ] || TMPDIR_WORK="$(mktemp -d)"
-    echo "$TMPDIR_WORK"
-}
 
 expand_bundles() {
     local out=""
@@ -164,7 +161,7 @@ ensure_root_ca() {
         info "Root CA: generating $CA_CERT"
         mkdir -p "$dir/root"
         local cnf
-        cnf="$(tmpdir)/ca.cnf"
+        cnf="$TMPDIR_WORK/ca.cnf"
         cat > "$cnf" <<'CNF'
 [req]
 distinguished_name = dn
@@ -225,7 +222,7 @@ ensure_cert() {
 
     info "  create   $crt"
     local work ext csr
-    work="$(tmpdir)"
+    work="$TMPDIR_WORK"
     ext="$work/$(basename "$crt").ext"
     csr="$work/$(basename "$crt").csr"
     {
@@ -347,7 +344,7 @@ check_pair() {
 check_trust() {
     local crt="$1" purpose="$2" ca="$3"
     local work leaf chain out
-    work="$(tmpdir)"
+    work="$TMPDIR_WORK"
     leaf="$(mktemp "$work/leaf.XXXXXX")"
     chain="$(mktemp "$work/chain.XXXXXX")"
     awk -v leaf="$leaf" -v chain="$chain" '

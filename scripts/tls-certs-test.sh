@@ -192,6 +192,33 @@ layout "$WORK/absent" chain root
 rm "$WORK/absent/redis/server.crt"
 expect fail "a missing certificate file" -- "$WORK/absent"
 
+echo "-- temporary files"
+
+# no_temp_left <description> -- <tls-certs.sh arguments>
+# Runs the script with a TMPDIR of its own, whatever its exit status, and
+# checks that the script removed everything it created there.
+no_temp_left() {
+    local what="$1"; shift 2
+    local tmp="$WORK/tmp"
+    rm -rf "$tmp"
+    mkdir -p "$tmp"
+    TMPDIR="$tmp" "$TLS_CERTS" "$@" > /dev/null 2>&1 || true
+    if [ -z "$(ls -A "$tmp")" ]; then
+        echo "PASS  $what"
+        PASSED=$((PASSED + 1))
+    else
+        echo "FAIL  $what (left in TMPDIR: $(ls -A "$tmp" | tr '\n' ' '))"
+        FAILED=$((FAILED + 1))
+    fi
+}
+
+no_temp_left "generate removes its temporary files" -- generate "$WORK/tmp-generated" all
+no_temp_left "validate of a valid set removes its temporary files" -- validate "$WORK/generated"
+no_temp_left "validate of a broken set removes its temporary files" -- validate "$WORK/missing"
+mkdir -p "$WORK/orphan-key/root"
+cp "$CA/root.key" "$WORK/orphan-key/root/ca.key"
+no_temp_left "an error exit removes the temporary files" -- generate "$WORK/orphan-key" all
+
 echo
 if [ "$FAILED" -gt 0 ]; then
     echo "FAILED: $FAILED of $((PASSED + FAILED)) tests"
