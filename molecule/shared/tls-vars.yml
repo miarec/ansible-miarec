@@ -14,13 +14,13 @@
         # The clients reach PostgreSQL over TLS: through PGBouncer, or directly
         # when PGBouncer is not installed. PGBouncer runs on the PostgreSQL
         # host, so TLS between them is optional: POSTGRESQL_SSL turns it on.
+        # vars/db.yml derives pgbouncer_server_tls from postgresql_ssl.
         _postgresql_ssl: "{{ (lookup('env', 'POSTGRESQL_SSL') | bool) or not (install_pgbouncer | bool) }}"
       set_fact:
         # prepare.yml generates the certificate set into this directory.
         tls_certs_dir: "{{ lookup('env', 'MOLECULE_TLS_CERTS_DIR') }}"
         postgresql_ssl: "{{ _postgresql_ssl }}"
         pgbouncer_client_tls: true
-        pgbouncer_server_tls: "{{ _postgresql_ssl }}"
         redis_tls: true
 
     # DB_CLIENTCERT: a password alone does not log in to the database tier, the

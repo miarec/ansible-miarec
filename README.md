@@ -43,9 +43,11 @@ Enable TLS with these variables (for example in `vars/custom.yml`):
 ```yaml
 postgresql_ssl: true
 pgbouncer_client_tls: true   # connections from MiaRec to PGBouncer
-pgbouncer_server_tls: true   # connections from PGBouncer to PostgreSQL
 redis_tls: true
 ```
+
+`pgbouncer_server_tls`, the connection from PGBouncer to PostgreSQL on the same
+host, follows `postgresql_ssl`. Set it in `vars/custom.yml` only to override.
 
 By default, the servers check a client certificate only when the client presents
 one, and a client with the right password logs in without a certificate. To

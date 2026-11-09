@@ -120,6 +120,12 @@ pgbouncer_client_tls_key_file: /etc/pgbouncer/tls/server.key
 pgbouncer_client_tls_ca_file: /etc/pgbouncer/tls/ca.crt
 
 # Server TLS settings (for connections from pgbouncer to PostgreSQL)
+# PGBouncer runs on the PostgreSQL host and connects over the loopback address.
+# With postgresql_ssl, the local pg_hba rules above match encrypted connections
+# only (hostssl), so PGBouncer has to connect over TLS too, or every login fails
+# with "no pg_hba.conf entry ... SSL off". Derive the value from postgresql_ssl
+# so the two settings cannot disagree. Set it in vars/custom.yml to override.
+pgbouncer_server_tls: "{{ postgresql_ssl | default(false) | bool }}"
 pgbouncer_server_tls_sslmode: require
 pgbouncer_server_tls_cert_file: /etc/pgbouncer/tls/client.crt
 pgbouncer_server_tls_key_file: /etc/pgbouncer/tls/client.key
