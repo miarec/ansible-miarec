@@ -27,6 +27,14 @@
       include_vars: vars/custom.yml
       failed_when: false
 
+    # PostgreSQL accepts clientcert on hostssl rules only and refuses to start
+    # with the option on a host rule. Stop before pg_hba.conf is written.
+    - name: Check that client certificates are required over TLS only
+      assert:
+        that: postgresql_ssl | default(false) | bool or not postgresql_ssl_require_clientcert | bool
+        fail_msg: "postgresql_ssl_require_clientcert needs postgresql_ssl: true. PostgreSQL accepts clientcert on hostssl rules only."
+        quiet: true
+
     - name: Define connection rule for client hosts
       set_fact:
         tmp_rule:
