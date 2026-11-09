@@ -39,6 +39,10 @@ INSTALL_PGBOUNCER = env_flag("INSTALL_PGBOUNCER", default=True)
 # PostgreSQL itself uses TLS when the clients connect to it directly, or when
 # POSTGRESQL_SSL asks for TLS between PGBouncer and PostgreSQL.
 POSTGRESQL_SSL = TLS and (env_flag("POSTGRESQL_SSL") or not INSTALL_PGBOUNCER)
+# DB_CLIENTCERT: the database tier requires a client certificate that its CA
+# signed, not only a password (postgresql_ssl_require_clientcert on PostgreSQL,
+# pgbouncer_client_tls_sslmode=verify-ca on PGBouncer).
+DB_CLIENTCERT = TLS and env_flag("DB_CLIENTCERT")
 
 MIARECWEB_VERSION = os.environ.get("MIARECWEB_VERSION")
 MIAREC_VERSION = os.environ.get("MIAREC_VERSION")
@@ -68,6 +72,9 @@ CLIENT_GROUPS = ["web", "celery", "celerybeat", "recorder", "screen"]
 MIARECWEB_PYTHON = "/opt/miarecweb/current/pyenv/bin/python"
 MIARECWEB_TLS_DIR = "/etc/miarecweb/tls"
 MIAREC_TLS_DIR = "/etc/miarec/tls"
+# A client certificate that every service CA trusts, on the database host, for
+# the tests that run psql there (molecule/shared/tls-certs.yml).
+TEST_CLIENT_CERT = "/var/tmp/tls-test-client/client"
 # A self-signed certificate that no service CA trusts (molecule/shared/tls-certs.yml).
 # The TLS scenarios create it on every host.
 UNTRUSTED_CERT = "/var/tmp/tls-untrusted/client"

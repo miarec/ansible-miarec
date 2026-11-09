@@ -52,6 +52,7 @@ MOLECULE_RUNS_DIR ?= $(HOME)/.cache/molecule/ansible-miarec
 MOLECULE_TARGETS := test-default test-default-no-pgbouncer \
 	test-tls test-tls-no-pgbouncer \
 	test-decoupled test-decoupled-no-pgbouncer \
+	test-tls-clientcert test-tls-no-pgbouncer-clientcert \
 	test-decoupled-tls test-decoupled-tls-no-pgbouncer test-decoupled-tls-postgresql-ssl
 
 .PHONY: help tls-certs-all tls-certs-postgresql tls-certs-pgbouncer tls-certs-redis \
@@ -91,6 +92,7 @@ tls-certs-clean: ## Remove the TLS certificate set
 # different suffixes; the base configuration keeps the names that CI uses.
 $(MOLECULE_TARGETS): MOLECULE_INSTALL_PGBOUNCER := true
 $(MOLECULE_TARGETS): MOLECULE_POSTGRESQL_SSL := false
+$(MOLECULE_TARGETS): MOLECULE_DB_CLIENTCERT := false
 $(MOLECULE_TARGETS): MOLECULE_INSTANCE_SUFFIX :=
 
 test-default: ## Test all components on one host
@@ -108,6 +110,17 @@ test-tls-no-pgbouncer: ## Test all components on one host, with TLS, without PGB
 test-tls-no-pgbouncer: SCENARIO := tls
 test-tls-no-pgbouncer: MOLECULE_INSTALL_PGBOUNCER := false
 test-tls-no-pgbouncer: MOLECULE_INSTANCE_SUFFIX := -no-pgbouncer
+
+test-tls-clientcert: ## Test all components on one host, with TLS, with client certificates required
+test-tls-clientcert: SCENARIO := tls
+test-tls-clientcert: MOLECULE_DB_CLIENTCERT := true
+test-tls-clientcert: MOLECULE_INSTANCE_SUFFIX := -clientcert
+
+test-tls-no-pgbouncer-clientcert: ## Test all components on one host, with TLS, without PGBouncer, with client certificates required
+test-tls-no-pgbouncer-clientcert: SCENARIO := tls
+test-tls-no-pgbouncer-clientcert: MOLECULE_INSTALL_PGBOUNCER := false
+test-tls-no-pgbouncer-clientcert: MOLECULE_DB_CLIENTCERT := true
+test-tls-no-pgbouncer-clientcert: MOLECULE_INSTANCE_SUFFIX := -no-pgbouncer-clientcert
 
 test-decoupled: ## Test one host per tier
 test-decoupled: SCENARIO := decoupled

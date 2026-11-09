@@ -202,6 +202,14 @@ jobs:
                     - label: tls-no-pgbouncer
                       scenario: tls
                       install_pgbouncer: 'false'
+                    - label: tls-clientcert
+                      scenario: tls
+                      install_pgbouncer: 'true'
+                      db_clientcert: 'true'
+                    - label: tls-no-pgbouncer-clientcert
+                      scenario: tls
+                      install_pgbouncer: 'false'
+                      db_clientcert: 'true'
                     - label: default-no-pgbouncer
                       scenario: default
                       install_pgbouncer: 'false'
@@ -224,3 +232,4 @@ jobs:
                   MOLECULE_INSTALL_PGBOUNCER: ${{ matrix.install_pgbouncer }}
                   # Empty when the entry does not set it: the scenario default applies.
                   MOLECULE_POSTGRESQL_SSL: ${{ matrix.postgresql_ssl }}
+                  MOLECULE_DB_CLIENTCERT: ${{ matrix.db_clientcert }}

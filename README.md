@@ -47,6 +47,15 @@ pgbouncer_server_tls: true   # connections from PGBouncer to PostgreSQL
 redis_tls: true
 ```
 
+By default, the servers check a client certificate only when the client presents
+one, and a client with the right password logs in without a certificate. To
+require the certificate as well, set these variables too:
+
+```yaml
+postgresql_ssl_require_clientcert: true   # clientcert=verify-ca on the hostssl rules
+pgbouncer_client_tls_sslmode: verify-ca   # instead of require
+```
+
 TLS private keys are installed readable by root and `miarec_bin_group` only, so
 the services that present client certificates (Celery and the recorder) must run
 as dedicated users. See [Service users](#service-users). The MiaRec Web role
@@ -138,13 +147,15 @@ make test-decoupled-tls DISTRO=rockylinux9
 | `test-default-no-pgbouncer` | One for all components | No | No |
 | `test-tls` | One for all components | Yes | Yes |
 | `test-tls-no-pgbouncer` | One for all components | Yes | No |
+| `test-tls-clientcert` | One for all components | Yes, client certificates required | Yes |
+| `test-tls-no-pgbouncer-clientcert` | One for all components | Yes, client certificates required | No |
 | `test-decoupled` | One per tier | No | Yes |
 | `test-decoupled-no-pgbouncer` | One per tier | No | No |
 | `test-decoupled-tls` | One per tier | Yes | Yes |
 | `test-decoupled-tls-no-pgbouncer` | One per tier | Yes | No |
 | `test-decoupled-tls-postgresql-ssl` | One per tier | Yes, also from PGBouncer to PostgreSQL | Yes |
 
-Production deployments rarely use the configurations without PGBouncer or with TLS from PGBouncer to PostgreSQL. CI runs them on Ubuntu 24.04 only.
+Production deployments rarely use the configurations without PGBouncer, with TLS from PGBouncer to PostgreSQL, or with client certificates required. CI runs them on Ubuntu 24.04 only.
 
 To run another Molecule command, set `MOLECULE_COMMAND`. The next command for the same configuration and distro reuses the containers:
 

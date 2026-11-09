@@ -23,6 +23,15 @@
         pgbouncer_server_tls: "{{ _postgresql_ssl }}"
         redis_tls: true
 
+    # DB_CLIENTCERT: a password alone does not log in to the database tier, the
+    # client also presents a certificate that the CA signed. PostgreSQL accepts
+    # clientcert on hostssl rules only, so the option needs postgresql_ssl.
+    - name: Require client certificates on the database tier
+      set_fact:
+        postgresql_ssl_require_clientcert: "{{ postgresql_ssl | bool }}"
+        pgbouncer_client_tls_sslmode: verify-ca
+      when: lookup('env', 'DB_CLIENTCERT') | bool
+
     # Redis added TLS in 6.0. EL 8 packages Redis 5 and EL 7 packages Redis 3,
     # so build Redis from source there.
     - name: Build Redis from source | RHEL 7 and 8

@@ -43,7 +43,7 @@ All scenarios run the same Testinfra tests, in `molecule/shared/tests/`. Each te
 The tests treat the components as black boxes and never read a configuration file. They check what a component does:
 
  - The services run as the dedicated users and listen on their ports, on all interfaces only when another host connects to them.
- - The database tier and Redis accept the MiaRec Web client. With TLS, they reject plaintext connections and client certificates that their CA did not sign, and a client that trusts another CA rejects their server certificates.
+ - The database tier and Redis accept the MiaRec Web client. With TLS, they reject plaintext connections and client certificates that their CA did not sign, and a client that trusts another CA rejects their server certificates. Redis always requires a client certificate. The database tier requires one only with `MOLECULE_DB_CLIENTCERT=true`; otherwise the tests prove that a password alone logs in over TLS.
  - The applications reach PostgreSQL and Redis: the `/health` endpoints report both as `ok`, a Celery worker runs a task sent from the web host, and the recorder and the screen controller register their start in the database. Their open database connections use TLS exactly when the scenario has TLS.
  - The REST API of the recorder and the screen controller answers the MiaRec Web hosts and rejects other hosts.
  - With TLS, replacing the CA file of an application with an untrusted certificate breaks its connection, which proves that the application verifies the server certificate. The test restores the file and restarts the service afterward.
@@ -58,6 +58,10 @@ End-to-end TLS provisioning that runs `prepare-hosts.yml` and `setup-miarec.yml`
 On RHEL 7 and 8, the scenario builds Redis from source, because the distribution packages predate Redis 6.0, the first version with TLS support.
 
 The services run as dedicated users, because the TLS private keys are readable by the `miarec` group only.
+
+The scenario accepts the same variables as the `default` scenario, plus:
+
+ - `MOLECULE_DB_CLIENTCERT` makes the database tier require a client certificate, default `false`. It sets `postgresql_ssl_require_clientcert` and `pgbouncer_client_tls_sslmode: verify-ca`. The tests then prove that a password alone is refused. Without it, they prove that a password alone logs in over TLS, which is the default of the playbooks.
 
 ```
 MOLECULE_DISTRO=ubuntu2404 molecule test -s tls
@@ -93,6 +97,7 @@ PGBouncer and PostgreSQL run on the same host, so the connection between them st
 The scenario accepts the same variables as the `default` scenario, plus:
 
  - `MOLECULE_POSTGRESQL_SSL` turns on TLS between PGBouncer and PostgreSQL, default `false`. Without PGBouncer, PostgreSQL always uses TLS, because the clients connect to it directly.
+ - `MOLECULE_DB_CLIENTCERT`, as in the `tls` scenario. PostgreSQL requires the certificate only on TLS connections, so with PGBouncer it needs `MOLECULE_POSTGRESQL_SSL=true` as well.
 
 ```
 MOLECULE_DISTRO=ubuntu2404 molecule test -s decoupled-tls
@@ -109,3 +114,5 @@ Production deployments rarely use these configurations, but the playbooks suppor
 | `MOLECULE_INSTALL_PGBOUNCER=false molecule test -s decoupled` | `test-decoupled-no-pgbouncer` | The clients connect to PostgreSQL on another host directly, without TLS. |
 | `MOLECULE_INSTALL_PGBOUNCER=false molecule test` | `test-default-no-pgbouncer` | All components on one host, without PGBouncer. |
 | `MOLECULE_INSTALL_PGBOUNCER=false molecule test -s tls` | `test-tls-no-pgbouncer` | All components on one host, without PGBouncer, with TLS. |
+| `MOLECULE_DB_CLIENTCERT=true molecule test -s tls` | `test-tls-clientcert` | PGBouncer and PostgreSQL refuse a password without a client certificate. |
+| `MOLECULE_INSTALL_PGBOUNCER=false MOLECULE_DB_CLIENTCERT=true molecule test -s tls` | `test-tls-no-pgbouncer-clientcert` | PostgreSQL refuses a password without a client certificate. |

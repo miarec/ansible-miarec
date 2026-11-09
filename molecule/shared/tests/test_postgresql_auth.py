@@ -2,11 +2,13 @@
 
 A local OS account must not reach the database as the administrator without a
 password, over TCP or over the Unix socket, with or without TLS. A user from
-postgresql_extra_users logs in with its password only, and only over TLS when
-the server requires it.
+postgresql_extra_users logs in with its password only, only over TLS when the
+server requires it, and only with a client certificate when the server requires
+one (DB_CLIENTCERT).
 """
 import pytest
-from conftest import hosts_in, is_listening, run_as, TLS, INSTALL_PGBOUNCER, POSTGRESQL_SSL
+from conftest import hosts_in, is_listening, run_as, \
+    TLS, INSTALL_PGBOUNCER, POSTGRESQL_SSL, DB_CLIENTCERT, TEST_CLIENT_CERT
 
 testinfra_hosts = hosts_in('db')
 
@@ -55,6 +57,12 @@ def test_admin_tcp_login_needs_password(host, os_user, address, port, required):
         assert not required, f"Nothing listens on {address}:{port}"
         pytest.skip(f"Nothing listens on {address}:{port}")
     dsn = f"host={address} port={port} user={ADMIN_USER} dbname=postgres sslmode=prefer connect_timeout=5"
+    # With DB_CLIENTCERT, root presents the trusted test client certificate, so the
+    # test proves that the certificate alone does not log the administrator in.
+    # Only root can read its private key.
+    with_cert = DB_CLIENTCERT and os_user == "root"
+    if with_cert:
+        dsn += f" sslcert={TEST_CLIENT_CERT}.crt sslkey={TEST_CLIENT_CERT}.key"
     # psql -w never prompts for a password. A missing PGPASSFILE keeps libpq from
     # reading a password file of the OS user, and libpq stays silent about it.
     result = run_as(host, os_user, f"PGPASSFILE=/nonexistent psql -w '{dsn}' -tAc 'SELECT current_user'")
@@ -63,20 +71,28 @@ def test_admin_tcp_login_needs_password(host, os_user, address, port, required):
     if port == 5432:
         # pg_hba.conf has no TCP rule for the administrator.
         expected = f'no pg_hba.conf entry for host "{address}", user "{ADMIN_USER}"'
+    elif DB_CLIENTCERT and not with_cert:
+        # PGBouncer's client_tls_sslmode=verify-ca ends the TLS handshake of a
+        # client without a certificate, before any password request.
+        expected = "SSL error"
     else:
         # The PGBouncer rule for local connections asks for a password.
         expected = NO_PASSWORD
     assert expected in result.stderr, f"Rejected for another reason: {result.stderr}"
 
 
-def psql(host, port, sslmode, password=None):
+def psql(host, port, sslmode, password=None, client_cert=DB_CLIENTCERT):
     """Log in as the extra user on a local port and return the current user.
 
     psql -w never prompts for a password. Without a password, a missing
-    PGPASSFILE keeps libpq from reading a password file of the OS user.
+    PGPASSFILE keeps libpq from reading a password file of the OS user. With
+    client_cert, presents the trusted test client certificate, which the
+    endpoints demand when the scenario requires client certificates.
     """
     env = f"PGPASSWORD={password}" if password else "PGPASSFILE=/nonexistent"
     dsn = f"host=127.0.0.1 port={port} user={TEST_USER} dbname={TEST_DB} sslmode={sslmode} connect_timeout=5"
+    if client_cert:
+        dsn += f" sslcert={TEST_CLIENT_CERT}.crt sslkey={TEST_CLIENT_CERT}.key"
     return host.run(f"{env} psql -w '{dsn}' -tAc 'SELECT current_user'")
 
 
@@ -120,8 +136,33 @@ def test_extra_user_plaintext_login(host, port, tls):
         expected = (f'no pg_hba.conf entry for host "127.0.0.1", user "{TEST_USER}", '
                     f'database "{TEST_DB}", no encryption')
     else:
-        # pgbouncer_client_tls_sslmode is require.
+        # pgbouncer_client_tls_sslmode is require or verify-ca.
         expected = "SSL required"
+    assert expected in result.stderr, f"Rejected for another reason: {result.stderr}"
+
+
+@pytest.mark.parametrize("port,tls", USER_ENDPOINTS)
+def test_extra_user_login_without_client_certificate(host, port, tls):
+    """An endpoint requires a client certificate exactly when the scenario asks for it.
+
+    With DB_CLIENTCERT, the password alone is refused on the TLS endpoints:
+    PostgreSQL by the clientcert option of its hostssl rules, PGBouncer by
+    client_tls_sslmode=verify-ca during the TLS handshake. Without it, the
+    password alone logs in.
+    """
+    if not tls:
+        pytest.skip(f"Port {port} does not use TLS")
+    result = psql(host, port, "require", TEST_PASSWORD, client_cert=False)
+    if not DB_CLIENTCERT:
+        assert result.rc == 0, f"Port {port} rejected a login without a client certificate: {result.stderr}"
+        return
+    assert result.rc != 0, f"Port {port} accepted a login without a client certificate: {result.stdout}"
+    if port == 5432:
+        expected = "connection requires a valid client certificate"
+    else:
+        # The TLS alert differs between TLS versions, so check only that the
+        # handshake failed.
+        expected = "SSL error"
     assert expected in result.stderr, f"Rejected for another reason: {result.stderr}"
 
 

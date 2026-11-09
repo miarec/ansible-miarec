@@ -32,6 +32,35 @@
       changed_when: false
 
 
+# Test fixture: a client certificate that every service CA trusts, for the
+# tests that run psql on the database host, which has no client certificate of
+# its own in the decoupled scenarios. The recorder's database client
+# certificate from the generated set serves as it.
+- name: Copy a trusted client certificate for the tests on the database host
+  hosts: db
+  become: true
+  vars:
+    molecule_tls_certs_dir: "{{ lookup('env', 'MOLECULE_TLS_CERTS_DIR') }}"
+  tasks:
+    - name: Create fixture directory
+      file:
+        path: /var/tmp/tls-test-client
+        state: directory
+        mode: "0755"
+
+    # libpq refuses a key that the group or others can read. The tests run as root.
+    - name: Copy the recorder's database client certificate and key
+      copy:
+        src: "{{ molecule_tls_certs_dir }}/miarec/{{ item.name }}"
+        dest: "/var/tmp/tls-test-client/{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "{{ item.mode }}"
+      loop:
+        - { name: db-client.crt, dest: client.crt, mode: "0644" }
+        - { name: db-client.key, dest: client.key, mode: "0600" }
+
+
 # Test fixture: a client certificate that no service CA has signed.
 - name: Create an untrusted client certificate for negative tests
   hosts: all

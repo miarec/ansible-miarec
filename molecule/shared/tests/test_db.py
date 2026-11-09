@@ -7,7 +7,8 @@ import pytest
 from conftest import (
     hosts_in, shares_host, has_remote_clients, is_listening, listening_on_all_interfaces,
     postgresql_service, miarecweb_client, db_query, db_rows, needs_tls,
-    TLS, INSTALL_PGBOUNCER, POSTGRESQL_SSL, PGBOUNCER_PORT, POSTGRESQL_PORT, REDIS_PORT, UNTRUSTED_CERT,
+    TLS, INSTALL_PGBOUNCER, POSTGRESQL_SSL, DB_CLIENTCERT,
+    PGBOUNCER_PORT, POSTGRESQL_PORT, REDIS_PORT, UNTRUSTED_CERT,
 )
 
 testinfra_hosts = hosts_in('db')
@@ -72,6 +73,22 @@ def test_rejects_untrusted_client_certificate():
     """The database tier rejects a client certificate that its CA did not sign."""
     result = db_query(miarecweb_client(), "SELECT 1", client_cert=UNTRUSTED_CERT)
     assert result.rc != 0, "The database tier accepted an untrusted client certificate"
+
+
+@needs_tls
+def test_login_without_client_certificate():
+    """The database tier requires a client certificate exactly when the scenario asks for it.
+
+    By default, a password alone logs in over TLS, and a certificate is checked
+    only when the client presents one. With MOLECULE_DB_CLIENTCERT=true, the
+    playbooks set postgresql_ssl_require_clientcert and
+    pgbouncer_client_tls_sslmode=verify-ca, and the password alone is refused.
+    """
+    result = db_query(miarecweb_client(), "SELECT 1", client_cert=None)
+    if DB_CLIENTCERT:
+        assert result.rc != 0, "The database tier accepted a login without a client certificate"
+    else:
+        assert result.rc == 0, f"The database tier rejected a login without a client certificate: {result.stderr}"
 
 
 @needs_tls
