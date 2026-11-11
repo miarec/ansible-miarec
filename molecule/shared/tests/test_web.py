@@ -1,7 +1,7 @@
 """Web tier: Apache and MiaRec Web."""
 import pytest
 from conftest import (
-    hosts_in, host_of, host_named, name_of, shares_host, address_of, process_owners, listening_on_all_interfaces,
+    hosts_in, host_of, host_named, name_of, shares_host, address_of, listening_on_all_interfaces,
     apache_service, get_json, wait_for, untrusted_file, admin_query, assert_db_connections_match_tls,
     needs_tls, MIARECWEB_PYTHON, MIARECWEB_TLS_DIR, MIARECWEB_VERSION,
 )
