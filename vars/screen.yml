@@ -1,0 +1,29 @@
+## -------------------------------
+## Service user
+## -------------------------------
+# By default, the screen controller runs as root. To run as a dedicated
+# account, set these in vars/custom.yml or in the inventory. The role creates
+# the user and group when they do not exist. Use the same group on all hosts.
+#
+# miarec_screen_bin_user: miarec
+# miarec_screen_bin_group: miarec
+
+## -------------------------------
+## TLS Options
+## -------------------------------
+# The screen controller role shares the miarec_db_* and miarec_redis_*
+# variable names with the recorder role. miarec_db_use_ssl is in vars/db.yml.
+miarec_redis_use_ssl: "{{ redis_tls | default(False) | bool }}"
+
+# The screen controller has its own copies of the TLS files, even on a host
+# that also runs the recorder. Each role restarts its service when one of its
+# own files changed. With shared files, the first role would upload the new
+# files and the second one would see no change and keep its service running
+# with the old certificates.
+miarec_db_tls_ca_file: /etc/miarec_screen/tls/db-ca.crt
+miarec_db_tls_cert_file: /etc/miarec_screen/tls/db-client.crt
+miarec_db_tls_key_file: /etc/miarec_screen/tls/db-client.key
+
+miarec_redis_tls_ca_file: /etc/miarec_screen/tls/redis-ca.crt
+miarec_redis_tls_cert_file: /etc/miarec_screen/tls/redis-client.crt
+miarec_redis_tls_key_file: /etc/miarec_screen/tls/redis-client.key

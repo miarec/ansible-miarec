@@ -15,14 +15,17 @@ driver:
   name: docker
 
 # The driver creates the network named under each platform.
+# MOLECULE_INSTANCE_SUFFIX (empty by default) tells apart the containers of
+# two configurations of this scenario on the same distro, so both can run at
+# the same time. The Makefile sets it, see `make help`.
 
 platforms:
-  - name: ansible-miarec-dec-db-${MOLECULE_DISTRO:-ubuntu2404}
+  - name: ansible-miarec-dec-db-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - db
     networks:
-      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}
+      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -31,12 +34,12 @@ platforms:
     pre_build_image: true
     keep_volumes: false
 
-  - name: ansible-miarec-dec-redis-${MOLECULE_DISTRO:-ubuntu2404}
+  - name: ansible-miarec-dec-redis-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - redis
     networks:
-      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}
+      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -45,13 +48,13 @@ platforms:
     pre_build_image: true
     keep_volumes: false
 
-  - name: ansible-miarec-dec-web-${MOLECULE_DISTRO:-ubuntu2404}
+  - name: ansible-miarec-dec-web-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - web
       - livemon
     networks:
-      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}
+      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -60,13 +63,13 @@ platforms:
     pre_build_image: true
     keep_volumes: false
 
-  - name: ansible-miarec-dec-celery-${MOLECULE_DISTRO:-ubuntu2404}
+  - name: ansible-miarec-dec-celery-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - celery
       - celerybeat
     networks:
-      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}
+      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -75,12 +78,12 @@ platforms:
     pre_build_image: true
     keep_volumes: false
 
-  - name: ansible-miarec-dec-rec-${MOLECULE_DISTRO:-ubuntu2404}
+  - name: ansible-miarec-dec-rec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - recorder
     networks:
-      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}
+      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -89,12 +92,12 @@ platforms:
     pre_build_image: true
     keep_volumes: false
 
-  - name: ansible-miarec-dec-screen-${MOLECULE_DISTRO:-ubuntu2404}
+  - name: ansible-miarec-dec-screen-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - screen
     networks:
-      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}
+      - name: ansible-miarec-dec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -121,19 +124,23 @@ provisioner:
         miarecweb_celery_group: miarec
         miarec_livemon_bin_user: miarec
         miarec_livemon_bin_group: miarec
+        # The Celery host stands in for a monitoring service, so the tests can
+        # call the Celery health probe from a host other than the web host.
+        miarecweb_celery_probe_hosts: "{{ ['127.0.0.1', '::1'] + groups['celery'] | map('extract', hostvars, 'private_ip_address') | list }}"
   env:
     ANSIBLE_VERBOSITY: ${MOLECULE_ANSIBLE_VERBOSITY:-0}
-    MIARECWEB_VERSION: ${MOLECULE_MIARECWEB_VERSION:-"2026.8.24.0"}
+    MIARECWEB_VERSION: ${MOLECULE_MIARECWEB_VERSION:-"2026.8.24.1214"}
     MIARECWEB_SECRET: ${MOLECULE_MIARECWEB_SECRET:-"secret"}
     MIAREC_VERSION: ${MOLECULE_MIAREC_VERSION:-"2026.8.16.0"}
     MIAREC_SCREEN_VERSION: ${MOLECULE_MIAREC_SCREEN_VERSION:-"2026.8.3.0"}
     MIAREC_LIVEMON_VERSION: ${MOLECULE_MIAREC_LIVEMON_VERSION:-"0.1.0.183"}
     POSTGRESQL_VERSION: ${MOLECULE_POSTGRESQL_VERSION:-"15"}
-    PGBOUNCER_INSTALL: ${MOLECULE_PGBOUNCER_INSTALL:-"true"}
+    INSTALL_PGBOUNCER: ${MOLECULE_INSTALL_PGBOUNCER:-"true"}
 
 verifier:
   name: testinfra
-  directory: tests
+  # The tests of every scenario. They read the provisioner environment above.
+  directory: ../shared/tests
   options:
     s: true
     verbose: true

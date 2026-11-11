@@ -1,0 +1,14 @@
+---
+# The default scenario with TLS on the connections to PostgreSQL, PGBouncer,
+# and Redis.
+- name: Set install variables
+  import_playbook: ../shared/install-vars.yml
+
+- name: Set TLS variables
+  import_playbook: ../shared/tls-vars.yml
+
+- name: Run prepare-hosts playbook
+  import_playbook: ../../prepare-hosts.yml
+
+- name: Run setup-miarec playbook
+  import_playbook: ../../setup-miarec.yml

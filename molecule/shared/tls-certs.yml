@@ -1,0 +1,94 @@
+---
+# TLS scenarios: generate the TLS certificate set the same way an operator
+# does, with the repository Makefile, into a directory that is private to this
+# scenario run. tls-vars.yml points tls_certs_dir at it, so prepare-hosts.yml
+# and setup-miarec.yml upload the files exactly as in production.
+- name: Generate TLS certificates on the control machine
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  vars:
+    molecule_tls_certs_dir: "{{ lookup('env', 'MOLECULE_TLS_CERTS_DIR') }}"
+    molecule_project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+
+  tasks:
+    - name: Check MOLECULE_TLS_CERTS_DIR
+      assert:
+        that: molecule_tls_certs_dir | length > 0
+        fail_msg: MOLECULE_TLS_CERTS_DIR is not set, see molecule.yml
+
+    - name: Generate the certificate set with make
+      command: make tls-certs-all CERTS_DIR={{ molecule_tls_certs_dir | quote }}
+      args:
+        chdir: "{{ molecule_project_dir }}"
+      register: _make_certs
+      changed_when: "'create' in _make_certs.stdout"
+
+    - name: Validate the certificate set
+      command: make tls-certs-validate CERTS_DIR={{ molecule_tls_certs_dir | quote }}
+      args:
+        chdir: "{{ molecule_project_dir }}"
+      changed_when: false
+
+
+# Test fixture: a client certificate that every service CA trusts, for the
+# tests that run psql on the database host, which has no client certificate of
+# its own in the decoupled scenarios. The recorder's database client
+# certificate from the generated set serves as it.
+- name: Copy a trusted client certificate for the tests on the database host
+  hosts: db
+  become: true
+  vars:
+    molecule_tls_certs_dir: "{{ lookup('env', 'MOLECULE_TLS_CERTS_DIR') }}"
+  tasks:
+    - name: Create fixture directory
+      file:
+        path: /var/tmp/tls-test-client
+        state: directory
+        mode: "0755"
+
+    # libpq refuses a key that the group or others can read. The tests run as root.
+    - name: Copy the recorder's database client certificate and key
+      copy:
+        src: "{{ molecule_tls_certs_dir }}/miarec/{{ item.name }}"
+        dest: "/var/tmp/tls-test-client/{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "{{ item.mode }}"
+      loop:
+        - { name: db-client.crt, dest: client.crt, mode: "0644" }
+        - { name: db-client.key, dest: client.key, mode: "0600" }
+
+
+# Test fixture: a client certificate that no service CA has signed.
+- name: Create an untrusted client certificate for negative tests
+  hosts: all
+  become: true
+  tasks:
+    - name: Install OpenSSL
+      package:
+        name: openssl
+        state: present
+
+    - name: Create fixture directory
+      file:
+        path: /var/tmp/tls-untrusted
+        state: directory
+        mode: "0755"
+
+    - name: Generate a self-signed client certificate
+      command: >
+        openssl req -x509 -newkey rsa:2048 -nodes -sha256 -days 30
+        -subj "/CN=untrusted-client"
+        -keyout /var/tmp/tls-untrusted/client.key
+        -out /var/tmp/tls-untrusted/client.crt
+      args:
+        creates: /var/tmp/tls-untrusted/client.crt
+
+    # OpenSSL 1.0 on EL 7 writes the key with the default umask. libpq refuses a
+    # key that the group or others can read, before it talks to the server.
+    - name: Restrict the private key
+      file:
+        path: /var/tmp/tls-untrusted/client.key
+        mode: "0600"

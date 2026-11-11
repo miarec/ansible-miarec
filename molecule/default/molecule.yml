@@ -3,8 +3,11 @@ dependency:
   name: galaxy
 driver:
   name: docker
+# MOLECULE_INSTANCE_SUFFIX (empty by default) tells apart the containers of
+# two configurations of this scenario on the same distro, so both can run at
+# the same time. The Makefile sets it, see `make help`.
 platforms:
-  - name: ansible-miarec-${MOLECULE_DISTRO:-ubuntu2404}
+  - name: ansible-miarec-${MOLECULE_DISTRO:-ubuntu2404}${MOLECULE_INSTANCE_SUFFIX}
     image: ghcr.io/miarec/${MOLECULE_DISTRO:-ubuntu2404}-systemd:latest
     groups:
       - recorder
@@ -41,16 +44,18 @@ provisioner:
         miarec_livemon_bin_group: miarec
   env:
     ANSIBLE_VERBOSITY: ${MOLECULE_ANSIBLE_VERBOSITY:-0}
-    MIARECWEB_VERSION: ${MOLECULE_MIARECWEB_VERSION:-"2026.8.24.0"}
+    MIARECWEB_VERSION: ${MOLECULE_MIARECWEB_VERSION:-"2026.8.24.1214"}
     MIARECWEB_SECRET: ${MOLECULE_MIARECWEB_SECRET:-"secret"}
     MIAREC_VERSION: ${MOLECULE_MIAREC_VERSION:-"2026.8.16.0"}
     MIAREC_SCREEN_VERSION: ${MOLECULE_MIAREC_SCREEN_VERSION:-"2026.8.3.0"}
     MIAREC_LIVEMON_VERSION: ${MOLECULE_MIAREC_LIVEMON_VERSION:-"0.1.0.183"}
     POSTGRESQL_VERSION: ${MOLECULE_POSTGRESQL_VERSION:-"15"}
-    PGBOUNCER_INSTALL: ${MOLECULE_PGBOUNCER_INSTALL:-"true"}
+    INSTALL_PGBOUNCER: ${MOLECULE_INSTALL_PGBOUNCER:-"true"}
 
 verifier:
   name: testinfra
+  # The tests of every scenario. They read the provisioner environment above.
+  directory: ../shared/tests
   options:
     s: true
     verbose: true
