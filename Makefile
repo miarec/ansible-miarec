@@ -22,9 +22,6 @@ SHELL := /bin/bash
 CERTS_DIR ?= certs
 TLS_CERTS := scripts/tls-certs.sh
 
-# Pass every variable to the script through the environment.
-.EXPORT_ALL_VARIABLES:
-
 # ---------------------------------------------------------------------------
 # Molecule test configurations
 #
@@ -150,6 +147,7 @@ $(MOLECULE_TARGETS):
 	MOLECULE_DISTRO=$(DISTRO) \
 	MOLECULE_INSTALL_PGBOUNCER=$(MOLECULE_INSTALL_PGBOUNCER) \
 	MOLECULE_POSTGRESQL_SSL=$(MOLECULE_POSTGRESQL_SSL) \
+	MOLECULE_DB_CLIENTCERT=$(MOLECULE_DB_CLIENTCERT) \
 	MOLECULE_INSTANCE_SUFFIX=$(MOLECULE_INSTANCE_SUFFIX) \
 	MOLECULE_EPHEMERAL_DIRECTORY=$(MOLECULE_RUNS_DIR)/$(@:test-%=%)-$(DISTRO) \
 	uv run molecule $(MOLECULE_COMMAND) -s $(SCENARIO)
