@@ -31,7 +31,7 @@ miarec_livemon_bin_group: miarec
 
 Switching an existing deployment from root to dedicated users changes the
 ownership of the installed files and requires a service restart, which the
-playbooks perform. The `molecule/tls` scenario uses this configuration.
+playbooks perform. Every Molecule scenario uses this configuration.
 
 ## TLS certificates
 
