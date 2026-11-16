@@ -1,57 +1,53 @@
-# Pull Request Description Template
+# 20260309_tls
 
-## 🔍 Summary
+Adds opt-in TLS for every connection to PostgreSQL, PGBouncer, and Redis, and changes several defaults that existing deployments pick up on their next run.
 
-Adds end-to-end TLS automation for MiaRec deployments: certificate generation tooling, inventory/playbook wiring for PostgreSQL, PGBouncer, Redis, MiaRec Web/Recorder, and Molecule coverage (plus CI) that proves the TLS posture across Ubuntu 22.04/24.04 and EL9 distros.
+## 🎯 Problem
 
----
-
-## 🎯 Purpose
-
-Previously, enabling TLS meant manually minting certificates, sprinkling host-specific overrides, and hoping downstream roles stayed in sync. This PR standardizes TLS inputs (one inventory switch per component), wires the playbooks to distribute certs/keys, and introduces repeatable Molecule scenarios with shared CA generation so encrypted topologies can be tested locally and in CI before landing changes.
+Deployments that must encrypt their database and Redis traffic had no supported way to do it. Operators created certificates by hand, copied them to each host, and overrode settings per component. Nothing checked that the result encrypted the traffic or rejected plaintext clients.
 
 ---
 
-## 🧪 Testing
+## 👀 What changes for users
 
-How did you verify it works?
-
-* [x] Added/updated tests
-* [ ] Ran `pytest`
-
-Notes:
-- `MOLECULE_DISTRO=ubuntu2404 uv run molecule test`
-- `MOLECULE_DISTRO=ubuntu2404 uv run molecule test -s tls`
-- `MOLECULE_DISTRO=rhel9 uv run molecule test`
-- `MOLECULE_DISTRO=rhel9 uv run molecule test -s tls`
-- `MOLECULE_DISTRO=rockylinux9 uv run molecule test`
-- `MOLECULE_DISTRO=rockylinux9 uv run molecule test -s tls`
+- One switch per server turns on TLS: `postgresql_ssl`, `pgbouncer_client_tls`, and `redis_tls`. MiaRec Web, Celery, the recorder, and the screen controller follow these switches and verify the server certificate.
+- `make tls-certs-all` creates a self-signed certificate set. Certificates from your own CA work in the same layout, and `make tls-certs-validate` checks a set before a deployment. The playbooks upload the files and restart a service only when its own files changed.
+- Client certificates are optional: `postgresql_ssl_require_clientcert` and `pgbouncer_client_tls_sslmode: verify-ca`.
+- The playbooks stop before they change a host when a TLS combination can't work, such as client certificates without `postgresql_ssl`, or a PGBouncer client TLS mode other than `require`, `verify-ca`, or `verify-full`.
 
 ---
 
-## 📌 Related Issues
+## ⚠️ Upgrade impact
 
-Closes #N/A
+These changes apply on the next run of an existing deployment, with or without TLS.
 
----
-
-## 🚀 Changes
-
-Brief list of main changes:
-
-* Added a Makefile-driven TLS toolkit plus docs so operators (and Molecule) can mint consistent CA/server/client bundles for PostgreSQL, PGBouncer, and Redis.
-* Extended inventory defaults (`vars/db.yml`, `vars/redis.yml`) and `prepare-hosts.yml`/`setup-miarec.yml` to propagate TLS facts, update pg_hba rules, and configure MiaRec Web/Recorder + Redis with the generated certs.
-* Created/enhanced the `molecule/tls` scenario (prepare tasks, Testinfra suite) and taught GitHub Actions to run it across Ubuntu/Rocky/RHEL, alongside distro-aware verifier fixes.
-* Updated docs/prs planning notes plus `.gitignore`, workflow matrix, and supporting configs to reflect the TLS-first workflow.
+- **Recordings directory.** The recorder's default recordings directory changes from `/var/miarec/recordings` to `/var/recordings/<inventory hostname>`. New recordings go to the new directory, and existing recordings stay where they are. A recordings directory set in the web portal takes precedence. To keep the old path, set `miarec_recordings_dir: /var/miarec/recordings` in `vars/custom.yml`.
+- **Screen controller version.** The default `miarec_screen_version` changes from 2024.4.5.0 to 2026.11.15.0, so a deployment that doesn't set the version upgrades the screen controller. TLS needs 2026.8.3.0 or later. 2026.8.3.0 and 2026.10.26.0 crash on every connection to ports 6091 and 6092.
+- **PGBouncer local logins.** The `stats` user no longer reads PGBouncer statistics over the loopback address without a password. A local monitoring system needs its own rule in `pgbouncer_hba_custom`; `vars/db.yml` shows an example.
+- **PostgreSQL local logins.** Every user in `postgresql_users` can log in over the loopback address with a password, not only the MiaRec user. The administrator logs in only through the Unix socket, with peer authentication, and `postgresql_default_auth_method` no longer changes that rule.
+- **Ubuntu 20.04** is no longer tested or documented.
 
 ---
 
-## ⚠️ Notes for Reviewers
+## 🐛 Bug details
 
-TLS Molecule runs are lengthy (~12–15 minutes per distro) because they execute the full `prepare-hosts.yml` + `setup-miarec.yml` stack; plan CI time accordingly. When running locally, ensure Docker has enough memory (>=4 GB) and set `MOLECULE_DISTRO` explicitly to avoid pulling the wrong systemd image.
+The PGBouncer role writes its own rules before the rules from `vars/db.yml`, and PGBouncer applies the first rule that matches. Its rules for local connections therefore always won: a password rule for every user, and a passwordless rule for `stats`. The ansible-miarec rules for local connections never applied.
+
+* **Severity**: low. `stats` can read pool statistics only, and only from the database host. With client TLS, `client_tls_sslmode` still rejects plaintext before the rules apply.
+* **Symptom**: none visible. The rules for local connections in `vars/db.yml` had no effect.
+* **Exposure**: every release since PGBouncer support was added in April 2021 (`b1028db`).
 
 ---
 
-## 📚 Docs
+## 🔧 Implementation notes
 
-* [x] Updated docs/prs/20260309_tls/* plan + idea files
+- Each role uploads its own TLS files and restarts only its own service. The screen controller keeps separate copies in `/etc/miarec_screen/tls`, so on a host shared with the recorder, a certificate renewal restarts both services.
+- Redis TLS files live in `/etc/redis-tls`, because the RHEL Redis package changes the owner of everything under `/etc/redis` at every boot.
+- Redis added TLS in 6.0, and RHEL 7 and 8 package older versions. With `redis_tls`, the playbook fails early there unless Redis is built from source.
+- Plan: `docs/plans/20260309_tls/plan.md`.
+
+---
+
+## 📌 Related issues
+
+Follow-up: #20, server certificates for the SIPREC listener and the screen controller's control interface.
