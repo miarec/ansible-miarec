@@ -9,6 +9,23 @@
     molecule_python_version: "{{ lookup('env', 'MOLECULE_PYTHON_VERSION') | default('', true) }}"
 
   tasks:
+    # The containers share the kernel with the host, which counts the processes
+    # of a uid across the host and every container. EL 7 limits each user to
+    # 4096 processes through PAM, and runuser applies that limit, so a check
+    # that runs as a service user fails when a host process with the same uid
+    # has thousands of threads.
+    - name: Lift the PAM process limit | EL 7
+      copy:
+        dest: /etc/security/limits.d/20-nproc.conf
+        content: |
+          # Molecule: the kernel counts the processes of a uid across the host and all containers.
+          *          soft    nproc     unlimited
+          root       soft    nproc     unlimited
+        mode: "0644"
+      when:
+        - ansible_facts['os_family'] == "RedHat"
+        - ansible_facts['distribution_major_version'] == '7'
+
     # - name: Set python_version from environment
     #   set_fact:
     #     python_version: "{{ lookup('env', 'PYTHON_VERSION') }}"

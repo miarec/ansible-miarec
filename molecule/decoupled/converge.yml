@@ -1,74 +1,10 @@
 ---
-- name: Converge decoupled scenario
-  hosts: all
-  vars:
-    molecule_python_version: "{{ lookup('env', 'MOLECULE_PYTHON_VERSION') | default('', true) }}"
+# One container per tier. The components connect over the scenario network.
+- name: Set install variables
+  import_playbook: ../shared/install-vars.yml
 
-  pre_tasks:
-    # Each container has one interface on the scenario network. The playbooks
-    # use private_ip_address to connect components and to allow-list peers in
-    # pg_hba.conf, pgbouncer.ini and the recorder REST API.
-    # Docker writes the container address to /etc/hosts. Read it from there,
-    # because the RHEL 7 image has no "ip" command and Ansible network facts
-    # are empty without it.
-    - name: Detect the container IP address
-      command: "getent ahostsv4 {{ ansible_facts['hostname'] }}"
-      register: _container_address
-      changed_when: false
-      check_mode: false
-
-    - name: Require a container IP address
-      assert:
-        that:
-          - _container_address.stdout_lines | length > 0
-          - _container_address.stdout_lines[0].split()[0] is match('^\\d+\\.\\d+\\.\\d+\\.\\d+$')
-          - not _container_address.stdout_lines[0].startswith('127.')
-        fail_msg: "Cannot detect the IP address of {{ inventory_hostname }}: {{ _container_address.stdout }}"
-
-    - name: Set Install Variables
-      set_fact:
-        private_ip_address: "{{ _container_address.stdout_lines[0].split()[0] }}"
-        miarecweb_secret: "{{ lookup('env', 'MIARECWEB_SECRET') }}"
-        miarecweb_version: "{{ lookup('env', 'MIARECWEB_VERSION') }}"
-        miarec_version: "{{ lookup('env', 'MIAREC_VERSION') }}"
-        miarec_screen_version: "{{ lookup('env', 'MIAREC_SCREEN_VERSION') }}"
-        miarec_livemon_version: "{{ lookup('env', 'MIAREC_LIVEMON_VERSION') }}"
-        postgresql_version: "{{ lookup('env', 'POSTGRESQL_VERSION') }}"
-        install_pgbouncer: "{{ lookup('env', 'PGBOUNCER_INSTALL') }}"
-        # Use system packages instead of compiling from source
-        redis_install_from_source: false
-        python_install_from_source: false
-        sox_install_from_source: false
-
-    - name: Print private_ip_address
-      debug:
-        var: private_ip_address
-
-    - name: Apply MOLECULE_PYTHON_VERSION override when provided
-      when: molecule_python_version | length > 0
-      set_fact:
-        python_version: "{{ molecule_python_version }}"
-
-    - name: Set python_version when not already set | Rocky/RHEL only
-      set_fact:
-        python_version: "3.12"
-      when:
-        - ansible_facts['os_family'] == "RedHat"
-        - ansible_facts['distribution_major_version'] != '7'
-        - molecule_python_version | length == 0
-
-    # RHEL 7 has no Python 3.12 packages, so build Python from source.
-    # A source build needs the full version (like 3.11.16) to download the tarball.
-    # Use Python 3.11: miarecweb depends on onnxruntime, which has no cp312 wheels for glibc 2.17.
-    # The sox role requires a source build on RHEL 7 for mp3 support.
-    - name: Set source install variables | RHEL 7
-      set_fact:
-        python_install_from_source: true
-        python_version: "{{ molecule_python_version | default('3.11.16', true) }}"
-        sox_install_from_source: true
-      when:
-        - ansible_facts['os_family'] == "RedHat"
-        - ansible_facts['distribution_major_version'] == '7'
+- name: Set the container address
+  import_playbook: ../shared/container-address.yml
 
 - name: Run prepare-hosts playbook
   import_playbook: ../../prepare-hosts.yml

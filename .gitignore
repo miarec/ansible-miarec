@@ -4,3 +4,4 @@ ansible.log
 **/__pycache__/
 /.venv/
 /.ansible/
+certs/
