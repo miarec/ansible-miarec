@@ -99,6 +99,20 @@ pgbouncer_max_user_connections: 100
 pgbouncer_users: "{{ postgresql_users }}"
 pgbouncer_listen_addr: 127.0.0.1
 
+# Override the default 'pgbouncer_hba_default' option. PGBouncer applies the first
+# rule that matches, and the role's default rules come before 'pgbouncer_hba_custom'.
+# Its "host all all 127.0.0.1/32 md5" rule would match every local connection, with
+# or without TLS, for every user.
+# The Unix socket rule stays. The socket mode (pgbouncer_unix_socket_mode) lets only
+# the PGBouncer OS user and root connect.
+# The role's passwordless rule for the stats user is dropped too. A monitoring system
+# that reads PGBouncer metrics from this host needs its own rule in
+# pgbouncer_hba_custom, for example:
+#   - { type: "{{ pgbouncer_hba_type }}", database: pgbouncer, user: stats, address: '127.0.0.1/32', method: md5 }
+# The user also needs a password in pgbouncer_users and a place in pgbouncer_stats_users.
+pgbouncer_hba_default:
+  - { type: local, database: all, user: all, address: '', method: trust, comment: 'Unix socket connections' }
+
 # Local connections, like postgresql_pg_hba_custom. With pgbouncer_client_tls, only
 # encrypted connections match (hostssl). PGBouncer checks client certificates through
 # pgbouncer_client_tls_sslmode, not in the hba rules. prepare-hosts.yml reuses
