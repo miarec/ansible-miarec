@@ -128,6 +128,8 @@ pgbouncer_stats_users:
   - "{{ miarec_db_user }}"
 
 # Client TLS settings
+# require, verify-ca, or verify-full. prepare-hosts.yml rejects disable, allow, and
+# prefer, because the hostssl rules above accept encrypted connections only.
 pgbouncer_client_tls_sslmode: require
 pgbouncer_client_tls_cert_file: /etc/pgbouncer/tls/server.crt
 pgbouncer_client_tls_key_file: /etc/pgbouncer/tls/server.key

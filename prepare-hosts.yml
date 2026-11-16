@@ -93,6 +93,23 @@
       include_vars: vars/custom.yml
       failed_when: false
 
+    # With pgbouncer_client_tls, the hba rules are hostssl and match encrypted
+    # connections only. disable, allow, and prefer would let a plaintext client
+    # through the TLS layer just for the hba rules to reject it, so they promise
+    # plaintext access that the configuration never grants. Stop before
+    # pgbouncer.ini is written.
+    - name: Check that PGBouncer requires TLS from its clients
+      assert:
+        that: pgbouncer_client_tls_sslmode in ['require', 'verify-ca', 'verify-full']
+        fail_msg: >-
+          pgbouncer_client_tls_sslmode is '{{ pgbouncer_client_tls_sslmode }}'. With pgbouncer_client_tls: true,
+          use require, verify-ca, or verify-full. The hba rules accept encrypted connections only (hostssl),
+          so the other modes cannot accept a plaintext client. To accept plaintext clients, set pgbouncer_client_tls: false.
+        quiet: true
+      when:
+        - install_pgbouncer | default(False) | bool
+        - pgbouncer_client_tls | default(false) | bool
+
     - name: Define tmp_rule
       set_fact:
         tmp_rule:
